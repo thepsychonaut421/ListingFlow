@@ -28,7 +28,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Input } from '@/components/ui/input';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetTrigger } from '@/components/ui/sheet';
 import {
   Tooltip,
@@ -113,8 +112,8 @@ export default function Dashboard() {
       setProducts(products.map(p => p.id === product.id ? {
         ...p,
         description: result.description,
-        tags: result.tags.split(',').map(t => t.trim()),
-        keywords: result.keywords.split(',').map(k => k.trim()),
+        tags: result.tags,
+        keywords: result.keywords,
         category: result.category,
       } : p));
 

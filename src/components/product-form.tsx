@@ -71,7 +71,7 @@ export function ProductForm({ product, onSave, onCancel }: ProductFormProps) {
 
   const onSubmit = (data: ProductFormValues) => {
     const finalData: Product = {
-      ...product!,
+      ...product,
       ...data,
       id: product?.id || crypto.randomUUID(),
       tags: product?.tags || [],

@@ -26,8 +26,8 @@ export type GenerateProductDescriptionInput = z.infer<
 
 const GenerateProductDescriptionOutputSchema = z.object({
   description: z.string().describe('The generated product description.'),
-  tags: z.string().describe('Suggested tags for SEO.'),
-  keywords: z.string().describe('Suggested keywords for SEO.'),
+  tags: z.array(z.string()).describe('Suggested tags for SEO as an array of strings.'),
+  keywords: z.array(z.string()).describe('Suggested keywords for SEO as an array of strings.'),
   category: z.string().describe('Suggested category for the product.'),
 });
 export type GenerateProductDescriptionOutput = z.infer<
@@ -50,6 +50,7 @@ Product Name: {{{productName}}}
 Category: {{{category}}}
 Listing Status: {{{listingStatus}}}
 
+Return the tags and keywords as a JSON array of strings.
 Description:`,
 });
 
