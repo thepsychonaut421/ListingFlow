@@ -29,7 +29,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
-import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetTrigger } from '@/components/ui/sheet';
 import {
   Tooltip,
   TooltipContent,
@@ -330,6 +330,14 @@ export default function Dashboard() {
                       </Button>
                     </SheetTrigger>
                     <SheetContent className="sm:max-w-2xl" side="right">
+                      <SheetHeader>
+                        <SheetTitle>{selectedProduct ? 'Edit Product' : 'Add New Product'}</SheetTitle>
+                        <SheetDescription>
+                          {selectedProduct
+                            ? 'Update the details of your product.'
+                            : 'Fill in the details for the new product.'}
+                        </SheetDescription>
+                      </SheetHeader>
                       <ProductForm 
                         product={selectedProduct} 
                         onSave={handleSaveProduct} 
