@@ -1,0 +1,15 @@
+export type Product = {
+  id: string;
+  name: string;
+  code: string;
+  quantity: number;
+  price: number;
+  description: string;
+  image: string;
+  supplier: string;
+  location: string;
+  tags: string[];
+  keywords: string[];
+  category: string;
+  listingStatus: 'draft' | 'listed' | 'error' | 'new' | 'used' | 'refurbished';
+};
