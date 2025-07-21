@@ -83,8 +83,8 @@ export default function RootLayout({
   const navItems = [
     { href: '/', icon: Home, label: 'Dashboard' },
     { href: '/listings', icon: ShoppingCart, label: 'Listings' },
-    { href: '/#presets', icon: Tag, label: 'Presets' },
-    { href: '/#exports', icon: File, label: 'Exports' },
+    { href: '/presets', icon: Tag, label: 'Presets' },
+    { href: '/exports', icon: File, label: 'Exports' },
   ];
 
   return (
