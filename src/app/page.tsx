@@ -228,6 +228,10 @@ export default function Dashboard() {
                 </Button>
               </SheetTrigger>
               <SheetContent side="left" className="sm:max-w-xs">
+                <SheetHeader className="sr-only">
+                  <SheetTitle>Navigation Menu</SheetTitle>
+                  <SheetDescription>Main navigation links for the application.</SheetDescription>
+                </SheetHeader>
                  <nav className="grid gap-6 text-lg font-medium">
                   <Link
                     href="/"
