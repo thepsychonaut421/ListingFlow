@@ -183,7 +183,7 @@ export default function Dashboard() {
               <span className="sr-only">ListingFlow</span>
             </Link>
             {navItems.map((item) => (
-              <Tooltip key={item.href}>
+              <Tooltip key={`${item.href}-${item.label}`}>
                 <TooltipTrigger asChild>
                   <Link
                     href={item.href}
@@ -238,7 +238,7 @@ export default function Dashboard() {
                   </Link>
                   {navItems.map((item) => (
                      <Link
-                      key={item.href}
+                      key={`${item.href}-${item.label}`}
                       href={item.href}
                       className={cn(
                         'flex items-center gap-4 px-2.5 text-muted-foreground hover:text-foreground',
