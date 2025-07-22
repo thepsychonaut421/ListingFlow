@@ -22,6 +22,7 @@ import {
 } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
 import { generateEbayCsv } from '@/lib/ebay-csv-generator';
+import { initialProducts } from '@/lib/data';
 
 export default function ExportsPage() {
   const [products, setProducts] = React.useState<Product[]>([]);
@@ -32,9 +33,12 @@ export default function ExportsPage() {
       const storedProducts = localStorage.getItem('listingFlowProducts');
       if (storedProducts) {
         setProducts(JSON.parse(storedProducts));
+      } else {
+        setProducts(initialProducts);
       }
     } catch (error) {
       console.error('Failed to parse products from localStorage', error);
+      setProducts(initialProducts);
     }
   }, []);
 

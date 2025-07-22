@@ -35,15 +35,7 @@ export default function SettingsPage() {
 
   const handleSetTheme = (newTheme: string) => {
     setTheme(newTheme);
-    localStorage.setItem('listingFlowTheme', newTheme);
-     const root = window.document.documentElement;
-    root.classList.remove('light', 'dark');
-    if (newTheme === 'system') {
-      const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-      root.classList.add(systemTheme);
-    } else {
-      root.classList.add(newTheme);
-    }
+    // This logic is now handled in the AppShell component
   };
   
   const handleClearData = () => {
@@ -70,19 +62,8 @@ export default function SettingsPage() {
               <div>
                 <h3 className="text-lg font-medium">Appearance</h3>
                 <p className="text-sm text-muted-foreground">
-                  Customize the look and feel of the application.
+                  This setting is now controlled from the user menu in the header.
                 </p>
-                <div className="mt-4 flex items-center space-x-2">
-                  <Button variant={theme === 'light' ? 'default' : 'outline'} size="sm" onClick={() => handleSetTheme('light')}>
-                    <Sun className="mr-2 h-4 w-4" /> Light
-                  </Button>
-                  <Button variant={theme === 'dark' ? 'default' : 'outline'} size="sm" onClick={() => handleSetTheme('dark')}>
-                    <Moon className="mr-2 h-4 w-4" /> Dark
-                  </Button>
-                   <Button variant={theme === 'system' ? 'default' : 'outline'} size="sm" onClick={() => handleSetTheme('system')}>
-                    <Monitor className="mr-2 h-4 w-4" /> System
-                  </Button>
-                </div>
               </div>
             </div>
           </CardContent>
