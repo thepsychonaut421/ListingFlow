@@ -9,21 +9,127 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Download } from 'lucide-react';
+import type { Product } from '@/lib/types';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import { useToast } from '@/hooks/use-toast';
+import { generateEbayCsv } from '@/lib/ebay-csv-generator';
 
 export default function ExportsPage() {
+  const [products, setProducts] = React.useState<Product[]>([]);
+  const { toast } = useToast();
+
+  React.useEffect(() => {
+    try {
+      const storedProducts = localStorage.getItem('listingFlowProducts');
+      if (storedProducts) {
+        setProducts(JSON.parse(storedProducts));
+      }
+    } catch (error) {
+      console.error('Failed to parse products from localStorage', error);
+    }
+  }, []);
+
+  const handleExport = () => {
+    if (products.length === 0) {
+      toast({
+        variant: 'destructive',
+        title: 'Export Failed',
+        description: 'There are no products to export.',
+      });
+      return;
+    }
+
+    try {
+      const csvContent = generateEbayCsv(products);
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      link.setAttribute('href', url);
+      link.setAttribute('download', `ebay-export-${new Date().toISOString()}.csv`);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      toast({
+        title: 'Export Successful',
+        description: 'Your products have been exported to the eBay File Exchange format.',
+      });
+    } catch (error) {
+      console.error('Failed to generate eBay CSV:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Export Failed',
+        description: 'Could not generate the export file. Please try again.',
+      });
+    }
+  };
+
+
   return (
     <main className="grid flex-1 items-start gap-4 p-4 sm:px-6 sm:py-0 md:gap-8">
       <Card>
         <CardHeader>
-          <CardTitle>Exports</CardTitle>
-          <CardDescription>
-            Export your product data to various formats.
-          </CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>eBay Export</CardTitle>
+              <CardDescription>
+                Export your product data to the eBay File Exchange CSV format.
+              </CardDescription>
+            </div>
+            <Button onClick={handleExport}>
+              <Download className="mr-2 h-4 w-4" />
+              Export to eBay CSV
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
-          <div className="flex flex-col items-center justify-center text-center p-8 border-2 border-dashed rounded-lg">
-            <h3 className="text-xl font-semibold mb-2">Coming Soon</h3>
-            <p className="text-muted-foreground">This page is under construction. Check back later for data export features!</p>
+          <p className="text-sm text-muted-foreground mb-4">
+            This tool generates a CSV file based on the eBay File Exchange format. Below is a preview of the products that will be included in the export. Note that many columns are pre-filled with default values suitable for a standard listing.
+          </p>
+          <div className="rounded-md border">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Product Name</TableHead>
+                  <TableHead>SKU</TableHead>
+                  <TableHead>Price</TableHead>
+                  <TableHead>Quantity</TableHead>
+                  <TableHead>Category</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {products.length > 0 ? (
+                  products.map((product) => (
+                    <TableRow key={product.id}>
+                      <TableCell className="font-medium">{product.name}</TableCell>
+                      <TableCell>{product.code}</TableCell>
+                      <TableCell>${product.price.toFixed(2)}</TableCell>
+                      <TableCell>{product.quantity}</TableCell>
+                      <TableCell>{product.category}</TableCell>
+                    </TableRow>
+                  ))
+                ) : (
+                  <TableRow>
+                    <TableCell
+                      colSpan={5}
+                      className="h-24 text-center"
+                    >
+                      No products found. Add some products on the dashboard to get started.
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
           </div>
         </CardContent>
       </Card>
