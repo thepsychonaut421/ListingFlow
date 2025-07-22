@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { useForm, useWatch } from 'react-hook-form';
+import { useForm, useWatch, useFormContext } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import {
@@ -29,6 +29,12 @@ import {
 import { Card, CardContent } from '@/components/ui/card';
 import type { Product } from '@/lib/types';
 import { HTMLPreview } from './html-preview';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
+import { findEbayCategoryId } from '@/ai/flows/find-ebay-category-id';
+import { useToast } from '@/hooks/use-toast';
+import { Loader2, Search, Copy } from 'lucide-react';
+import {CopyToClipboard} from 'react-copy-to-clipboard';
+
 
 const productSchema = z.object({
   name: z.string().min(3, 'Product name must be at least 3 characters'),
@@ -50,7 +56,92 @@ interface ProductFormProps {
   onCancel: () => void;
 }
 
+function CategoryFinder({ onSelectCategory }: { onSelectCategory: (id: string) => void }) {
+  const [searchTerm, setSearchTerm] = React.useState('');
+  const [result, setResult] = React.useState<{ ebayCategoryId: string; categoryPath: string } | null>(null);
+  const [isLoading, setIsLoading] = React.useState(false);
+  const [error, setError] = React.useState<string | null>(null);
+  const { toast } = useToast();
+
+  const handleSearch = async () => {
+    if (!searchTerm.trim()) {
+      setError('Please enter a product description to search.');
+      return;
+    }
+    setError(null);
+    setIsLoading(true);
+    setResult(null);
+    try {
+      const res = await findEbayCategoryId({ productDescription: searchTerm });
+      setResult(res);
+    } catch (err) {
+      console.error(err);
+      setError('Could not find a category. Please try a different search term.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  const handleCopyToClipboard = () => {
+    toast({
+        title: 'Copied!',
+        description: 'Category ID copied to clipboard.',
+    });
+  };
+
+  return (
+    <DialogContent className="sm:max-w-[425px]">
+      <DialogHeader>
+        <DialogTitle>Find eBay Category</DialogTitle>
+        <DialogDescription>
+          Describe your product, and we'll find the most relevant eBay category ID for you.
+        </DialogDescription>
+      </DialogHeader>
+      <div className="grid gap-4 py-4">
+        <div className="flex items-center space-x-2">
+          <Input
+            id="category-search"
+            placeholder="e.g., men's leather watch"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+          />
+          <Button onClick={handleSearch} disabled={isLoading}>
+            {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+            <span className="sr-only">Search</span>
+          </Button>
+        </div>
+        {error && <p className="text-sm text-destructive">{error}</p>}
+      </div>
+
+      {result && (
+        <Card>
+          <CardContent className="p-4 space-y-2">
+              <h4 className="font-semibold">Suggested Category</h4>
+              <p className="text-sm text-muted-foreground">{result.categoryPath}</p>
+              <div className="flex items-center justify-between pt-2">
+                <p className="text-lg font-bold font-mono bg-muted px-2 py-1 rounded-md">{result.ebayCategoryId}</p>
+                <CopyToClipboard text={result.ebayCategoryId} onCopy={handleCopyToClipboard}>
+                    <Button variant="outline" size="sm">
+                        <Copy className="mr-2 h-4 w-4" /> Copy ID
+                    </Button>
+                </CopyToClipboard>
+              </div>
+          </CardContent>
+        </Card>
+      )}
+      <DialogFooter>
+         {result && (
+            <Button onClick={() => onSelectCategory(result.ebayCategoryId)}>Use This Category ID</Button>
+        )}
+      </DialogFooter>
+    </DialogContent>
+  );
+}
+
+
 export function ProductForm({ product, onSave, onCancel }: ProductFormProps) {
+  const [isCategoryFinderOpen, setIsCategoryFinderOpen] = React.useState(false);
   const form = useForm<ProductFormValues>({
     resolver: zodResolver(productSchema),
     defaultValues: {
@@ -73,25 +164,31 @@ export function ProductForm({ product, onSave, onCancel }: ProductFormProps) {
 
   const onSubmit = (data: ProductFormValues) => {
     const finalData: Product = {
-      ...product,
+      ...(product || {
+        id: crypto.randomUUID(),
+        tags: [],
+        keywords: [],
+        supplier: '',
+        location: '',
+      }),
       ...data,
-      id: product?.id || crypto.randomUUID(),
-      tags: product?.tags || [],
-      keywords: product?.keywords || [],
-      supplier: product?.supplier || '',
-      location: product?.location || '',
     };
     onSave(finalData);
+  };
+  
+  const handleSelectCategory = (categoryId: string) => {
+    form.setValue('ebayCategoryId', categoryId, { shouldValidate: true });
+    setIsCategoryFinderOpen(false);
   };
 
   return (
     <Form {...form}>
       <form
         onSubmit={form.handleSubmit(onSubmit)}
-        className="flex h-full flex-col pt-6"
+        className="flex h-full flex-col"
       >
-        <div className="flex-1 overflow-y-auto px-6 py-4">
-          <div className="grid gap-6">
+        <div className="flex-1 overflow-y-auto px-1 py-4">
+          <div className="grid gap-6 px-6">
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
               <FormField
                 control={form.control}
@@ -150,15 +247,25 @@ export function ProductForm({ product, onSave, onCancel }: ProductFormProps) {
                     </FormItem>
                     )}
                 />
-                <FormField
+                 <FormField
                     control={form.control}
                     name="ebayCategoryId"
                     render={({ field }) => (
                     <FormItem>
                         <FormLabel>eBay Category ID</FormLabel>
-                        <FormControl>
-                        <Input placeholder="e.g. 2977" {...field} />
-                        </FormControl>
+                        <div className="flex items-center space-x-2">
+                            <FormControl>
+                                <Input placeholder="e.g. 2977" {...field} />
+                            </FormControl>
+                            <Dialog open={isCategoryFinderOpen} onOpenChange={setIsCategoryFinderOpen}>
+                                <DialogTrigger asChild>
+                                    <Button type="button" variant="outline">
+                                        <Search className="mr-2 h-4 w-4" /> Find ID
+                                    </Button>
+                                </DialogTrigger>
+                                <CategoryFinder onSelectCategory={handleSelectCategory} />
+                            </Dialog>
+                        </div>
                         <FormMessage />
                     </FormItem>
                     )}
