@@ -2,76 +2,89 @@
 
 import type { Product } from './types';
 
-// Helper function to escape CSV fields
+// Helper function to escape CSV fields for semicolon-delimited files
 const escapeCsvField = (field: any): string => {
   if (field === null || field === undefined) {
     return '';
   }
   const stringField = String(field);
-  // If the field contains a comma, double quote, or newline, enclose it in double quotes
-  if (/[",\n]/.test(stringField)) {
+  // If the field contains a semicolon, double quote, or newline, enclose it in double quotes
+  if (/[;\n"]/.test(stringField)) {
     // Within a quoted field, any double quote must be escaped by another double quote
     return `"${stringField.replace(/"/g, '""')}"`;
   }
   return stringField;
 };
 
+// Maps our simple status to eBay's Condition IDs
+const getConditionId = (status: Product['listingStatus']): number => {
+    switch (status) {
+        case 'new': return 1000;
+        case 'used': return 3000;
+        case 'refurbished': return 2500;
+        default: return 1000; // Default to 'New'
+    }
+}
+
 export const generateEbayCsv = (products: Product[]): string => {
   const headers = [
-    'Action(SiteID=US|Country=US|Currency=USD|Version=1193|CC=UTF-8)',
-    'Category',
+    'Action(SiteID=Germany|Country=DE|Currency=EUR|Version=1193|CC=UTF-8)',
+    'Custom label (SKU)',
+    'Category ID',
     'Title',
-    'Subtitle',
-    'Relationship',
-    'RelationshipDetails',
-    'ItemID',
-    'ConditionID',
-    'ItemSpecifics',
-    'PicURL',
-    'Description',
-    'Format',
-    'Duration',
-    'StartPrice',
+    'UPC',
+    'Price',
     'Quantity',
-    'Location',
-    'ShippingDetails',
-    'DispatchTimeMax',
-    'ReturnsAcceptedOption',
-    'ReturnsWithinOption',
-    'ShippingCostPaidByOption',
-    'CustomLabel'
+    'Item photo URL',
+    'Condition ID',
+    'Description',
+    'Format'
   ];
 
   const rows = products.map(product => {
-    // Mapping product data to eBay format
-    // Many fields are given default values as per a typical eBay listing
     const rowData = {
-      'Action(SiteID=US|Country=US|Currency=USD|Version=1193|CC=UTF-8)': 'Add',
-      'Category': product.ebayCategoryId || '1', // Use the specific eBay Category ID
-      'Title': product.name,
-      'Subtitle': '',
-      'Relationship': '',
-      'RelationshipDetails': '',
-      'ItemID': '',
-      'ConditionID': '1000', // 1000 for "New"
-      'ItemSpecifics': `Brand=Unbranded`,
-      'PicURL': product.image,
-      'Description': product.description,
-      'Format': 'FixedPrice',
-      'Duration': 'GTC', // Good 'Til Canceled
-      'StartPrice': product.price,
-      'Quantity': product.quantity,
-      'Location': product.location || 'US',
-      'ShippingDetails': 'ShippingMethodStandard:1:FREE',
-      'DispatchTimeMax': '3',
-      'ReturnsAcceptedOption': 'ReturnsAccepted',
-      'ReturnsWithinOption': 'Days_30',
-      'ShippingCostPaidByOption': 'Buyer',
-      'CustomLabel': product.code, // Use SKU for CustomLabel
+        'Action': 'Draft',
+        'Custom label (SKU)': product.code,
+        'Category ID': product.ebayCategoryId,
+        'Title': product.name,
+        'UPC': '', // UPC is not in our data model
+        'Price': product.price.toFixed(2),
+        'Quantity': product.quantity,
+        'Item photo URL': product.image,
+        'Condition ID': getConditionId(product.listingStatus),
+        'Description': product.description,
+        'Format': 'FixedPrice',
     };
 
-    return headers.map(header => escapeCsvField(rowData[header as keyof typeof rowData])).join(',');
+    // Note: The order of values must match the order of headers
+    return [
+        escapeCsvField(rowData.Action),
+        escapeCsvField(rowData['Custom label (SKU)']),
+        escapeCsvField(rowData['Category ID']),
+        escapeCsvField(rowData.Title),
+        escapeCsvField(rowData.UPC),
+        escapeCsvField(rowData.Price),
+        escapeCsvField(rowData.Quantity),
+        escapeCsvField(rowData['Item photo URL']),
+        escapeCsvField(rowData['Condition ID']),
+        escapeCsvField(rowData.Description),
+        escapeCsvField(rowData.Format),
+    ].join(';');
   });
 
-  return [headers.join(','), ...rows].join('\n');
+  // Prepending the informational headers provided in the template
+  const fileInfoHeaders = [
+    '#INFO;Version=0.0.2;Template=eBay-draft-listings-template_DE;;;;;;;;;',
+    '#INFO;Action und Category ID sind erforderliche Felder. 1) Stellen Sie Action auf Draft ein. 2) Die Kategorie-ID für Ihre Angebote finden Sie hier: https://pages.ebay.com/sellerinformation/news/categorychanges.html;;;;;;;;;',
+    '#INFO;Nachdem Sie Ihren Entwurf erfolgreich im Berichte-Tab Ihres Verkäufer-Cockpit Pro heruntergeladen haben; können Sie die Entwürfe hier zu aktiven Angeboten vervollständigen: https://www.ebay.de/sh/lst/drafts;;;;;;;;;',
+    '#INFO;;;;;;;;;;'
+  ];
+
+  const csvContent = [
+    ...fileInfoHeaders,
+    headers.join(';'),
+    ...rows
+  ].join('\n');
+
+  return csvContent;
 };
