@@ -47,7 +47,7 @@ export const generateEbayCsv = (products: Product[]): string => {
     // Many fields are given default values as per a typical eBay listing
     const rowData = {
       'Action(SiteID=US|Country=US|Currency=USD|Version=1193|CC=UTF-8)': 'Add',
-      'Category': product.category || '1', // Default to a placeholder category '1' if not set
+      'Category': product.ebayCategoryId || '1', // Use the specific eBay Category ID
       'Title': product.name,
       'Subtitle': '',
       'Relationship': '',

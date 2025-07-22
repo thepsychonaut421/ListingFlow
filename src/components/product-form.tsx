@@ -38,6 +38,7 @@ const productSchema = z.object({
   description: z.string().optional(),
   image: z.string().url('Must be a valid URL').optional().or(z.literal('')),
   category: z.string().optional(),
+  ebayCategoryId: z.string().optional(),
   listingStatus: z.enum(['draft', 'listed', 'error', 'new', 'used', 'refurbished']),
 });
 
@@ -60,6 +61,7 @@ export function ProductForm({ product, onSave, onCancel }: ProductFormProps) {
       description: product?.description || '',
       image: product?.image || '',
       category: product?.category || '',
+      ebayCategoryId: product?.ebayCategoryId || '',
       listingStatus: product?.listingStatus || 'draft',
     },
   });
@@ -133,6 +135,36 @@ export function ProductForm({ product, onSave, onCancel }: ProductFormProps) {
                 )}
               />
             </div>
+            
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                <FormField
+                    control={form.control}
+                    name="category"
+                    render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Category Name</FormLabel>
+                        <FormControl>
+                        <Input placeholder="e.g. Men's Accessories" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                    </FormItem>
+                    )}
+                />
+                <FormField
+                    control={form.control}
+                    name="ebayCategoryId"
+                    render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>eBay Category ID</FormLabel>
+                        <FormControl>
+                        <Input placeholder="e.g. 2977" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                    </FormItem>
+                    )}
+                />
+            </div>
+
 
             <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
               <FormField

@@ -99,9 +99,10 @@ export default function Dashboard() {
       setProducts(products.map(p => p.id === product.id ? {
         ...p,
         description: result.description,
-        tags: result.tags,
-        keywords: result.keywords,
+        tags: Array.isArray(result.tags) ? result.tags : [],
+        keywords: Array.isArray(result.keywords) ? result.keywords : [],
         category: result.category,
+        ebayCategoryId: result.ebayCategoryId,
       } : p));
 
       toast({
@@ -124,7 +125,7 @@ export default function Dashboard() {
   const handleExportToCSV = () => {
     const headers = [
       'id', 'name', 'code', 'quantity', 'price', 'description', 
-      'image', 'supplier', 'location', 'tags', 'keywords', 'category', 'listingStatus'
+      'image', 'supplier', 'location', 'tags', 'keywords', 'category', 'ebayCategoryId', 'listingStatus'
     ];
     const rows = products.map(product => 
       headers.map(header => {
