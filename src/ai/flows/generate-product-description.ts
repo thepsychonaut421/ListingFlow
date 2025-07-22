@@ -29,7 +29,7 @@ const GenerateProductDescriptionOutputSchema = z.object({
   tags: z.array(z.string()).describe('Suggested tags for SEO as an array of strings.'),
   keywords: z.array(z.string()).describe('Suggested keywords for SEO as an array of strings.'),
   category: z.string().describe('Suggested category name for the product.'),
-  ebayCategoryId: z.string().describe('A valid numerical eBay category ID for the product. Refer to eBay\'s official category list. This must be a number as a string, not a category name.'),
+  ebayCategoryId: z.string().describe('A valid numerical eBay category ID for the product. Refer to eBay\'s official category list. This must be a number as a string, not a category name. It must be a "leaf" category, meaning it cannot have any sub-categories.'),
 });
 export type GenerateProductDescriptionOutput = z.infer<
   typeof GenerateProductDescriptionOutputSchema
@@ -51,7 +51,7 @@ Product Name: {{{productName}}}
 Current Category: {{{category}}}
 Listing Status: {{{listingStatus}}}
 
-It is crucial that you find a specific and valid numerical eBay Category ID for the given product. Do not use generic or broad category IDs. Refer to the official eBay category list to find the most appropriate ID. The ebayCategoryId field must be a string containing only numbers.
+It is crucial that you find a specific and valid numerical eBay Category ID for the given product. This must be a "leaf" category, which is a category that has no further sub-categories. Do not use generic or broad category IDs. Refer to the official eBay category list to find the most appropriate ID. The ebayCategoryId field must be a string containing only numbers.
 
 Return the tags and keywords as a JSON array of strings.
 Description:`,

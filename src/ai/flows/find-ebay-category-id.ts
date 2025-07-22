@@ -17,7 +17,7 @@ const FindEbayCategoryIdInputSchema = z.object({
 export type FindEbayCategoryIdInput = z.infer<typeof FindEbayCategoryIdInputSchema>;
 
 const FindEbayCategoryIdOutputSchema = z.object({
-  ebayCategoryId: z.string().describe('The most specific, valid, numerical eBay Category ID for the product. This must be a number as a string, not a category name.'),
+  ebayCategoryId: z.string().describe('The most specific, valid, numerical eBay Category ID for the product. This must be a number as a string, not a category name. It must be a "leaf" category, meaning it cannot have any sub-categories.'),
   categoryPath: z.string().describe('The full, human-readable path for the suggested eBay category (e.g., "Clothing, Shoes & Accessories > Men > Men\'s Shoes > Boots").'),
 });
 export type FindEbayCategoryIdOutput = z.infer<typeof FindEbayCategoryIdOutputSchema>;
@@ -32,7 +32,9 @@ const prompt = ai.definePrompt({
   output: {schema: FindEbayCategoryIdOutputSchema},
   prompt: `You are an expert eBay specialist. Your task is to find the most specific and valid numerical eBay Category ID based on a product description.
 
-You must refer to the official eBay category list to find the most appropriate ID. Do not use generic or broad category IDs. The \`ebayCategoryId\` field must be a string containing only numbers. Also provide the full, human-readable path for the category.
+You must refer to the official eBay category list to find the most appropriate ID. It is crucial that you select a "leaf" category, which is a category that has no further sub-categories. Do not use generic or broad category IDs. For example, do not suggest "Men's Shoes" if "Boots" is available as a sub-category.
+
+The \`ebayCategoryId\` field must be a string containing only numbers. Also provide the full, human-readable path for the category.
 
 Product Description: {{{productDescription}}}
 `,

@@ -14,7 +14,7 @@ export const initialProducts: Product[] = [
     tags: ['wallet', 'leather', 'vintage', 'accessory'],
     keywords: ['men wallet', 'bifold wallet', 'genuine leather'],
     category: 'Men\'s Accessories',
-    ebayCategoryId: '2977', // Valid ID for Men's Wallets
+    ebayCategoryId: '45258', // Valid LEAF ID for Men's Wallets -> Clothing, Shoes & Accessories > Men > Men's Accessories > Wallets
     listingStatus: 'draft',
   },
   {
@@ -30,7 +30,7 @@ export const initialProducts: Product[] = [
     tags: ['headphones', 'bluetooth', 'wireless', 'audio'],
     keywords: ['noise cancelling', 'over-ear headphones', 'portable audio'],
     category: 'Electronics',
-    ebayCategoryId: '172514', // Valid ID for Headsets
+    ebayCategoryId: '172514', // Valid LEAF ID for Headsets -> Consumer Electronics > Portable Audio & Headphones > Headphones
     listingStatus: 'listed',
   },
   {
@@ -46,7 +46,7 @@ export const initialProducts: Product[] = [
     tags: ['tea', 'organic', 'green tea', 'beverage'],
     keywords: ['healthy drink', 'antioxidant tea', 'natural tea'],
     category: 'Groceries',
-    ebayCategoryId: '257921', // Valid ID for Tea & Infusions
+    ebayCategoryId: '257921', // Valid LEAF ID for Tea & Infusions -> Home & Garden > Food & Beverages > Tea & Infusions
     listingStatus: 'new',
   },
   {
@@ -62,7 +62,7 @@ export const initialProducts: Product[] = [
     tags: ['office', 'chair', 'ergonomic', 'furniture'],
     keywords: ['desk chair', 'lumbar support', 'comfortable seating'],
     category: 'Office Furniture',
-    ebayCategoryId: '74947', // Valid ID for Office Chairs
+    ebayCategoryId: '74947', // Valid LEAF ID for Office Chairs -> Business & Industrial > Office > Office Furniture > Chairs
     listingStatus: 'refurbished',
   },
   {
@@ -78,7 +78,7 @@ export const initialProducts: Product[] = [
     tags: ['water bottle', 'stainless steel', 'reusable', 'outdoors'],
     keywords: ['insulated bottle', 'eco-friendly', 'hydration'],
     category: 'Sports & Outdoors',
-    ebayCategoryId: '184587', // Valid ID for Water Bottles
+    ebayCategoryId: '184587', // Valid LEAF ID for Water Bottles -> Sporting Goods > Camping & Hiking > Camping Cooking Supplies > Water Bottles & Hydration
     listingStatus: 'used',
   },
 ];
