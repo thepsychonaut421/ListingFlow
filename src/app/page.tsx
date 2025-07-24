@@ -94,6 +94,7 @@ export default function Dashboard() {
         productName: product.name,
         category: product.category,
         listingStatus: product.listingStatus as 'new' | 'used' | 'refurbished',
+        brand: product.brand,
       });
       
       setProducts(products.map(p => p.id === product.id ? {

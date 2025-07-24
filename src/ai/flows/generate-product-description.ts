@@ -20,6 +20,7 @@ const GenerateProductDescriptionInputSchema = z.object({
     .describe(
       'The listing status of the product (e.g., new, used, refurbished).'
     ),
+  brand: z.string().optional().describe('The brand of the product, if known.'),
 });
 export type GenerateProductDescriptionInput = z.infer<
   typeof GenerateProductDescriptionInputSchema
@@ -47,7 +48,16 @@ export async function generateProductDescription(
 
 const generateDetailsPrompt = ai.definePrompt({
   name: 'generateProductDetailsPrompt',
-  input: {schema: GenerateProductDescriptionInputSchema},
+  input: {schema: z.object({
+      productName: z.string().describe('The name of the product.'),
+      category: z.string().describe('The current category of the product.'),
+      listingStatus: z
+        .string()
+        .describe(
+          'The listing status of the product (e.g., new, used, refurbished).'
+        ),
+    })
+  },
   output: {schema: z.object({
     description: z.string().describe('The generated product description.'),
     tags: z.array(z.string()).describe('Suggested tags for SEO as an array of strings.'),
@@ -86,7 +96,7 @@ const generateProductDescriptionFlow = ai.defineFlow(
     // Generate product details and find EAN in parallel
     const [detailsResponse, eanResponse] = await Promise.all([
       generateDetailsPrompt(input),
-      findEan({ productName: input.productName })
+      findEan({ productName: input.productName, brand: input.brand })
     ]);
     
     const details = detailsResponse.output;
