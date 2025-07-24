@@ -53,8 +53,8 @@ export const generateShopifyCsv = (products: Product[]): string => {
         'Title': product.name,
         'Body (HTML)': product.description,
         'Vendor': product.brand,
-        'Product Category': product.category, // Assuming our category maps to Shopify's
-        'Type': product.productType,
+        'Product Category': product.category, // This now holds the Shopify-approved category string
+        'Type': product.productType, // This is for the custom product type
         'Tags': product.tags.join(', '),
         'Published': 'true',
         'Option1 Name': 'Title',

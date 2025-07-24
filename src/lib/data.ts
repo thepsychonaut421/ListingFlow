@@ -13,7 +13,7 @@ export const initialProducts: Product[] = [
     location: 'Warehouse A, Shelf 3',
     tags: ['wallet', 'leather', 'vintage', 'accessory'],
     keywords: ['men wallet', 'bifold wallet', 'genuine leather'],
-    category: 'Men\'s Accessories',
+    category: 'Apparel & Accessories > Handbags, Wallets & Cases',
     ebayCategoryId: '2977', // Men > Men's Accessories > Wallets
     listingStatus: 'draft',
     brand: 'Unbranded',
@@ -32,7 +32,7 @@ export const initialProducts: Product[] = [
     location: 'Warehouse B, Shelf 1',
     tags: ['headphones', 'bluetooth', 'wireless', 'audio'],
     keywords: ['noise cancelling', 'over-ear headphones', 'portable audio'],
-    category: 'Electronics',
+    category: 'Electronics > Audio > Audio Components > Headsets & Earpieces',
     ebayCategoryId: '172514', // Consumer Electronics > Portable Audio & Headphones > Headphones
     listingStatus: 'listed',
     brand: 'SoundWave',
@@ -51,7 +51,7 @@ export const initialProducts: Product[] = [
     location: 'Pantry Section, Row 2',
     tags: ['tea', 'organic', 'green tea', 'beverage'],
     keywords: ['healthy drink', 'antioxidant tea', 'natural tea'],
-    category: 'Groceries',
+    category: 'Food, Beverages & Tobacco > Beverages > Tea & Infusions',
     ebayCategoryId: '257921', // Home & Garden > Food & Beverages > Tea & Infusions
     listingStatus: 'new',
     brand: 'PureLeaf',
@@ -70,7 +70,7 @@ export const initialProducts: Product[] = [
     location: 'Warehouse A, Shelf 5',
     tags: ['office', 'chair', 'ergonomic', 'furniture'],
     keywords: ['desk chair', 'lumbar support', 'comfortable seating'],
-    category: 'Office Furniture',
+    category: 'Furniture > Office Furniture > Office Chairs',
     ebayCategoryId: '74947', // Business & Industrial > Office > Office Furniture > Chairs
     listingStatus: 'refurbished',
     brand: 'Office Comforts',
@@ -89,7 +89,7 @@ export const initialProducts: Product[] = [
     location: 'Warehouse C, Bin 8',
     tags: ['water bottle', 'stainless steel', 'reusable', 'outdoors'],
     keywords: ['insulated bottle', 'eco-friendly', 'hydration'],
-    category: 'Sports & Outdoors',
+    category: 'Home & Garden > Kitchen & Dining > Kitchen Storage & Organization > Water Bottles',
     ebayCategoryId: '184587', // Sporting Goods > Camping & Hiking > Water Bottles
     listingStatus: 'used',
     brand: 'HydratePro',
@@ -108,7 +108,7 @@ export const initialProducts: Product[] = [
     location: 'Warehouse D, Shelf 2',
     tags: ['kitchen', 'mixer', 'baking', 'appliance'],
     keywords: ['stand mixer', 'dough maker', 'kitchen appliance'],
-    category: 'Kitchen Appliances',
+    category: 'Home & Garden > Kitchen & Dining > Kitchen Appliances > Food Mixers & Blenders',
     ebayCategoryId: '183597', // Haushaltsgeräte > Kleingeräte Küche > Küchenmaschinen
     listingStatus: 'draft',
     brand: 'Silvercrest',
