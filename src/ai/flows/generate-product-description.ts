@@ -32,6 +32,7 @@ const GenerateProductDescriptionOutputSchema = z.object({
   ebayCategoryId: z.string().describe('A valid numerical eBay category ID for the product. Refer to eBay\'s official category list. This must be a number as a string, not a category name. It must be a "leaf" category, meaning it cannot have any sub-categories.'),
   brand: z.string().describe('The brand name of the product (e.g., "Sony", "Apple", "Unbranded").'),
   productType: z.string().describe('The specific type of the product (e.g., "Smartphone", "Laptop", "T-Shirt").'),
+  ean: z.string().describe('The EAN/UPC for the product. If not found, return an empty string.'),
 });
 export type GenerateProductDescriptionOutput = z.infer<
   typeof GenerateProductDescriptionOutputSchema
@@ -54,6 +55,7 @@ Also, provide the following details:
 - Suggest a product category name.
 - Suggest the product's brand ("Marke"). If unknown, use "Markenlos" or "Unbranded".
 - Suggest the product type ("Produktart").
+- Provide the product's EAN/UPC if available. If not, return an empty string.
 - Provide a valid, specific, numerical eBay Category ID.
 
 Product Name: {{{productName}}}

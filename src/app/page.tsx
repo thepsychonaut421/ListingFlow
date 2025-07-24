@@ -105,6 +105,7 @@ export default function Dashboard() {
         ebayCategoryId: result.ebayCategoryId,
         brand: result.brand,
         productType: result.productType,
+        ean: result.ean,
       } : p));
 
       toast({

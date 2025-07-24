@@ -49,7 +49,7 @@ export const generateEbayCsv = (products: Product[]): string => {
         'Custom label (SKU)': product.code,
         'Category ID': product.ebayCategoryId,
         'Title': product.name,
-        'UPC': '', // UPC is not in our data model
+        'UPC': product.ean || '',
         'Price': product.price.toFixed(2),
         'Quantity': product.quantity,
         'Item photo URL': product.image,

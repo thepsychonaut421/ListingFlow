@@ -48,6 +48,7 @@ const productSchema = z.object({
   listingStatus: z.enum(['draft', 'listed', 'error', 'new', 'used', 'refurbished']),
   brand: z.string().optional(),
   productType: z.string().optional(),
+  ean: z.string().optional(),
 });
 
 type ProductFormValues = z.infer<typeof productSchema>;
@@ -158,6 +159,7 @@ export function ProductForm({ product, onSave, onCancel }: ProductFormProps) {
       listingStatus: product?.listingStatus || 'draft',
       brand: product?.brand || '',
       productType: product?.productType || '',
+      ean: product?.ean || '',
     },
   });
 
@@ -306,8 +308,8 @@ export function ProductForm({ product, onSave, onCancel }: ProductFormProps) {
             </div>
 
 
-            <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
-              <FormField
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+               <FormField
                 control={form.control}
                 name="code"
                 render={({ field }) => (
@@ -320,6 +322,21 @@ export function ProductForm({ product, onSave, onCancel }: ProductFormProps) {
                   </FormItem>
                 )}
               />
+              <FormField
+                control={form.control}
+                name="ean"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>EAN / UPC</FormLabel>
+                    <FormControl>
+                      <Input placeholder="e.g. 4056233833446" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+             <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
               <FormField
                 control={form.control}
                 name="quantity"

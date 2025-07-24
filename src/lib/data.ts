@@ -17,7 +17,8 @@ export const initialProducts: Product[] = [
     ebayCategoryId: '2977', // Men > Men's Accessories > Wallets
     listingStatus: 'draft',
     brand: 'Unbranded',
-    productType: 'Wallet'
+    productType: 'Wallet',
+    ean: ''
   },
   {
     id: 'prod-002',
@@ -35,7 +36,8 @@ export const initialProducts: Product[] = [
     ebayCategoryId: '172514', // Consumer Electronics > Portable Audio & Headphones > Headphones
     listingStatus: 'listed',
     brand: 'SoundWave',
-    productType: 'Headphones'
+    productType: 'Headphones',
+    ean: ''
   },
   {
     id: 'prod-003',
@@ -53,7 +55,8 @@ export const initialProducts: Product[] = [
     ebayCategoryId: '257921', // Home & Garden > Food & Beverages > Tea & Infusions
     listingStatus: 'new',
     brand: 'PureLeaf',
-    productType: 'Tea'
+    productType: 'Tea',
+    ean: ''
   },
   {
     id: 'prod-004',
@@ -71,7 +74,8 @@ export const initialProducts: Product[] = [
     ebayCategoryId: '74947', // Business & Industrial > Office > Office Furniture > Chairs
     listingStatus: 'refurbished',
     brand: 'Office Comforts',
-    productType: 'Office Chair'
+    productType: 'Office Chair',
+    ean: ''
   },
   {
     id: 'prod-005',
@@ -89,7 +93,8 @@ export const initialProducts: Product[] = [
     ebayCategoryId: '184587', // Sporting Goods > Camping & Hiking > Water Bottles
     listingStatus: 'used',
     brand: 'HydratePro',
-    productType: 'Water Bottle'
+    productType: 'Water Bottle',
+    ean: ''
   },
   {
     id: 'prod-006',
@@ -107,6 +112,7 @@ export const initialProducts: Product[] = [
     ebayCategoryId: '183597', // Haushaltsgeräte > Kleingeräte Küche > Küchenmaschinen
     listingStatus: 'draft',
     brand: 'Silvercrest',
-    productType: 'Küchenmaschine'
+    productType: 'Küchenmaschine',
+    ean: '4056233833446'
   }
 ];

@@ -15,4 +15,5 @@ export type Product = {
   listingStatus: 'draft' | 'listed' | 'error' | 'new' | 'used' | 'refurbished';
   brand?: string;
   productType?: string;
+  ean?: string;
 };
