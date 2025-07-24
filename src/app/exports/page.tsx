@@ -20,8 +20,10 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useToast } from '@/hooks/use-toast';
 import { generateEbayCsv } from '@/lib/ebay-csv-generator';
+import { generateShopifyCsv } from '@/lib/shopify-csv-generator';
 import { initialProducts } from '@/lib/data';
 
 function ExportsClient() {
@@ -42,7 +44,7 @@ function ExportsClient() {
     }
   }, []);
 
-  const handleExport = () => {
+  const handleExport = (format: 'ebay' | 'shopify') => {
     if (products.length === 0) {
       toast({
         variant: 'destructive',
@@ -53,12 +55,25 @@ function ExportsClient() {
     }
 
     try {
-      const csvContent = generateEbayCsv(products);
+      let csvContent: string;
+      let fileName: string;
+      let successMessage: string;
+
+      if (format === 'ebay') {
+        csvContent = generateEbayCsv(products);
+        fileName = `ebay-export-${new Date().toISOString()}.csv`;
+        successMessage = 'Your products have been exported to the eBay File Exchange format.';
+      } else {
+        csvContent = generateShopifyCsv(products);
+        fileName = `shopify-export-${new Date().toISOString()}.csv`;
+        successMessage = 'Your products have been exported to the Shopify CSV format.';
+      }
+
       const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
       const link = document.createElement('a');
       const url = URL.createObjectURL(blob);
       link.setAttribute('href', url);
-      link.setAttribute('download', `ebay-export-${new Date().toISOString()}.csv`);
+      link.setAttribute('download', fileName);
       link.style.visibility = 'hidden';
       document.body.appendChild(link);
       link.click();
@@ -66,14 +81,14 @@ function ExportsClient() {
 
       toast({
         title: 'Export Successful',
-        description: 'Your products have been exported to the eBay File Exchange format.',
+        description: successMessage,
       });
     } catch (error) {
-      console.error('Failed to generate eBay CSV:', error);
+      console.error(`Failed to generate ${format} CSV:`, error);
       toast({
         variant: 'destructive',
         title: 'Export Failed',
-        description: 'Could not generate the export file. Please try again.',
+        description: `Could not generate the ${format} export file. Please try again.`,
       });
     }
   };
@@ -82,58 +97,106 @@ function ExportsClient() {
   return (
     <Card>
       <CardHeader>
-        <div className="flex items-center justify-between">
+        <div className="flex items-start justify-between">
           <div>
-            <CardTitle>eBay Export</CardTitle>
+            <CardTitle>Product Exports</CardTitle>
             <CardDescription>
-              Export your product data to the eBay File Exchange CSV format.
+              Export your product data to different platform-specific CSV formats.
             </CardDescription>
           </div>
-          <Button onClick={handleExport}>
-            <Download className="mr-2 h-4 w-4" />
-            Export to eBay CSV
-          </Button>
+          <div className="flex gap-2">
+            <Button onClick={() => handleExport('ebay')}>
+              <Download className="mr-2 h-4 w-4" />
+              Export to eBay
+            </Button>
+            <Button onClick={() => handleExport('shopify')} variant="secondary">
+              <Download className="mr-2 h-4 w-4" />
+              Export to Shopify
+            </Button>
+          </div>
         </div>
       </CardHeader>
       <CardContent>
-        <p className="text-sm text-muted-foreground mb-4">
-          This tool generates a CSV file based on the eBay File Exchange format. Below is a preview of the products that will be included in the export. Note that many columns are pre-filled with default values suitable for a standard listing.
-        </p>
-        <div className="rounded-md border">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Product Name</TableHead>
-                <TableHead>SKU</TableHead>
-                <TableHead>Price</TableHead>
-                <TableHead>Quantity</TableHead>
-                <TableHead>Category</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {products.length > 0 ? (
-                products.map((product) => (
-                  <TableRow key={product.id}>
-                    <TableCell className="font-medium">{product.name}</TableCell>
-                    <TableCell>{product.code}</TableCell>
-                    <TableCell>${product.price.toFixed(2)}</TableCell>
-                    <TableCell>{product.quantity}</TableCell>
-                    <TableCell>{product.category}</TableCell>
+        <Tabs defaultValue="ebay">
+          <TabsList>
+            <TabsTrigger value="ebay">eBay Preview</TabsTrigger>
+            <TabsTrigger value="shopify">Shopify Preview</TabsTrigger>
+          </TabsList>
+          <TabsContent value="ebay">
+             <p className="text-sm text-muted-foreground my-4">
+              This tool generates a CSV file based on the eBay File Exchange format for drafts. Below is a preview of the key data points that will be included in the export.
+            </p>
+            <div className="rounded-md border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Title</TableHead>
+                    <TableHead>Custom label (SKU)</TableHead>
+                    <TableHead>Category ID</TableHead>
+                    <TableHead>Price</TableHead>
+                    <TableHead>UPC</TableHead>
                   </TableRow>
-                ))
-              ) : (
-                <TableRow>
-                  <TableCell
-                    colSpan={5}
-                    className="h-24 text-center"
-                  >
-                    No products found. Add some products on the dashboard to get started.
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </div>
+                </TableHeader>
+                <TableBody>
+                  {products.length > 0 ? (
+                    products.map((product) => (
+                      <TableRow key={product.id}>
+                        <TableCell className="font-medium">{product.name}</TableCell>
+                        <TableCell>{product.code}</TableCell>
+                        <TableCell>{product.ebayCategoryId}</TableCell>
+                        <TableCell>{product.price.toFixed(2)}</TableCell>
+                        <TableCell>{product.ean}</TableCell>
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={5} className="h-24 text-center">
+                        No products to preview.
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          </TabsContent>
+          <TabsContent value="shopify">
+             <p className="text-sm text-muted-foreground my-4">
+              This tool generates a CSV file based on the standard Shopify product import format. Below is a preview of some of the data that will be included.
+            </p>
+             <div className="rounded-md border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Handle</TableHead>
+                    <TableHead>Title</TableHead>
+                    <TableHead>Vendor</TableHead>
+                    <TableHead>Variant Price</TableHead>
+                     <TableHead>Variant Barcode</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {products.length > 0 ? (
+                    products.map((product) => (
+                      <TableRow key={product.id}>
+                        <TableCell className="font-medium">{product.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')}</TableCell>
+                        <TableCell>{product.name}</TableCell>
+                        <TableCell>{product.brand}</TableCell>
+                        <TableCell>{product.price.toFixed(2)}</TableCell>
+                        <TableCell>{product.ean}</TableCell>
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={5} className="h-24 text-center">
+                         No products to preview.
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          </TabsContent>
+        </Tabs>
       </CardContent>
     </Card>
   );
