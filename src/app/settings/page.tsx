@@ -11,7 +11,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { Moon, Sun, Monitor, Trash2 } from 'lucide-react';
+import { Trash2 } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -24,19 +24,8 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 
-export default function SettingsPage() {
+function SettingsClient() {
   const { toast } = useToast();
-  const [theme, setTheme] = React.useState('system');
-
-  React.useEffect(() => {
-    const storedTheme = localStorage.getItem('listingFlowTheme') || 'system';
-    setTheme(storedTheme);
-  }, []);
-
-  const handleSetTheme = (newTheme: string) => {
-    setTheme(newTheme);
-    // This logic is now handled in the AppShell component
-  };
   
   const handleClearData = () => {
     localStorage.removeItem('listingFlowProducts');
@@ -48,57 +37,63 @@ export default function SettingsPage() {
   };
 
   return (
-    <main className="grid flex-1 items-start gap-4 p-4 sm:px-6 sm:py-0 md:gap-8">
-      <div className="grid gap-6">
-        <Card>
+    <div className="grid gap-6">
+      <Card>
+        <CardHeader>
+          <CardTitle>Settings</CardTitle>
+          <CardDescription>
+            Manage your application settings and preferences.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-6">
+            <div>
+              <h3 className="text-lg font-medium">Appearance</h3>
+              <p className="text-sm text-muted-foreground">
+                This setting is now controlled from the user menu in the header.
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card className="border-destructive">
           <CardHeader>
-            <CardTitle>Settings</CardTitle>
-            <CardDescription>
-              Manage your application settings and preferences.
-            </CardDescription>
+              <CardTitle>Danger Zone</CardTitle>
+              <CardDescription>These actions are permanent and cannot be undone.</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-6">
-              <div>
-                <h3 className="text-lg font-medium">Appearance</h3>
-                <p className="text-sm text-muted-foreground">
-                  This setting is now controlled from the user menu in the header.
-                </p>
-              </div>
-            </div>
+              <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                      <Button variant="destructive">
+                          <Trash2 className="mr-2 h-4 w-4" />
+                          Clear All Local Data
+                      </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                      <AlertDialogHeader>
+                      <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                          This action cannot be undone. This will permanently delete all your product data
+                          from your browser's local storage.
+                      </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction onClick={handleClearData}>Continue</AlertDialogAction>
+                      </AlertDialogFooter>
+                  </AlertDialogContent>
+              </AlertDialog>
           </CardContent>
-        </Card>
+      </Card>
+    </div>
+  )
+}
 
-        <Card className="border-destructive">
-            <CardHeader>
-                <CardTitle>Danger Zone</CardTitle>
-                <CardDescription>These actions are permanent and cannot be undone.</CardDescription>
-            </CardHeader>
-            <CardContent>
-                <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                        <Button variant="destructive">
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            Clear All Local Data
-                        </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                        <AlertDialogHeader>
-                        <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                            This action cannot be undone. This will permanently delete all your product data
-                            from your browser's local storage.
-                        </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction onClick={handleClearData}>Continue</AlertDialogAction>
-                        </AlertDialogFooter>
-                    </AlertDialogContent>
-                </AlertDialog>
-            </CardContent>
-        </Card>
-      </div>
+export default function SettingsPage() {
+  return (
+    <main className="grid flex-1 items-start gap-4 p-4 sm:px-6 sm:py-0 md:gap-8">
+      <SettingsClient />
     </main>
   );
 }

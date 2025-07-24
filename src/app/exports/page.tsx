@@ -24,7 +24,7 @@ import { useToast } from '@/hooks/use-toast';
 import { generateEbayCsv } from '@/lib/ebay-csv-generator';
 import { initialProducts } from '@/lib/data';
 
-export default function ExportsPage() {
+function ExportsClient() {
   const [products, setProducts] = React.useState<Product[]>([]);
   const { toast } = useToast();
 
@@ -80,63 +80,70 @@ export default function ExportsPage() {
 
 
   return (
-    <main className="grid flex-1 items-start gap-4 p-4 sm:px-6 sm:py-0 md:gap-8">
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle>eBay Export</CardTitle>
-              <CardDescription>
-                Export your product data to the eBay File Exchange CSV format.
-              </CardDescription>
-            </div>
-            <Button onClick={handleExport}>
-              <Download className="mr-2 h-4 w-4" />
-              Export to eBay CSV
-            </Button>
+    <Card>
+      <CardHeader>
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle>eBay Export</CardTitle>
+            <CardDescription>
+              Export your product data to the eBay File Exchange CSV format.
+            </CardDescription>
           </div>
-        </CardHeader>
-        <CardContent>
-          <p className="text-sm text-muted-foreground mb-4">
-            This tool generates a CSV file based on the eBay File Exchange format. Below is a preview of the products that will be included in the export. Note that many columns are pre-filled with default values suitable for a standard listing.
-          </p>
-          <div className="rounded-md border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Product Name</TableHead>
-                  <TableHead>SKU</TableHead>
-                  <TableHead>Price</TableHead>
-                  <TableHead>Quantity</TableHead>
-                  <TableHead>Category</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {products.length > 0 ? (
-                  products.map((product) => (
-                    <TableRow key={product.id}>
-                      <TableCell className="font-medium">{product.name}</TableCell>
-                      <TableCell>{product.code}</TableCell>
-                      <TableCell>${product.price.toFixed(2)}</TableCell>
-                      <TableCell>{product.quantity}</TableCell>
-                      <TableCell>{product.category}</TableCell>
-                    </TableRow>
-                  ))
-                ) : (
-                  <TableRow>
-                    <TableCell
-                      colSpan={5}
-                      className="h-24 text-center"
-                    >
-                      No products found. Add some products on the dashboard to get started.
-                    </TableCell>
+          <Button onClick={handleExport}>
+            <Download className="mr-2 h-4 w-4" />
+            Export to eBay CSV
+          </Button>
+        </div>
+      </CardHeader>
+      <CardContent>
+        <p className="text-sm text-muted-foreground mb-4">
+          This tool generates a CSV file based on the eBay File Exchange format. Below is a preview of the products that will be included in the export. Note that many columns are pre-filled with default values suitable for a standard listing.
+        </p>
+        <div className="rounded-md border">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Product Name</TableHead>
+                <TableHead>SKU</TableHead>
+                <TableHead>Price</TableHead>
+                <TableHead>Quantity</TableHead>
+                <TableHead>Category</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {products.length > 0 ? (
+                products.map((product) => (
+                  <TableRow key={product.id}>
+                    <TableCell className="font-medium">{product.name}</TableCell>
+                    <TableCell>{product.code}</TableCell>
+                    <TableCell>${product.price.toFixed(2)}</TableCell>
+                    <TableCell>{product.quantity}</TableCell>
+                    <TableCell>{product.category}</TableCell>
                   </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </div>
-        </CardContent>
-      </Card>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell
+                    colSpan={5}
+                    className="h-24 text-center"
+                  >
+                    No products found. Add some products on the dashboard to get started.
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+
+export default function ExportsPage() {
+  return (
+    <main className="grid flex-1 items-start gap-4 p-4 sm:px-6 sm:py-0 md:gap-8">
+      <ExportsClient />
     </main>
   );
 }
