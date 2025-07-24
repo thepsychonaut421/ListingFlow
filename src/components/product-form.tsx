@@ -46,6 +46,8 @@ const productSchema = z.object({
   category: z.string().optional(),
   ebayCategoryId: z.string().optional(),
   listingStatus: z.enum(['draft', 'listed', 'error', 'new', 'used', 'refurbished']),
+  brand: z.string().optional(),
+  productType: z.string().optional(),
 });
 
 type ProductFormValues = z.infer<typeof productSchema>;
@@ -154,6 +156,8 @@ export function ProductForm({ product, onSave, onCancel }: ProductFormProps) {
       category: product?.category || '',
       ebayCategoryId: product?.ebayCategoryId || '',
       listingStatus: product?.listingStatus || 'draft',
+      brand: product?.brand || '',
+      productType: product?.productType || '',
     },
   });
 
@@ -270,6 +274,35 @@ export function ProductForm({ product, onSave, onCancel }: ProductFormProps) {
                     </FormItem>
                     )}
                 />
+            </div>
+
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+              <FormField
+                control={form.control}
+                name="brand"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Brand (Marke)</FormLabel>
+                    <FormControl>
+                      <Input placeholder="e.g. Silvercrest, Unbranded" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="productType"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Product Type (Produktart)</FormLabel>
+                    <FormControl>
+                      <Input placeholder="e.g. Küchenmaschine, Wallet" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
             </div>
 
 

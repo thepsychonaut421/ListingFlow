@@ -14,8 +14,10 @@ export const initialProducts: Product[] = [
     tags: ['wallet', 'leather', 'vintage', 'accessory'],
     keywords: ['men wallet', 'bifold wallet', 'genuine leather'],
     category: 'Men\'s Accessories',
-    ebayCategoryId: '45258', // Valid LEAF ID for Men's Wallets -> Clothing, Shoes & Accessories > Men > Men's Accessories > Wallets
+    ebayCategoryId: '2977', // Men > Men's Accessories > Wallets
     listingStatus: 'draft',
+    brand: 'Unbranded',
+    productType: 'Wallet'
   },
   {
     id: 'prod-002',
@@ -30,8 +32,10 @@ export const initialProducts: Product[] = [
     tags: ['headphones', 'bluetooth', 'wireless', 'audio'],
     keywords: ['noise cancelling', 'over-ear headphones', 'portable audio'],
     category: 'Electronics',
-    ebayCategoryId: '172514', // Valid LEAF ID for Headsets -> Consumer Electronics > Portable Audio & Headphones > Headphones
+    ebayCategoryId: '172514', // Consumer Electronics > Portable Audio & Headphones > Headphones
     listingStatus: 'listed',
+    brand: 'SoundWave',
+    productType: 'Headphones'
   },
   {
     id: 'prod-003',
@@ -46,8 +50,10 @@ export const initialProducts: Product[] = [
     tags: ['tea', 'organic', 'green tea', 'beverage'],
     keywords: ['healthy drink', 'antioxidant tea', 'natural tea'],
     category: 'Groceries',
-    ebayCategoryId: '257921', // Valid LEAF ID for Tea & Infusions -> Home & Garden > Food & Beverages > Tea & Infusions
+    ebayCategoryId: '257921', // Home & Garden > Food & Beverages > Tea & Infusions
     listingStatus: 'new',
+    brand: 'PureLeaf',
+    productType: 'Tea'
   },
   {
     id: 'prod-004',
@@ -62,8 +68,10 @@ export const initialProducts: Product[] = [
     tags: ['office', 'chair', 'ergonomic', 'furniture'],
     keywords: ['desk chair', 'lumbar support', 'comfortable seating'],
     category: 'Office Furniture',
-    ebayCategoryId: '74947', // Valid LEAF ID for Office Chairs -> Business & Industrial > Office > Office Furniture > Chairs
+    ebayCategoryId: '74947', // Business & Industrial > Office > Office Furniture > Chairs
     listingStatus: 'refurbished',
+    brand: 'Office Comforts',
+    productType: 'Office Chair'
   },
   {
     id: 'prod-005',
@@ -78,7 +86,27 @@ export const initialProducts: Product[] = [
     tags: ['water bottle', 'stainless steel', 'reusable', 'outdoors'],
     keywords: ['insulated bottle', 'eco-friendly', 'hydration'],
     category: 'Sports & Outdoors',
-    ebayCategoryId: '184587', // Valid LEAF ID for Water Bottles -> Sporting Goods > Camping & Hiking > Camping Cooking Supplies > Water Bottles & Hydration
+    ebayCategoryId: '184587', // Sporting Goods > Camping & Hiking > Water Bottles
     listingStatus: 'used',
+    brand: 'HydratePro',
+    productType: 'Water Bottle'
   },
+  {
+    id: 'prod-006',
+    name: 'Silvercrest SKM 600 B2 (600 W)',
+    code: 'SKM-600',
+    quantity: 10,
+    price: 79.99,
+    description: 'Powerful kitchen machine for kneading, mixing and blending. Includes a large stainless steel bowl and various attachments.',
+    image: 'https://cdn.idealo.com/folder/Product/201673/3/201673324/s1_produktbild_gross/silvercrest-skm-600-b2-600-w-weiss.jpg',
+    supplier: 'Lidl',
+    location: 'Warehouse D, Shelf 2',
+    tags: ['kitchen', 'mixer', 'baking', 'appliance'],
+    keywords: ['stand mixer', 'dough maker', 'kitchen appliance'],
+    category: 'Kitchen Appliances',
+    ebayCategoryId: '183597', // Haushaltsgeräte > Kleingeräte Küche > Küchenmaschinen
+    listingStatus: 'draft',
+    brand: 'Silvercrest',
+    productType: 'Küchenmaschine'
+  }
 ];

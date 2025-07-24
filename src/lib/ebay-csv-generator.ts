@@ -38,7 +38,9 @@ export const generateEbayCsv = (products: Product[]): string => {
     'Item photo URL',
     'Condition ID',
     'Description',
-    'Format'
+    'Format',
+    'C:Marke',
+    'C:Produktart'
   ];
 
   const rows = products.map(product => {
@@ -54,6 +56,8 @@ export const generateEbayCsv = (products: Product[]): string => {
         'Condition ID': getConditionId(product.listingStatus),
         'Description': product.description,
         'Format': 'FixedPrice',
+        'C:Marke': product.brand,
+        'C:Produktart': product.productType
     };
 
     // Note: The order of values must match the order of headers
@@ -69,15 +73,17 @@ export const generateEbayCsv = (products: Product[]): string => {
         escapeCsvField(rowData['Condition ID']),
         escapeCsvField(rowData.Description),
         escapeCsvField(rowData.Format),
+        escapeCsvField(rowData['C:Marke']),
+        escapeCsvField(rowData['C:Produktart']),
     ].join(';');
   });
 
   // Prepending the informational headers provided in the template
   const fileInfoHeaders = [
-    '#INFO;Version=0.0.2;Template=eBay-draft-listings-template_DE;;;;;;;;;',
-    '#INFO;Action und Category ID sind erforderliche Felder. 1) Stellen Sie Action auf Draft ein. 2) Die Kategorie-ID für Ihre Angebote finden Sie hier: https://pages.ebay.com/sellerinformation/news/categorychanges.html;;;;;;;;;',
-    '#INFO;Nachdem Sie Ihren Entwurf erfolgreich im Berichte-Tab Ihres Verkäufer-Cockpit Pro heruntergeladen haben; können Sie die Entwürfe hier zu aktiven Angeboten vervollständigen: https://www.ebay.de/sh/lst/drafts;;;;;;;;;',
-    '#INFO;;;;;;;;;;'
+    '#INFO;Version=0.0.2;Template=eBay-draft-listings-template_DE;;;;;;;;;;;',
+    '#INFO;Action und Category ID sind erforderliche Felder. 1) Stellen Sie Action auf Draft ein. 2) Die Kategorie-ID für Ihre Angebote finden Sie hier: https://pages.ebay.com/sellerinformation/news/categorychanges.html;;;;;;;;;;;',
+    '#INFO;Nachdem Sie Ihren Entwurf erfolgreich im Berichte-Tab Ihres Verkäufer-Cockpit Pro heruntergeladen haben; können Sie die Entwürfe hier zu aktiven Angeboten vervollständigen: https://www.ebay.de/sh/lst/drafts;;;;;;;;;;;',
+    '#INFO;;;;;;;;;;;;'
   ];
 
   const csvContent = [

@@ -30,6 +30,8 @@ const GenerateProductDescriptionOutputSchema = z.object({
   keywords: z.array(z.string()).describe('Suggested keywords for SEO as an array of strings.'),
   category: z.string().describe('Suggested category name for the product.'),
   ebayCategoryId: z.string().describe('A valid numerical eBay category ID for the product. Refer to eBay\'s official category list. This must be a number as a string, not a category name. It must be a "leaf" category, meaning it cannot have any sub-categories.'),
+  brand: z.string().describe('The brand name of the product (e.g., "Sony", "Apple", "Unbranded").'),
+  productType: z.string().describe('The specific type of the product (e.g., "Smartphone", "Laptop", "T-Shirt").'),
 });
 export type GenerateProductDescriptionOutput = z.infer<
   typeof GenerateProductDescriptionOutputSchema
@@ -45,7 +47,14 @@ const prompt = ai.definePrompt({
   name: 'generateProductDescriptionPrompt',
   input: {schema: GenerateProductDescriptionInputSchema},
   output: {schema: GenerateProductDescriptionOutputSchema},
-  prompt: `You are an expert e-commerce product description writer and eBay specialist. Based on the product name, category, and listing status, create an engaging product description, suggest tags and keywords for SEO, suggest a product category name, and provide a valid, specific, numerical eBay Category ID.
+  prompt: `You are an expert e-commerce product description writer and eBay specialist. Based on the product name, category, and listing status, create an engaging product description.
+  
+Also, provide the following details:
+- Suggest tags and keywords for SEO.
+- Suggest a product category name.
+- Suggest the product's brand ("Marke"). If unknown, use "Markenlos" or "Unbranded".
+- Suggest the product type ("Produktart").
+- Provide a valid, specific, numerical eBay Category ID.
 
 Product Name: {{{productName}}}
 Current Category: {{{category}}}
@@ -53,8 +62,8 @@ Listing Status: {{{listingStatus}}}
 
 It is crucial that you find a specific and valid numerical eBay Category ID for the given product. This must be a "leaf" category, which is a category that has no further sub-categories. Do not use generic or broad category IDs. Refer to the official eBay category list to find the most appropriate ID. The ebayCategoryId field must be a string containing only numbers.
 
-Return the tags and keywords as a JSON array of strings.
-Description:`,
+Return all fields as a single JSON object.
+`,
 });
 
 const generateProductDescriptionFlow = ai.defineFlow(

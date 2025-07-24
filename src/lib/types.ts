@@ -13,4 +13,6 @@ export type Product = {
   category: string;
   ebayCategoryId: string;
   listingStatus: 'draft' | 'listed' | 'error' | 'new' | 'used' | 'refurbished';
+  brand?: string;
+  productType?: string;
 };

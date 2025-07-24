@@ -103,6 +103,8 @@ export default function Dashboard() {
         keywords: Array.isArray(result.keywords) ? result.keywords : [],
         category: result.category,
         ebayCategoryId: result.ebayCategoryId,
+        brand: result.brand,
+        productType: result.productType,
       } : p));
 
       toast({
