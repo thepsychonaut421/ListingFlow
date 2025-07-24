@@ -25,34 +25,43 @@ export async function findEan(input: FindEanInput): Promise<FindEanOutput> {
   return findEanFlow(input);
 }
 
-const prompt = ai.definePrompt({
-  name: 'findEanPrompt',
-  input: {schema: FindEanInputSchema},
-  output: {schema: FindEanOutputSchema},
-  prompt: `You are an expert e-commerce data specialist. Your only task is to find the correct EAN (European Article Number) or UPC (Universal Product Code) for a given product by using the website ean-search.org.
-
-You must act as if you are performing a search on ean-search.org.
-
-1.  Take the Product Name and Brand and search on ean-search.org.
-2.  Analyze the search results to find the most accurate EAN/UPC.
-3.  Return only the most relevant EAN/UPC code as a string.
-4.  If you cannot find an exact match or a highly relevant result, you must return an empty string.
-
-Product Name: {{{productName}}}
-{{#if brand}}
-Brand: {{{brand}}}
-{{/if}}
-`,
-});
-
 const findEanFlow = ai.defineFlow(
   {
     name: 'findEanFlow',
     inputSchema: FindEanInputSchema,
     outputSchema: FindEanOutputSchema,
   },
-  async input => {
-    const {output} = await prompt(input);
-    return output!;
+  async ({ productName, brand }) => {
+    const token = process.env.EAN_SEARCH_API_TOKEN;
+    if (!token || token === 'your_token_here') {
+      throw new Error('EAN Search API token is not configured in .env file.');
+    }
+    
+    const searchKeywords = brand ? `${brand} ${productName}` : productName;
+    const url = `https://api.ean-search.org/api?op=product-search&token=${token}&keywords=${encodeURIComponent(searchKeywords)}`;
+
+    try {
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`API request failed with status ${response.status}`);
+      }
+      const data = await response.json();
+
+      // The API returns an object where keys are region names and values are arrays of products.
+      // We'll just take the first EAN from the first product in the first region.
+      const firstRegion = Object.keys(data)[0];
+      if (data[firstRegion] && data[firstRegion].length > 0) {
+        const firstProduct = data[firstRegion][0];
+        if (firstProduct && firstProduct.ean) {
+          return { ean: firstProduct.ean };
+        }
+      }
+
+      return { ean: '' }; // Return empty if no product or EAN is found
+    } catch (error) {
+      console.error("Failed to fetch EAN from API:", error);
+      // In case of error, gracefully return an empty EAN.
+      return { ean: '' };
+    }
   }
 );
