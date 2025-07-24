@@ -9,7 +9,8 @@
  */
 
 import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
+import {z} from 'zod';
+import { findEan } from './find-ean';
 
 const GenerateProductDescriptionInputSchema = z.object({
   productName: z.string().describe('The name of the product.'),
@@ -44,10 +45,18 @@ export async function generateProductDescription(
   return generateProductDescriptionFlow(input);
 }
 
-const prompt = ai.definePrompt({
-  name: 'generateProductDescriptionPrompt',
+const generateDetailsPrompt = ai.definePrompt({
+  name: 'generateProductDetailsPrompt',
   input: {schema: GenerateProductDescriptionInputSchema},
-  output: {schema: GenerateProductDescriptionOutputSchema},
+  output: {schema: z.object({
+    description: z.string().describe('The generated product description.'),
+    tags: z.array(z.string()).describe('Suggested tags for SEO as an array of strings.'),
+    keywords: z.array(z.string()).describe('Suggested keywords for SEO as an array of strings.'),
+    category: z.string().describe('Suggested category name for the product.'),
+    ebayCategoryId: z.string().describe('A valid numerical eBay category ID for the product. Refer to eBay\'s official category list. This must be a number as a string, not a category name. It must be a "leaf" category, meaning it cannot have any sub-categories.'),
+    brand: z.string().describe('The brand name of the product (e.g., "Sony", "Apple", "Unbranded").'),
+    productType: z.string().describe('The specific type of the product (e.g., "Smartphone", "Laptop", "T-Shirt").'),
+  })},
   prompt: `You are an expert e-commerce product description writer and eBay specialist. Based on the product name, category, and listing status, create an engaging product description.
   
 Also, provide the following details:
@@ -55,7 +64,6 @@ Also, provide the following details:
 - Suggest a product category name.
 - Suggest the product's brand ("Marke"). If unknown, use "Markenlos" or "Unbranded".
 - Suggest the product type ("Produktart").
-- Provide the product's EAN/UPC if available. If not, return an empty string.
 - Provide a valid, specific, numerical eBay Category ID.
 
 Product Name: {{{productName}}}
@@ -75,7 +83,22 @@ const generateProductDescriptionFlow = ai.defineFlow(
     outputSchema: GenerateProductDescriptionOutputSchema,
   },
   async input => {
-    const {output} = await prompt(input);
-    return output!;
+    // Generate product details and find EAN in parallel
+    const [detailsResponse, eanResponse] = await Promise.all([
+      generateDetailsPrompt(input),
+      findEan({ productName: input.productName })
+    ]);
+    
+    const details = detailsResponse.output;
+    const ean = eanResponse.ean;
+
+    if (!details) {
+      throw new Error('Failed to generate product details.');
+    }
+
+    return {
+      ...details,
+      ean: ean,
+    };
   }
 );

@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { useForm, useWatch, useFormContext } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import {
@@ -31,6 +31,7 @@ import type { Product } from '@/lib/types';
 import { HTMLPreview } from './html-preview';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { findEbayCategoryId } from '@/ai/flows/find-ebay-category-id';
+import { findEan } from '@/ai/flows/find-ean';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Search, Copy } from 'lucide-react';
 import {CopyToClipboard} from 'react-copy-to-clipboard';
@@ -145,6 +146,9 @@ function CategoryFinder({ onSelectCategory }: { onSelectCategory: (id: string) =
 
 export function ProductForm({ product, onSave, onCancel }: ProductFormProps) {
   const [isCategoryFinderOpen, setIsCategoryFinderOpen] = React.useState(false);
+  const [isFindingEan, setIsFindingEan] = React.useState(false);
+  const { toast } = useToast();
+
   const form = useForm<ProductFormValues>({
     resolver: zodResolver(productSchema),
     defaultValues: {
@@ -185,6 +189,45 @@ export function ProductForm({ product, onSave, onCancel }: ProductFormProps) {
   const handleSelectCategory = (categoryId: string) => {
     form.setValue('ebayCategoryId', categoryId, { shouldValidate: true });
     setIsCategoryFinderOpen(false);
+  };
+
+  const handleFindEan = async () => {
+    const productName = form.getValues('name');
+    const brand = form.getValues('brand');
+    if (!productName) {
+        toast({
+            variant: 'destructive',
+            title: 'Missing Information',
+            description: 'Please enter a product name before finding the EAN.',
+        });
+        return;
+    }
+    setIsFindingEan(true);
+    try {
+        const result = await findEan({ productName, brand });
+        if (result.ean) {
+            form.setValue('ean', result.ean, { shouldValidate: true });
+            toast({
+                title: 'EAN Found!',
+                description: `The EAN ${result.ean} has been filled in.`,
+            });
+        } else {
+            toast({
+                variant: 'destructive',
+                title: 'EAN Not Found',
+                description: 'Could not find an EAN for this product.',
+            });
+        }
+    } catch (error) {
+        console.error('Failed to find EAN:', error);
+        toast({
+            variant: 'destructive',
+            title: 'EAN Search Failed',
+            description: 'An error occurred while searching for the EAN.',
+        });
+    } finally {
+        setIsFindingEan(false);
+    }
   };
 
   return (
@@ -328,9 +371,15 @@ export function ProductForm({ product, onSave, onCancel }: ProductFormProps) {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>EAN / UPC</FormLabel>
-                    <FormControl>
-                      <Input placeholder="e.g. 4056233833446" {...field} />
-                    </FormControl>
+                    <div className="flex items-center space-x-2">
+                      <FormControl>
+                        <Input placeholder="e.g. 4056233833446" {...field} />
+                      </FormControl>
+                      <Button type="button" variant="outline" onClick={handleFindEan} disabled={isFindingEan}>
+                        {isFindingEan ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Search className="mr-2 h-4 w-4" />}
+                        Find EAN
+                      </Button>
+                    </div>
                     <FormMessage />
                   </FormItem>
                 )}
