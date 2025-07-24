@@ -34,7 +34,9 @@ const findEanFlow = ai.defineFlow(
   async ({ productName, brand }) => {
     const token = process.env.EAN_SEARCH_API_TOKEN;
     if (!token || token === 'your_token_here') {
-      throw new Error('EAN Search API token is not configured in .env file.');
+      console.log('EAN Search API token is not configured. Skipping API search.');
+      // Return empty EAN if token is not available, instead of throwing an error.
+      return { ean: '' };
     }
     
     const searchKeywords = brand ? `${brand} ${productName}` : productName;
