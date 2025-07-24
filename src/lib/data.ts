@@ -98,7 +98,7 @@ export const initialProducts: Product[] = [
   },
   {
     id: 'prod-006',
-    name: 'Silvercrest SKM 600 B2 (600 W)',
+    name: 'Silvercrest SKM 600 B2 - Weiss (600 W)',
     code: 'SKM-600',
     quantity: 10,
     price: 79.99,
@@ -113,6 +113,6 @@ export const initialProducts: Product[] = [
     listingStatus: 'draft',
     brand: 'Silvercrest',
     productType: 'Küchenmaschine',
-    ean: '4056233833446'
+    ean: '4055334050142'
   }
 ];
