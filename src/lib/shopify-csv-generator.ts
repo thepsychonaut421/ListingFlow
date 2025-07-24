@@ -80,7 +80,7 @@ export const generateShopifyCsv = (products: Product[]): string => {
         'Gift Card': 'false',
         'SEO Title': `${product.name} - ${product.brand || ''}`,
         'SEO Description': product.description.substring(0, 320),
-        'Google Shopping / Google Product Category': '',
+        'Google Shopping / Google Product Category': product.category,
         'Google Shopping / Gender': '',
         'Google Shopping / Age Group': '',
         'Google Shopping / MPN': product.code,
