@@ -30,10 +30,10 @@ const GenerateProductDescriptionOutputSchema = z.object({
   description: z.string().describe('The generated product description.'),
   tags: z.array(z.string()).describe('Suggested tags for SEO as an array of strings.'),
   keywords: z.array(z.string()).describe('Suggested keywords for SEO as an array of strings.'),
-  category: z.string().describe('Suggested category for the product. This should follow the Shopify Product Taxonomy format (e.g., "Home & Garden > Kitchen & Dining > Kitchen Appliances > Food Mixers & Blenders").'),
+  category: z.string().describe('Suggested category for the product. This must follow the Shopify Product Taxonomy format (e.g., "Home & Garden > Kitchen & Dining > Kitchen Appliances > Food Mixers & Blenders").'),
   ebayCategoryId: z.string().describe('A valid numerical eBay category ID for the product. Refer to eBay\'s official category list. This must be a number as a string, not a category name. It must be a "leaf" category, meaning it cannot have any sub-categories.'),
   brand: z.string().describe('The brand name of the product (e.g., "Sony", "Apple", "Unbranded").'),
-  productType: z.string().describe('The specific type of the product (e.g., "Smartphone", "Laptop", "T-Shirt"). This is the custom product type for platforms like Shopify.'),
+  productType: z.string().describe('The specific, custom type of the product (e.g., "Smartphone", "Laptop", "T-Shirt").'),
   ean: z.string().describe('The EAN/UPC for the product. If not found, return an empty string.'),
 });
 export type GenerateProductDescriptionOutput = z.infer<
@@ -62,16 +62,16 @@ const generateDetailsPrompt = ai.definePrompt({
     description: z.string().describe('The generated product description.'),
     tags: z.array(z.string()).describe('Suggested tags for SEO as an array of strings.'),
     keywords: z.array(z.string()).describe('Suggested keywords for SEO as an array of strings.'),
-    category: z.string().describe('Suggested category for the product. This should follow the Shopify Product Taxonomy format (e.g., "Home & Garden > Kitchen & Dining > Kitchen Appliances > Food Mixers & Blenders").'),
+    category: z.string().describe('Suggested category for the product. This MUST follow the official Shopify Product Taxonomy format (e.g., "Home & Garden > Kitchen & Dining > Kitchen Appliances > Food Mixers & Blenders").'),
     ebayCategoryId: z.string().describe('A valid numerical eBay category ID for the product. Refer to eBay\'s official category list. This must be a number as a string, not a category name. It must be a "leaf" category, meaning it cannot have any sub-categories.'),
-    brand: z.string().describe('The brand name of the product (e.g., "Sony", "Apple", "Unbranded").'),
-    productType: z.string().describe('The specific, custom type of the product (e.g., "Smartphone", "Laptop", "T-Shirt").'),
+    brand: z.string().describe('The brand name of the product ("Marke"). If unknown, use "Unbranded".'),
+    productType: z.string().describe('The specific, custom type of the product ("Produktart"). This should be a simple category (e.g., Küchenmaschine, Wallet).'),
   })},
   prompt: `You are an expert e-commerce product description writer and eBay/Shopify specialist. Based on the product name, category, and listing status, create an engaging product description.
   
 Also, provide the following details:
 - Suggest tags and keywords for SEO.
-- Suggest a product category. This must follow the official Shopify Product Taxonomy (e.g., "Apparel & Accessories > Clothing > Shirts & Tops").
+- Suggest a product category. This must follow the official Shopify Product Taxonomy format (e.g., "Apparel & Accessories > Clothing > Shirts & Tops").
 - Suggest the product's brand ("Marke"). If unknown, use "Markenlos" or "Unbranded".
 - Suggest the product type ("Produktart" / "Type"). This should be a simple, custom category (e.g., Küchenmaschine, Wallet).
 - Provide a valid, specific, numerical eBay Category ID. This must be a "leaf" category, which is a category that has no further sub-categories.
