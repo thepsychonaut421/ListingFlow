@@ -5,7 +5,9 @@ import * as React from 'react';
 import {
   File,
   PlusCircle,
+  Upload,
 } from 'lucide-react';
+import Papa from 'papaparse';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -38,6 +40,7 @@ export default function Dashboard() {
   const [isLoading, setIsLoading] = React.useState(true);
   const [generatingProductId, setGeneratingProductId] = React.useState<string | null>(null);
   const { toast } = useToast();
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   React.useEffect(() => {
     try {
@@ -161,6 +164,75 @@ export default function Dashboard() {
     });
   };
 
+  const handleImportClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleCSVUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    Papa.parse(file, {
+      header: true,
+      skipEmptyLines: true,
+      complete: (results) => {
+        try {
+          const newProducts = results.data.map((row: any): Product => {
+            const price = parseFloat(row['Price List Rate']) || 0;
+            return {
+              id: crypto.randomUUID(),
+              name: row['Item Name'] || 'No Name',
+              code: row['Item Code']?.toString() || '',
+              quantity: parseInt(row['Stock Qty'], 10) || 0,
+              price: price,
+              description: row['Description'] || '',
+              image: '',
+              supplier: '',
+              location: '',
+              tags: [],
+              keywords: [],
+              category: row['Item Group'] || '',
+              ebayCategoryId: '',
+              listingStatus: 'draft',
+              brand: row['Brand'] || '',
+              productType: '',
+              ean: '',
+            };
+          }).filter(p => p.code); // Filter out any items without a SKU
+
+          const updatedProducts = [...newProducts, ...products];
+          setProducts(updatedProducts);
+
+          toast({
+            title: 'Import Successful',
+            description: `${newProducts.length} products have been imported and added to the list.`,
+          });
+        } catch (err) {
+          console.error("Error processing CSV data:", err);
+          toast({
+            variant: 'destructive',
+            title: 'Import Failed',
+            description: 'Could not process the CSV file. Please check the file format.',
+          });
+        }
+      },
+      error: (err) => {
+        console.error("Error parsing CSV:", err);
+        toast({
+            variant: 'destructive',
+            title: 'Import Failed',
+            description: 'Could not parse the CSV file. Please ensure it is a valid CSV.',
+        });
+      },
+    });
+    
+    // Reset file input
+    if(event.target) {
+        event.target.value = '';
+    }
+  };
+
+
   const columns = React.useMemo(() => getColumns({
       onEdit: handleEditProduct,
       onDelete: handleDeleteProduct,
@@ -187,6 +259,19 @@ export default function Dashboard() {
             </CardDescription>
           </div>
           <div className="ml-auto flex items-center gap-2">
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleCSVUpload}
+              accept=".csv"
+              className="hidden"
+            />
+            <Button size="sm" variant="outline" className="h-8 gap-1" onClick={handleImportClick}>
+              <Upload className="h-3.5 w-3.5" />
+              <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
+                Import
+              </span>
+            </Button>
             <Button size="sm" variant="outline" className="h-8 gap-1" onClick={handleExportToCSV}>
               <File className="h-3.5 w-3.5" />
               <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
@@ -197,7 +282,7 @@ export default function Dashboard() {
               <SheetTrigger asChild>
                   <Button size="sm" className="h-8 gap-1" onClick={handleAddProduct}>
                   <PlusCircle className="h-3.5 w-3.5" />
-                  <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
+                  <span className="sr-only sm:not-sr-only sm:whitespace-rap">
                     Add Product
                   </span>
                 </Button>
