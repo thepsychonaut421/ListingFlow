@@ -178,23 +178,22 @@ export default function Dashboard() {
       complete: (results) => {
         try {
           const newProducts = results.data.map((row: any): Product => {
-            const price = parseFloat(row['Price List Rate']) || 0;
             return {
               id: crypto.randomUUID(),
-              name: row['Item Name'] || 'No Name',
-              code: row['Item Code']?.toString() || '',
-              quantity: parseInt(row['Stock Qty'], 10) || 0,
-              price: price,
-              description: row['Description'] || '',
+              name: row['Artikelname'] || 'No Name',
+              code: row['Artikel-Code']?.toString() || '',
+              quantity: 0,
+              price: 0,
+              description: '',
               image: '',
               supplier: '',
               location: '',
               tags: [],
               keywords: [],
-              category: row['Item Group'] || '',
+              category: row['Artikelgruppe'] || '',
               ebayCategoryId: '',
               listingStatus: 'draft',
-              brand: row['Brand'] || '',
+              brand: '',
               productType: '',
               ean: '',
             };
