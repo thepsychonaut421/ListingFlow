@@ -189,17 +189,23 @@ function DashboardClient() {
         source: source,
       });
       
-      if (result.description) {
-        handleUpdateProduct(product.id, { description: result.description });
+      if (result.description || Object.keys(result.technicalSpecs).length > 0) {
+        handleUpdateProduct(product.id, { 
+          description: result.description,
+          technicalSpecs: {
+            ...product.technicalSpecs,
+            ...result.technicalSpecs
+          }
+        });
         toast({
-          title: 'Description Copied!',
-          description: `Description for "${product.name}" has been copied from ${source}.de.`,
+          title: 'Content Copied!',
+          description: `Description and specs for "${product.name}" have been copied from ${source}.de.`,
         });
       } else {
         toast({
           variant: 'destructive',
           title: 'Copy Failed',
-          description: `Could not find a description for "${product.name}" on ${source}.de.`,
+          description: `Could not find content for "${product.name}" on ${source}.de.`,
         });
       }
 

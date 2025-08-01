@@ -18,7 +18,11 @@ export const initialProducts: Product[] = [
     listingStatus: 'draft',
     brand: 'Unbranded',
     productType: 'Wallet',
-    ean: ''
+    ean: '',
+    technicalSpecs: {
+      'Material': 'Genuine Leather',
+      'Dimensions': '11cm x 9.5cm x 2cm',
+    }
   },
   {
     id: 'prod-002',
@@ -37,7 +41,12 @@ export const initialProducts: Product[] = [
     listingStatus: 'listed',
     brand: 'SoundWave',
     productType: 'Headphones',
-    ean: ''
+    ean: '',
+    technicalSpecs: {
+      'Connectivity': 'Bluetooth 5.0',
+      'Battery Life': '20 hours',
+      'Noise Cancelling': 'Active Noise Cancellation',
+    }
   },
   {
     id: 'prod-003',
@@ -56,7 +65,11 @@ export const initialProducts: Product[] = [
     listingStatus: 'new',
     brand: 'PureLeaf',
     productType: 'Tea',
-    ean: ''
+    ean: '',
+    technicalSpecs: {
+      'Ingredients': 'Organic Green Tea Leaves',
+      'Count': '100 bags',
+    }
   },
   {
     id: 'prod-004',
@@ -75,7 +88,8 @@ export const initialProducts: Product[] = [
     listingStatus: 'refurbished',
     brand: 'Office Comforts',
     productType: 'Office Chair',
-    ean: ''
+    ean: '',
+    technicalSpecs: {}
   },
   {
     id: 'prod-005',
@@ -94,7 +108,8 @@ export const initialProducts: Product[] = [
     listingStatus: 'used',
     brand: 'HydratePro',
     productType: 'Water Bottle',
-    ean: ''
+    ean: '',
+    technicalSpecs: {}
   },
   {
     id: 'prod-006',
@@ -113,6 +128,11 @@ export const initialProducts: Product[] = [
     listingStatus: 'draft',
     brand: 'Silvercrest',
     productType: 'Küchenmaschine',
-    ean: '4055334050142'
+    ean: '4055334050142',
+    technicalSpecs: {
+      'Leistung': '600 W',
+      'Geschwindigkeitsstufen': '8',
+      'Schüsselkapazität': '5 L'
+    }
   }
 ];

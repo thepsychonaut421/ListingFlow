@@ -1,8 +1,8 @@
 'use server';
 /**
- * @fileOverview An AI agent for finding product descriptions from external sites.
+ * @fileOverview An AI agent for finding product descriptions and specs from external sites.
  *
- * - findProductDescription - A function that finds a product description.
+ * - findProductDescription - A function that finds a product description and specs.
  * - FindProductDescriptionInput - The input type for the findProductDescription function.
  * - FindProductDescriptionOutput - The return type for the findProductDescription function.
  */
@@ -20,6 +20,7 @@ export type FindProductDescriptionInput = z.infer<typeof FindProductDescriptionI
 
 const FindProductDescriptionOutputSchema = z.object({
   description: z.string().describe('The product description found on the specified source. If not found, return an empty string.'),
+  technicalSpecs: z.record(z.string()).describe('A key-value object of technical specifications found on the page. For example, {"Leistung": "600 W", "Maße": "30x20x10 cm"}. If none are found, return an empty object.'),
 });
 export type FindProductDescriptionOutput = z.infer<typeof FindProductDescriptionOutputSchema>;
 
@@ -27,25 +28,34 @@ export async function findProductDescription(input: FindProductDescriptionInput)
   return findProductDescriptionFlow(input);
 }
 
+
+const prompt = ai.definePrompt({
+    name: 'findProductDescriptionPrompt',
+    input: { schema: FindProductDescriptionInputSchema },
+    output: { schema: FindProductDescriptionOutputSchema },
+    prompt: `You are an expert product researcher. Your task is to find the official product description and technical specifications for a given product on a specific website.
+
+Product Name: {{{productName}}}
+Brand: {{{brand}}}
+EAN/UPC: {{{ean}}}
+Source Website: {{{source}}}.de
+
+Please search for the product on {{{source}}}.de and return:
+1. Its full, detailed product description.
+2. A JSON object containing its technical specifications (e.g., "Leistung", "Maße", "Gewicht").
+
+Return the data as a single JSON object. If you cannot find the product or the information, return an object with empty values.`,
+});
+
+
 const findProductDescriptionFlow = ai.defineFlow(
   {
     name: 'findProductDescriptionFlow',
     inputSchema: FindProductDescriptionInputSchema,
     outputSchema: FindProductDescriptionOutputSchema,
   },
-  async ({ productName, brand, ean, source }) => {
-    const { output } = await ai.generate({
-      prompt: `You are an expert product researcher. Your task is to find the official product description for a given product on a specific website.
-
-Product Name: ${productName}
-Brand: ${brand || 'Unknown'}
-EAN/UPC: ${ean || 'Unknown'}
-Source Website: ${source}.de
-
-Please search for the product on ${source}.de and return only its full, detailed product description. Do not add any extra text, just the description itself. If you cannot find the product or a suitable description, return an empty string.`,
-      model: 'googleai/gemini-1.5-flash',
-    });
-
-    return { description: output?.text || '' };
+  async (input) => {
+    const { output } = await prompt(input);
+    return output || { description: '', technicalSpecs: {} };
   }
 );

@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { useForm, useWatch } from 'react-hook-form';
+import { useForm, useWatch, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import {
@@ -26,14 +26,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import type { Product } from '@/lib/types';
 import { HTMLPreview } from './html-preview';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { findEbayCategoryId } from '@/ai/flows/find-ebay-category-id';
 import { findEan } from '@/ai/flows/find-ean';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Search, Copy } from 'lucide-react';
+import { Loader2, Search, Copy, Trash2, PlusCircle } from 'lucide-react';
 import {CopyToClipboard} from 'react-copy-to-clipboard';
 import { useErpData } from '@/contexts/erp-data-context';
 
@@ -51,6 +51,10 @@ const productSchema = z.object({
   brand: z.string().optional(),
   productType: z.string().optional(),
   ean: z.string().optional(),
+  technicalSpecs: z.array(z.object({
+    key: z.string().min(1, 'Key cannot be empty'),
+    value: z.string().min(1, 'Value cannot be empty'),
+  })).optional(),
 });
 
 type ProductFormValues = z.infer<typeof productSchema>;
@@ -166,7 +170,13 @@ export function ProductForm({ product, onSave, onCancel }: ProductFormProps) {
       brand: product?.brand || '',
       productType: product?.productType || '',
       ean: product?.ean || '',
+      technicalSpecs: product?.technicalSpecs ? Object.entries(product.technicalSpecs).map(([key, value]) => ({ key, value })) : [],
     },
+  });
+
+  const { fields, append, remove } = useFieldArray({
+    control: form.control,
+    name: "technicalSpecs",
   });
 
   const descriptionValue = useWatch({
@@ -184,6 +194,10 @@ export function ProductForm({ product, onSave, onCancel }: ProductFormProps) {
         location: '',
       }),
       ...data,
+      technicalSpecs: data.technicalSpecs?.reduce((acc, { key, value }) => {
+        if(key) acc[key] = value;
+        return acc;
+      }, {} as Record<string, string>),
     };
     onSave(finalData);
   };
@@ -493,6 +507,53 @@ export function ProductForm({ product, onSave, onCancel }: ProductFormProps) {
                 </Card>
               </div>
             </div>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg flex justify-between items-center">
+                  <span>Technical Specifications</span>
+                   <Button type="button" size="sm" variant="outline" onClick={() => append({ key: '', value: '' })}>
+                      <PlusCircle className="mr-2 h-4 w-4" />
+                      Add Spec
+                   </Button>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {fields.length === 0 && (
+                  <p className="text-sm text-muted-foreground">No technical specifications added.</p>
+                )}
+                {fields.map((field, index) => (
+                  <div key={field.id} className="flex items-center gap-2">
+                    <FormField
+                      control={form.control}
+                      name={`technicalSpecs.${index}.key`}
+                      render={({ field }) => (
+                        <FormItem className="flex-1">
+                          <FormControl>
+                            <Input placeholder="e.g. Leistung" {...field} />
+                          </FormControl>
+                        </FormItem>
+                      )}
+                    />
+                     <FormField
+                      control={form.control}
+                      name={`technicalSpecs.${index}.value`}
+                      render={({ field }) => (
+                        <FormItem className="flex-1">
+                          <FormControl>
+                            <Input placeholder="e.g. 600 W" {...field} />
+                          </FormControl>
+                        </FormItem>
+                      )}
+                    />
+                    <Button type="button" variant="destructive" size="icon" onClick={() => remove(index)}>
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+
           </div>
         </div>
         <SheetFooter className="sticky bottom-0 bg-background px-6 py-4 border-t">
