@@ -89,10 +89,11 @@ export const getColumns = ({ onEdit, onDelete, onGenerate, generatingProductId }
     },
     cell: ({ row }) => {
       const product = row.original;
+      const imageUrl = product.image || 'https://placehold.co/40x40.png';
       return (
         <div className="flex items-center gap-4">
           <Image
-            src={product.image}
+            src={imageUrl}
             alt={product.name}
             width={40}
             height={40}
