@@ -19,8 +19,8 @@ const FindProductDescriptionInputSchema = z.object({
 export type FindProductDescriptionInput = z.infer<typeof FindProductDescriptionInputSchema>;
 
 const FindProductDescriptionOutputSchema = z.object({
-  description: z.string().describe('The product description found on the specified source. If not found, return an empty string.'),
-  technicalSpecs: z.record(z.string()).describe('A key-value object of technical specifications found on the page. For example, {"Leistung": "600 W", "Maße": "30x20x10 cm"}. If none are found, return an empty object.'),
+  description: z.string().describe('The product description found on the specified source. If not found, return an empty string. This should be in German.'),
+  technicalSpecs: z.record(z.string()).describe('A key-value object of technical specifications found on the page. For example, {"Leistung": "600 W", "Maße": "30x20x10 cm"}. If none are found, return an empty object. The keys and values should be in German.'),
 });
 export type FindProductDescriptionOutput = z.infer<typeof FindProductDescriptionOutputSchema>;
 
@@ -33,7 +33,7 @@ const prompt = ai.definePrompt({
     name: 'findProductDescriptionPrompt',
     input: { schema: FindProductDescriptionInputSchema },
     output: { schema: FindProductDescriptionOutputSchema },
-    prompt: `You are an expert product researcher. Your task is to find the official product description and technical specifications for a given product on a specific website.
+    prompt: `You are an expert product researcher. Your task is to find the official product description and technical specifications for a given product on a specific website. All output must be in German.
 
 Product Name: {{{productName}}}
 Brand: {{{brand}}}
@@ -41,8 +41,8 @@ EAN/UPC: {{{ean}}}
 Source Website: {{{source}}}.de
 
 Please search for the product on {{{source}}}.de and return:
-1. Its full, detailed product description.
-2. A JSON object containing its technical specifications (e.g., "Leistung", "Maße", "Gewicht").
+1. Its full, detailed product description in German.
+2. A JSON object containing its technical specifications in German (e.g., "Leistung", "Maße", "Gewicht").
 
 Return the data as a single JSON object. If you cannot find the product or the information, return an object with empty values.`,
 });
