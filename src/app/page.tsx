@@ -292,6 +292,7 @@ function DashboardClient() {
               brand: '',
               productType: '',
               ean: '',
+              technicalSpecs: {},
             };
           }).filter(p => p.code); // Filter out any items without a SKU
 
