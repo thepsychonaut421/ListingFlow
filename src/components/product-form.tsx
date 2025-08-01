@@ -35,6 +35,7 @@ import { findEan } from '@/ai/flows/find-ean';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Search, Copy } from 'lucide-react';
 import {CopyToClipboard} from 'react-copy-to-clipboard';
+import { useErpData } from '@/contexts/erp-data-context';
 
 
 const productSchema = z.object({
@@ -148,6 +149,7 @@ export function ProductForm({ product, onSave, onCancel }: ProductFormProps) {
   const [isCategoryFinderOpen, setIsCategoryFinderOpen] = React.useState(false);
   const [isFindingEan, setIsFindingEan] = React.useState(false);
   const { toast } = useToast();
+  const { erpData } = useErpData();
 
   const form = useForm<ProductFormValues>({
     resolver: zodResolver(productSchema),
@@ -229,6 +231,27 @@ export function ProductForm({ product, onSave, onCancel }: ProductFormProps) {
         setIsFindingEan(false);
     }
   };
+
+  const handleAutocomplete = (code: string) => {
+    if (!code || erpData.length === 0) return;
+
+    const found = erpData.find(
+      item =>
+        item.sku.toLowerCase() === code.toLowerCase() ||
+        item.ean.toLowerCase() === code.toLowerCase()
+    );
+
+    if (found) {
+      form.setValue('name', found.name, { shouldValidate: true });
+      form.setValue('category', found.category, { shouldValidate: true });
+      form.setValue('code', found.sku, { shouldValidate: true });
+      form.setValue('ean', found.ean, { shouldValidate: true });
+      toast({
+        title: 'Autocomplete Success',
+        description: `Fields populated based on SKU/EAN: ${code}.`,
+      });
+    }
+  }
 
   return (
     <Form {...form}>
@@ -359,7 +382,14 @@ export function ProductForm({ product, onSave, onCancel }: ProductFormProps) {
                   <FormItem>
                     <FormLabel>SKU</FormLabel>
                     <FormControl>
-                      <Input placeholder="VLW-01" {...field} />
+                      <Input 
+                        placeholder="VLW-01" 
+                        {...field} 
+                        onChange={(e) => {
+                          field.onChange(e);
+                          handleAutocomplete(e.target.value);
+                        }}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -373,7 +403,14 @@ export function ProductForm({ product, onSave, onCancel }: ProductFormProps) {
                     <FormLabel>EAN / UPC</FormLabel>
                     <div className="flex items-center space-x-2">
                       <FormControl>
-                        <Input placeholder="e.g. 4056233833446" {...field} />
+                        <Input 
+                          placeholder="e.g. 4056233833446" 
+                          {...field} 
+                           onChange={(e) => {
+                            field.onChange(e);
+                            handleAutocomplete(e.target.value);
+                          }}
+                        />
                       </FormControl>
                       <Button type="button" variant="outline" onClick={handleFindEan} disabled={isFindingEan}>
                         {isFindingEan ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Search className="mr-2 h-4 w-4" />}

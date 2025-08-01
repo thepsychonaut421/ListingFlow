@@ -7,6 +7,7 @@ import {
   PlusCircle,
   Upload,
   FilePenLine,
+  Database,
 } from 'lucide-react';
 import Papa from 'papaparse';
 
@@ -42,8 +43,9 @@ import { generateProductDescription } from '@/ai/flows/generate-product-descript
 import { useToast } from '@/hooks/use-toast';
 import { ProductForm } from '@/components/product-form';
 import { BulkEditForm } from '@/components/bulk-edit-form';
+import { ErpDataProvider, useErpData } from '@/contexts/erp-data-context';
 
-export default function Dashboard() {
+function DashboardClient() {
   const [products, setProducts] = React.useState<Product[]>([]);
   const [isSheetOpen, setIsSheetOpen] = React.useState(false);
   const [isBulkEditOpen, setIsBulkEditOpen] = React.useState(false);
@@ -53,6 +55,8 @@ export default function Dashboard() {
   const [generatingProductId, setGeneratingProductId] = React.useState<string | null>(null);
   const { toast } = useToast();
   const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const erpFileInputRef = React.useRef<HTMLInputElement>(null);
+  const { setErpData, erpData } = useErpData();
 
   React.useEffect(() => {
     try {
@@ -208,6 +212,10 @@ export default function Dashboard() {
   const handleImportClick = () => {
     fileInputRef.current?.click();
   };
+  
+  const handleErpImportClick = () => {
+    erpFileInputRef.current?.click();
+  };
 
   const handleCSVUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -271,6 +279,40 @@ export default function Dashboard() {
     }
   };
 
+  const handleErpCSVUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    Papa.parse(file, {
+      header: true,
+      skipEmptyLines: true,
+      complete: (results) => {
+        const mappedData = results.data.map(row => ({
+          sku: (row as any)["Artikel-Code"]?.toString().trim() || "",
+          ean: (row as any)["Artikel-Code"]?.toString().trim() || "", // Assuming EAN is same as SKU for now
+          name: (row as any)["Artikelname"]?.toString().trim() || "",
+          category: (row as any)["Artikelgruppe"]?.toString().trim() || "",
+        }));
+        setErpData(mappedData);
+        toast({
+          title: "ERP Data Loaded",
+          description: `${mappedData.length} records are now available for autocompletion.`,
+        });
+      },
+      error: (err) => {
+        console.error("Error parsing ERP CSV:", err);
+        toast({
+            variant: 'destructive',
+            title: 'ERP Import Failed',
+            description: 'Could not parse the ERP CSV file.',
+        });
+      },
+    });
+     if(event.target) {
+        event.target.value = '';
+    }
+  };
+
 
   const columns = React.useMemo(() => getColumns({
       onEdit: handleEditProduct,
@@ -295,11 +337,27 @@ export default function Dashboard() {
         <CardHeader className="flex flex-row items-center">
           <div>
             <CardTitle>Products</CardTitle>
-            <CardDescription>
-              Manage your products and their listing details.
+             <CardDescription>
+              Manage your products.{' '}
+              <span className="text-primary font-medium">
+                {erpData.length > 0 ? `${erpData.length} ERP records loaded.` : 'No ERP data loaded.'}
+              </span>
             </CardDescription>
           </div>
           <div className="ml-auto flex items-center gap-2">
+             <input
+              type="file"
+              ref={erpFileInputRef}
+              onChange={handleErpCSVUpload}
+              accept=".csv"
+              className="hidden"
+            />
+            <Button size="sm" variant="outline" className="h-8 gap-1" onClick={handleErpImportClick}>
+              <Database className="h-3.5 w-3.5" />
+              <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
+                Import ERP Data
+              </span>
+            </Button>
             <input
               type="file"
               ref={fileInputRef}
@@ -310,7 +368,7 @@ export default function Dashboard() {
             <Button size="sm" variant="outline" className="h-8 gap-1" onClick={handleImportClick}>
               <Upload className="h-3.5 w-3.5" />
               <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
-                Import
+                Import Products
               </span>
             </Button>
             <Button size="sm" variant="outline" className="h-8 gap-1" onClick={handleExportToCSV}>
@@ -379,4 +437,12 @@ export default function Dashboard() {
       </Card>
     </main>
   );
+}
+
+export default function Dashboard() {
+    return (
+        <ErpDataProvider>
+            <DashboardClient />
+        </ErpDataProvider>
+    );
 }
