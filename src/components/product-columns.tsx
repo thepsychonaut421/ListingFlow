@@ -20,6 +20,8 @@ import {
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import type { Product } from '@/lib/types';
+import { handleExternalSearch } from '@/lib/external-search';
+
 
 type GetColumnsProps = {
   onEdit: (product: Product) => void;
@@ -34,26 +36,6 @@ const formatCurrency = (amount: number) => {
         currency: 'USD',
     }).format(amount);
 }
-
-const handleExternalSearch = (product: Product, platform: 'google' | 'ebay' | 'amazon') => {
-    const query = product.ean || product.code || product.name || '';
-    if (!query) return;
-
-    let searchUrl = '';
-    switch (platform) {
-        case 'google':
-            searchUrl = `https://www.google.com/search?q=${encodeURIComponent(query)}`;
-            break;
-        case 'ebay':
-            searchUrl = `https://www.ebay.de/sch/i.html?_nkw=${encodeURIComponent(query)}`;
-            break;
-        case 'amazon':
-            searchUrl = `https://www.amazon.de/s?k=${encodeURIComponent(query)}`;
-            break;
-    }
-    window.open(searchUrl, '_blank');
-};
-
 
 export const getColumns = ({ onEdit, onDelete, onGenerate, generatingProductId }: GetColumnsProps): ColumnDef<Product>[] => [
   {
