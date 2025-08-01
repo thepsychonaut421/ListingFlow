@@ -11,6 +11,7 @@ import {
   getPaginationRowModel,
   getSortedRowModel,
   useReactTable,
+  RowSelectionState,
 } from '@tanstack/react-table';
 
 import {
@@ -23,19 +24,24 @@ import {
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Trash2 } from 'lucide-react';
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
+  onSelectionChange: (selectedIds: string[]) => void;
+  onBulkDelete: (selectedIds: string[]) => void;
 }
 
-export function ProductDataTable<TData, TValue>({
+export function ProductDataTable<TData extends { id: string }, TValue>({
   columns,
   data,
+  onSelectionChange,
+  onBulkDelete,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
-  const [rowSelection, setRowSelection] = React.useState({});
+  const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
 
   const table = useReactTable({
     data,
@@ -54,6 +60,19 @@ export function ProductDataTable<TData, TValue>({
     },
   });
 
+  React.useEffect(() => {
+    const selectedIds = table.getFilteredSelectedRowModel().rows.map(row => row.original.id);
+    onSelectionChange(selectedIds);
+  }, [rowSelection, onSelectionChange, table]);
+
+  const handleDeleteSelected = () => {
+    const selectedIds = table.getFilteredSelectedRowModel().rows.map(row => row.original.id);
+    if(selectedIds.length > 0) {
+      onBulkDelete(selectedIds);
+      table.resetRowSelection();
+    }
+  }
+
   return (
     <div>
       <div className="flex items-center py-4">
@@ -65,6 +84,17 @@ export function ProductDataTable<TData, TValue>({
           }
           className="max-w-sm"
         />
+         {table.getFilteredSelectedRowModel().rows.length > 0 && (
+           <Button
+            variant="destructive"
+            size="sm"
+            className="ml-auto gap-1"
+            onClick={handleDeleteSelected}
+          >
+            <Trash2 className="h-4 w-4" />
+            Delete ({table.getFilteredSelectedRowModel().rows.length})
+          </Button>
+        )}
       </div>
       <div className="rounded-md border">
         <Table>

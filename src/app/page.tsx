@@ -6,6 +6,7 @@ import {
   File,
   PlusCircle,
   Upload,
+  FilePenLine,
 } from 'lucide-react';
 import Papa from 'papaparse';
 
@@ -25,6 +26,14 @@ import {
     SheetDescription,
     SheetTrigger
 } from '@/components/ui/sheet';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogTrigger,
+} from '@/components/ui/dialog';
 import type { Product } from '@/lib/types';
 import { initialProducts } from '@/lib/data';
 import { ProductDataTable } from '@/components/product-data-table';
@@ -32,11 +41,14 @@ import { getColumns } from '@/components/product-columns';
 import { generateProductDescription } from '@/ai/flows/generate-product-description';
 import { useToast } from '@/hooks/use-toast';
 import { ProductForm } from '@/components/product-form';
+import { BulkEditForm } from '@/components/bulk-edit-form';
 
 export default function Dashboard() {
   const [products, setProducts] = React.useState<Product[]>([]);
   const [isSheetOpen, setIsSheetOpen] = React.useState(false);
+  const [isBulkEditOpen, setIsBulkEditOpen] = React.useState(false);
   const [selectedProduct, setSelectedProduct] = React.useState<Product | null>(null);
+  const [selectedProductIds, setSelectedProductIds] = React.useState<string[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
   const [generatingProductId, setGeneratingProductId] = React.useState<string | null>(null);
   const { toast } = useToast();
@@ -76,6 +88,14 @@ export default function Dashboard() {
   const handleDeleteProduct = (id: string) => {
     setProducts(products.filter((p) => p.id !== id));
   };
+  
+  const handleBulkDelete = (ids: string[]) => {
+    setProducts(products.filter((p) => !ids.includes(p.id)));
+    toast({
+        title: 'Products Deleted',
+        description: `${ids.length} products have been deleted successfully.`,
+    });
+  };
 
   const handleSaveProduct = (productData: Product) => {
     if (selectedProduct) {
@@ -88,6 +108,27 @@ export default function Dashboard() {
     }
     setIsSheetOpen(false);
     setSelectedProduct(null);
+  };
+
+  const handleSaveBulkEdit = (data: Partial<Product>) => {
+    setProducts(products.map(p => {
+        if (selectedProductIds.includes(p.id)) {
+            const updatedProduct = { ...p };
+            for (const key in data) {
+                if (data[key as keyof typeof data]) {
+                    (updatedProduct as any)[key] = data[key as keyof typeof data];
+                }
+            }
+            return updatedProduct;
+        }
+        return p;
+    }));
+    toast({
+        title: 'Bulk Edit Successful',
+        description: `${selectedProductIds.length} products have been updated.`,
+    });
+    setIsBulkEditOpen(false);
+    setSelectedProductIds([]);
   };
   
   const handleGenerateDescription = async (product: Product) => {
@@ -225,7 +266,6 @@ export default function Dashboard() {
       },
     });
     
-    // Reset file input
     if(event.target) {
         event.target.value = '';
     }
@@ -246,6 +286,8 @@ export default function Dashboard() {
       </div>
     );
   }
+
+  const selectedData = products.filter(p => selectedProductIds.includes(p.id));
 
   return (
     <main className="grid flex-1 items-start gap-4 p-4 sm:px-6 sm:py-0 md:gap-8">
@@ -277,6 +319,28 @@ export default function Dashboard() {
                 Export
               </span>
             </Button>
+             <Dialog open={isBulkEditOpen} onOpenChange={setIsBulkEditOpen}>
+              <DialogTrigger asChild>
+                  <Button size="sm" variant="outline" className="h-8 gap-1" disabled={selectedProductIds.length === 0}>
+                    <FilePenLine className="h-3.5 w-3.5" />
+                    <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
+                        Bulk Edit ({selectedProductIds.length})
+                    </span>
+                  </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                    <DialogTitle>Bulk Edit Products</DialogTitle>
+                    <DialogDescription>
+                        Modify the fields below to update all {selectedProductIds.length} selected products at once.
+                    </DialogDescription>
+                </DialogHeader>
+                <BulkEditForm 
+                    onSave={handleSaveBulkEdit} 
+                    onCancel={() => setIsBulkEditOpen(false)}
+                />
+              </DialogContent>
+            </Dialog>
             <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
               <SheetTrigger asChild>
                   <Button size="sm" className="h-8 gap-1" onClick={handleAddProduct}>
@@ -305,7 +369,12 @@ export default function Dashboard() {
           </div>
         </CardHeader>
         <CardContent>
-          <ProductDataTable columns={columns} data={products} />
+          <ProductDataTable 
+            columns={columns} 
+            data={products} 
+            onSelectionChange={setSelectedProductIds}
+            onBulkDelete={handleBulkDelete}
+          />
         </CardContent>
       </Card>
     </main>
