@@ -22,8 +22,7 @@ import {
 } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useToast } from '@/hooks/use-toast';
-import { generateEbayCsv } from '@/lib/ebay-csv-generator';
-import { generateShopifyCsv } from '@/lib/shopify-csv-generator';
+import { generateCsv } from '@/lib/csv-generator';
 import { initialProducts } from '@/lib/data';
 
 function ExportsClient() {
@@ -55,20 +54,10 @@ function ExportsClient() {
     }
 
     try {
-      let csvContent: string;
-      let fileName: string;
-      let successMessage: string;
-
-      if (format === 'ebay') {
-        csvContent = generateEbayCsv(products);
-        fileName = `ebay-export-${new Date().toISOString()}.csv`;
-        successMessage = 'Your products have been exported to the eBay File Exchange format.';
-      } else {
-        csvContent = generateShopifyCsv(products);
-        fileName = `shopify-export-${new Date().toISOString()}.csv`;
-        successMessage = 'Your products have been exported to the Shopify CSV format.';
-      }
-
+      const csvContent = generateCsv(products, format);
+      const fileName = `${format}-export-${new Date().toISOString()}.csv`;
+      const successMessage = `Your products have been exported to the ${format} CSV format.`;
+      
       const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
       const link = document.createElement('a');
       const url = URL.createObjectURL(blob);
