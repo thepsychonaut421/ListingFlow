@@ -12,6 +12,10 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
   DropdownMenuGroup,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
+  DropdownMenuPortal,
 } from '@/components/ui/dropdown-menu';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
@@ -173,21 +177,28 @@ export const getColumns = ({ onEdit, onDelete, onGenerate, generatingProductId }
                         </DropdownMenuItem>
                     </DropdownMenuGroup>
                     <DropdownMenuSeparator />
-                    <DropdownMenuGroup>
-                        <DropdownMenuLabel>External Search</DropdownMenuLabel>
-                        <DropdownMenuItem onClick={() => handleExternalSearch(product, 'google')}>
+                     <DropdownMenuSub>
+                        <DropdownMenuSubTrigger>
                             <Search className="mr-2 h-4 w-4" />
-                            <span>Search on Google</span>
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleExternalSearch(product, 'ebay')}>
-                            <Search className="mr-2 h-4 w-4" />
-                            <span>Search on eBay.de</span>
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleExternalSearch(product, 'amazon')}>
-                            <Search className="mr-2 h-4 w-4" />
-                            <span>Search on Amazon.de</span>
-                        </DropdownMenuItem>
-                    </DropdownMenuGroup>
+                            <span>External Search</span>
+                        </DropdownMenuSubTrigger>
+                        <DropdownMenuPortal>
+                           <DropdownMenuSubContent>
+                             <DropdownMenuItem onClick={() => handleExternalSearch(product, 'google')}>
+                                <Search className="mr-2 h-4 w-4" />
+                                <span>Search on Google</span>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleExternalSearch(product, 'ebay')}>
+                                <Search className="mr-2 h-4 w-4" />
+                                <span>Search on eBay.de</span>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleExternalSearch(product, 'amazon')}>
+                                <Search className="mr-2 h-4 w-4" />
+                                <span>Search on Amazon.de</span>
+                            </DropdownMenuItem>
+                           </DropdownMenuSubContent>
+                        </DropdownMenuPortal>
+                     </DropdownMenuSub>
                     </DropdownMenuContent>
                 </DropdownMenu>
             )}
