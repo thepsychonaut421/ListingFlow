@@ -2,7 +2,7 @@
 
 import type { ColumnDef } from '@tanstack/react-table';
 import Image from 'next/image';
-import { MoreHorizontal, ArrowUpDown, Sparkles, Loader2, Edit, Trash2 } from 'lucide-react';
+import { MoreHorizontal, ArrowUpDown, Sparkles, Loader2, Edit, Trash2, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -30,6 +30,26 @@ const formatCurrency = (amount: number) => {
         currency: 'USD',
     }).format(amount);
 }
+
+const handleExternalSearch = (product: Product, platform: 'google' | 'ebay' | 'amazon') => {
+    const query = product.ean || product.code || product.name || '';
+    if (!query) return;
+
+    let searchUrl = '';
+    switch (platform) {
+        case 'google':
+            searchUrl = `https://www.google.com/search?q=${encodeURIComponent(query)}`;
+            break;
+        case 'ebay':
+            searchUrl = `https://www.ebay.de/sch/i.html?_nkw=${encodeURIComponent(query)}`;
+            break;
+        case 'amazon':
+            searchUrl = `https://www.amazon.de/s?k=${encodeURIComponent(query)}`;
+            break;
+    }
+    window.open(searchUrl, '_blank');
+};
+
 
 export const getColumns = ({ onEdit, onDelete, onGenerate, generatingProductId }: GetColumnsProps): ColumnDef<Product>[] => [
   {
@@ -149,6 +169,22 @@ export const getColumns = ({ onEdit, onDelete, onGenerate, generatingProductId }
                         <DropdownMenuItem onClick={() => onGenerate(product)}>
                             <Sparkles className="mr-2 h-4 w-4 text-primary" />
                             <span>Generate Description</span>
+                        </DropdownMenuItem>
+                    </DropdownMenuGroup>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuGroup>
+                        <DropdownMenuLabel>External Search</DropdownMenuLabel>
+                        <DropdownMenuItem onClick={() => handleExternalSearch(product, 'google')}>
+                            <Search className="mr-2 h-4 w-4" />
+                            <span>Search on Google</span>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleExternalSearch(product, 'ebay')}>
+                            <Search className="mr-2 h-4 w-4" />
+                            <span>Search on eBay.de</span>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleExternalSearch(product, 'amazon')}>
+                            <Search className="mr-2 h-4 w-4" />
+                            <span>Search on Amazon.de</span>
                         </DropdownMenuItem>
                     </DropdownMenuGroup>
                     </DropdownMenuContent>
