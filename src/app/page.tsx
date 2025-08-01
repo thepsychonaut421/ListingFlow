@@ -40,6 +40,7 @@ import { initialProducts } from '@/lib/data';
 import { ProductDataTable } from '@/components/product-data-table';
 import { getColumns } from '@/components/product-columns';
 import { generateProductDescription } from '@/ai/flows/generate-product-description';
+import { findProductDescription } from '@/ai/flows/find-product-description';
 import { useToast } from '@/hooks/use-toast';
 import { ProductForm } from '@/components/product-form';
 import { BulkEditForm } from '@/components/bulk-edit-form';
@@ -113,6 +114,10 @@ function DashboardClient() {
     setIsSheetOpen(false);
     setSelectedProduct(null);
   };
+  
+  const handleUpdateProduct = (id: string, data: Partial<Product>) => {
+    setProducts(products.map(p => p.id === id ? { ...p, ...data } : p));
+  };
 
   const handleSaveBulkEdit = (data: Partial<Product>) => {
     setProducts(products.map(p => {
@@ -168,6 +173,42 @@ function DashboardClient() {
         variant: 'destructive',
         title: 'AI Magic Failed',
         description: 'Could not generate a new description. Please try again.',
+      });
+    } finally {
+      setGeneratingProductId(null);
+    }
+  };
+
+  const handleCopyDescription = async (product: Product, source: 'otto' | 'ebay') => {
+    setGeneratingProductId(product.id);
+    try {
+      const result = await findProductDescription({
+        productName: product.name,
+        brand: product.brand,
+        ean: product.ean,
+        source: source,
+      });
+      
+      if (result.description) {
+        handleUpdateProduct(product.id, { description: result.description });
+        toast({
+          title: 'Description Copied!',
+          description: `Description for "${product.name}" has been copied from ${source}.de.`,
+        });
+      } else {
+        toast({
+          variant: 'destructive',
+          title: 'Copy Failed',
+          description: `Could not find a description for "${product.name}" on ${source}.de.`,
+        });
+      }
+
+    } catch (error) {
+      console.error(`Failed to copy description from ${source}:`, error);
+      toast({
+        variant: 'destructive',
+        title: 'Copy Failed',
+        description: `An error occurred while copying from ${source}.de.`,
       });
     } finally {
       setGeneratingProductId(null);
@@ -318,6 +359,8 @@ function DashboardClient() {
       onEdit: handleEditProduct,
       onDelete: handleDeleteProduct,
       onGenerate: handleGenerateDescription,
+      onUpdate: handleUpdateProduct,
+      onCopyDescription: handleCopyDescription,
       generatingProductId,
   }), [generatingProductId, products]);
 

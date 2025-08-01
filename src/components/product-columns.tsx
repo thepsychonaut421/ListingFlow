@@ -2,7 +2,7 @@
 
 import type { ColumnDef } from '@tanstack/react-table';
 import Image from 'next/image';
-import { MoreHorizontal, ArrowUpDown, Sparkles, Loader2, Edit, Trash2, Search } from 'lucide-react';
+import { MoreHorizontal, ArrowUpDown, Sparkles, Loader2, Edit, Trash2, Search, Copy } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -27,6 +27,8 @@ type GetColumnsProps = {
   onEdit: (product: Product) => void;
   onDelete: (id: string) => void;
   onGenerate: (product: Product) => void;
+  onUpdate: (id: string, data: Partial<Product>) => void;
+  onCopyDescription: (product: Product, source: 'otto' | 'ebay') => void;
   generatingProductId: string | null;
 };
 
@@ -37,7 +39,7 @@ const formatCurrency = (amount: number) => {
     }).format(amount);
 }
 
-export const getColumns = ({ onEdit, onDelete, onGenerate, generatingProductId }: GetColumnsProps): ColumnDef<Product>[] => [
+export const getColumns = ({ onEdit, onDelete, onGenerate, onCopyDescription, generatingProductId }: GetColumnsProps): ColumnDef<Product>[] => [
   {
     id: 'select',
     header: ({ table }) => (
@@ -130,7 +132,7 @@ export const getColumns = ({ onEdit, onDelete, onGenerate, generatingProductId }
             {isGenerating ? (
                 <div className="flex justify-end items-center gap-2 text-muted-foreground">
                     <Loader2 className="h-4 w-4 animate-spin" />
-                    <span>Generating...</span>
+                    <span>Working...</span>
                 </div>
             ) : (
                 <DropdownMenu>
@@ -155,8 +157,24 @@ export const getColumns = ({ onEdit, onDelete, onGenerate, generatingProductId }
                         <DropdownMenuLabel>AI Tools</DropdownMenuLabel>
                         <DropdownMenuItem onClick={() => onGenerate(product)}>
                             <Sparkles className="mr-2 h-4 w-4 text-primary" />
-                            <span>Generate Description</span>
+                            <span>Auto-fill with AI</span>
                         </DropdownMenuItem>
+                        <DropdownMenuSub>
+                            <DropdownMenuSubTrigger>
+                                <Copy className="mr-2 h-4 w-4" />
+                                <span>Copy Description</span>
+                            </DropdownMenuSubTrigger>
+                            <DropdownMenuPortal>
+                            <DropdownMenuSubContent>
+                                <DropdownMenuItem onClick={() => onCopyDescription(product, 'otto')}>
+                                    <span>From OTTO.de</span>
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => onCopyDescription(product, 'ebay')}>
+                                    <span>From eBay.de</span>
+                                </DropdownMenuItem>
+                            </DropdownMenuSubContent>
+                            </DropdownMenuPortal>
+                        </DropdownMenuSub>
                     </DropdownMenuGroup>
                     <DropdownMenuSeparator />
                      <DropdownMenuSub>
