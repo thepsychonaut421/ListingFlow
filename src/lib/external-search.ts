@@ -5,12 +5,12 @@ import type { Product } from './types';
 // Helper to build a query string from the best available product identifiers.
 // It joins all available fields to create a more specific search query.
 const buildQuery = (product: Product): string => {
-  return [product.name, product.ean, product.code]
+  return [product.ean, product.code, product.name]
     .filter(Boolean) // Remove any empty or null values
     .join(' '); // Join by space
 };
 
-export const handleExternalSearch = (product: Product, platform: 'google' | 'ebay' | 'amazon') => {
+export const handleExternalSearch = (product: Product, platform: 'google' | 'ebay' | 'amazon' | 'otto') => {
     const query = buildQuery(product);
     if (!query) return;
 
@@ -24,6 +24,9 @@ export const handleExternalSearch = (product: Product, platform: 'google' | 'eba
             break;
         case 'amazon':
             searchUrl = `https://www.amazon.de/s?k=${encodeURIComponent(query)}`;
+            break;
+        case 'otto':
+            searchUrl = `https://www.otto.de/suche/${encodeURIComponent(query)}`;
             break;
     }
     window.open(searchUrl, '_blank', 'noopener,noreferrer');

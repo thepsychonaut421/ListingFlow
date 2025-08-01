@@ -178,6 +178,10 @@ export const getColumns = ({ onEdit, onDelete, onGenerate, generatingProductId }
                                 <Search className="mr-2 h-4 w-4" />
                                 <span>Search on Amazon.de</span>
                             </DropdownMenuItem>
+                             <DropdownMenuItem onClick={() => handleExternalSearch(product, 'otto')}>
+                                <Search className="mr-2 h-4 w-4" />
+                                <span>Search on OTTO.de</span>
+                            </DropdownMenuItem>
                            </DropdownMenuSubContent>
                         </DropdownMenuPortal>
                      </DropdownMenuSub>
