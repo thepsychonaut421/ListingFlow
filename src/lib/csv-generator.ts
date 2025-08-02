@@ -16,14 +16,12 @@ const escapeCommaCsvField = (field: any): string => {
   return stringField;
 };
 
-// Escapes a field for semicolon-delimited CSV files.
-const escapeSemicolonCsvField = (field: any): string => {
-  if (field === null || field === undefined) return '';
-  const stringField = String(field);
-  if (/[;\n"]/.test(stringField)) {
-    return `"${stringField.replace(/"/g, '""')}"`;
-  }
-  return stringField;
+// Escapes a field for tab-delimited CSV files (eBay).
+const escapeTabCsvField = (field: any): string => {
+    if (field === null || field === undefined) return '';
+    // For tab-separated, we mainly need to remove tabs and newlines from within the fields.
+    // Quoting is not standard in the same way as comma-separated files.
+    return String(field).replace(/\t|\n|\r/g, ' ');
 };
 
 
@@ -31,10 +29,10 @@ const escapeSemicolonCsvField = (field: any): string => {
 
 const getEbayConditionId = (status: Product['listingStatus']): number => {
   switch (status) {
-    case 'new': return 1000;
-    case 'used': return 3000;
-    case 'refurbished': return 2500;
-    default: return 1000;
+    case 'new': return 1000; // New
+    case 'used': return 3000; // Used
+    case 'refurbished': return 2500; // Certified Refurbished
+    default: return 1000; // Default to New
   }
 };
 
@@ -71,17 +69,17 @@ const generateEbayCsvContent = (products: Product[]): string => {
       'C:Marke': product.brand,
       'C:Produktart': product.productType
     };
-    return headers.map(header => escapeSemicolonCsvField(rowData[header as keyof typeof rowData])).join(';');
+    return headers.map(header => escapeTabCsvField(rowData[header as keyof typeof rowData])).join('\t');
   });
 
   const fileInfoHeaders = [
-    '#INFO;Version=0.0.2;Template=eBay-draft-listings-template_DE;;;;;;;;;;;',
-    '#INFO;Action und Category ID sind erforderliche Felder. 1) Stellen Sie Action auf Draft ein. 2) Die Kategorie-ID für Ihre Angebote finden Sie hier: https://pages.ebay.com/sellerinformation/news/categorychanges.html;;;;;;;;;;;',
-    '#INFO;Nachdem Sie Ihren Entwurf erfolgreich im Berichte-Tab Ihres Verkäufer-Cockpit Pro heruntergeladen haben; können Sie die Entwürfe hier zu aktiven Angeboten vervollständigen: https://www.ebay.de/sh/lst/drafts;;;;;;;;;;;',
-    '#INFO;;;;;;;;;;;;'
+    '#INFO	Version=0.0.2	Template=eBay-draft-listings-template_DE',
+    '#INFO	Action und Category ID sind erforderliche Felder. 1) Stellen Sie Action auf Draft ein. 2) Die Kategorie-ID für Ihre Angebote finden Sie hier: https://pages.ebay.com/sellerinformation/news/categorychanges.html',
+    '#INFO	Nachdem Sie Ihren Entwurf erfolgreich im Berichte-Tab Ihres Verkäufer-Cockpit Pro heruntergeladen haben	 können Sie die Entwürfe hier zu aktiven Angeboten vervollständigen: https://www.ebay.de/sh/lst/drafts',
+    '#INFO'
   ];
 
-  return [...fileInfoHeaders, headers.join(';'), ...rows].join('\n');
+  return [...fileInfoHeaders, headers.join('\t'), ...rows].join('\n');
 };
 
 // --- Shopify Specific Logic ---
@@ -143,7 +141,7 @@ const generateShopifyCsvContent = (products: Product[]): string => {
       'Image Alt Text': product.name,
       'Gift Card': 'false',
       'SEO Title': `${product.name} - ${product.brand || ''}`,
-      'SEO Description': product.description.substring(0, 320),
+      'SEO Description': product.description ? product.description.substring(0, 320) : '',
       'Google Shopping / Google Product Category': product.category,
       'Google Shopping / Gender': '', 'Google Shopping / Age Group': '',
       'Google Shopping / MPN': product.code,

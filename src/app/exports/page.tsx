@@ -113,7 +113,7 @@ function ExportsClient() {
           </TabsList>
           <TabsContent value="ebay">
              <p className="text-sm text-muted-foreground my-4">
-              This tool generates a CSV file based on the eBay File Exchange format for drafts. Below is a preview of the key data points that will be included in the export.
+              This tool generates a CSV file based on the eBay File Exchange format for drafts. The file is tab-separated. Below is a preview of the key data points that will be included in the export.
             </p>
             <div className="rounded-md border">
               <Table>
@@ -133,7 +133,7 @@ function ExportsClient() {
                         <TableCell className="font-medium">{product.name}</TableCell>
                         <TableCell>{product.code}</TableCell>
                         <TableCell>{product.ebayCategoryId}</TableCell>
-                        <TableCell>{product.price.toFixed(2)}</TableCell>
+                        <TableCell>{product.price ? product.price.toFixed(2) : '0.00'}</TableCell>
                         <TableCell>{product.ean}</TableCell>
                       </TableRow>
                     ))
@@ -170,7 +170,7 @@ function ExportsClient() {
                         <TableCell className="font-medium">{product.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')}</TableCell>
                         <TableCell>{product.name}</TableCell>
                         <TableCell>{product.brand}</TableCell>
-                        <TableCell>{product.price.toFixed(2)}</TableCell>
+                        <TableCell>{product.price ? product.price.toFixed(2) : '0.00'}</TableCell>
                         <TableCell>{product.ean}</TableCell>
                       </TableRow>
                     ))
