@@ -1,2 +1,2 @@
-import {nextPlugin} from '@genkit-ai/next';
-export const {GET, POST} = nextPlugin();
+import { genkitNextHandler } from '@genkit-ai/next';
+export const { GET, POST } = genkitNextHandler();
