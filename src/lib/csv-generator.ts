@@ -11,8 +11,8 @@ const UTF8_BOM = '\uFEFF'; // UTF-8 Byte Order Mark for Excel compatibility
 // --- Helper Functions ---
 
 /**
- * Cleans a field for semicolon-delimited CSV files by removing characters
- * that would break the format (semicolons, newlines) and trimming whitespace.
+ * Cleans a field for semicolon-delimited CSV files. It removes characters
+ * that would break the format (semicolons, newlines, tabs) and trims whitespace.
  * @param field The value to clean.
  * @returns The cleaned string.
  */
@@ -24,7 +24,7 @@ const cleanSemicolonCsvField = (field: any): string => {
 
 
 /**
- * Escapes a field for comma-delimited CSV files.
+ * Escapes a field for standard comma-delimited CSV files.
  * @param field The value to escape.
  * @returns The escaped string.
  */
@@ -39,13 +39,13 @@ const escapeCommaCsvField = (field: any): string => {
 };
 
 /**
- * Builds a CSV string from headers and data rows.
+ * Builds a CSV body (header + data) from headers and data rows.
  * @param headers An array of header strings.
  * @param dataRows A 2D array of data rows.
  * @param delimiter The character to use for separating columns.
- * @returns A complete CSV content string with EOL.
+ * @returns A CSV content string using LF line endings.
  */
-const buildCsvContent = (headers: string[], dataRows: string[][], delimiter: string): string => {
+const buildCsvBody = (headers: string[], dataRows: string[][], delimiter: string): string => {
   const headerRow = headers.join(delimiter);
   const contentRows = dataRows.map(row => row.join(delimiter));
   return [headerRow, ...contentRows].join(EOL);
@@ -63,7 +63,7 @@ const getEbayConditionId = (status: Product['listingStatus']): number => {
 };
 
 const generateEbayCsvContent = (products: Product[]): string => {
-  // Strict headers required by eBay File Exchange for drafts (semicolon-separated).
+  // eBay File Exchange headers (semicolon-separated).
   const headers = [
     'Action(SiteID=Germany|Country=DE|Currency=EUR|Version=1193|CC=UTF-8)',
     'Custom label (SKU)', 'Category ID', 'Title', 'UPC', 'Price', 'Quantity',
@@ -88,10 +88,19 @@ const generateEbayCsvContent = (products: Product[]): string => {
       product.productType
     ].map(cleanSemicolonCsvField));
   
-  const rawCsv = buildCsvContent(headers, dataRows, ';');
+  // The first line must be the exact template identifier from eBay.
+  const ebayTemplateIdentifier = '#INFO;Version=0.0.2;Template= eBay-draft-listings-template_DE;;;;;;;';
   
-  // Convert LF to CRLF for Windows/eBay compatibility, WITHOUT BOM.
-  return rawCsv.replace(/\n/g, '\r\n');
+  // The body consists of the header row and data rows.
+  const csvBody = buildCsvBody(headers, dataRows, ';');
+  
+  // Final assembly: BOM + Template ID + Body, then convert to CRLF.
+  const finalCsv = [
+    UTF8_BOM + ebayTemplateIdentifier,
+    csvBody
+  ].join(EOL);
+  
+  return finalCsv.replace(/\n/g, '\r\n');
 };
 
 
@@ -148,7 +157,7 @@ const generateShopifyCsvContent = (products: Product[]): string => {
       return headers.map(header => escapeCommaCsvField(rowData[header] ?? ''));
     });
 
-  const rawCsv = buildCsvContent(headers, dataRows, ',');
+  const rawCsv = buildCsvBody(headers, dataRows, ',');
   
   // Shopify works well with BOM for Excel compatibility.
   return UTF8_BOM + rawCsv.replace(/\n/g, '\r\n');
