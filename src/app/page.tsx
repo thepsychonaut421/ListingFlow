@@ -70,7 +70,7 @@ function DashboardClient() {
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const erpFileInputRef = React.useRef<HTMLInputElement>(null);
   const priceFileInputRef = React.useRef<HTMLInputElement>(null);
-  const { setErpData, erpData } = useErpData();
+  const { setErpData } = useErpData();
 
   React.useEffect(() => {
     try {

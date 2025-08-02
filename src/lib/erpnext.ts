@@ -96,7 +96,7 @@ export async function importProductsFromERPNext(
 // 3. Update prețuri/stocuri din ERPNext
 export async function updatePricesAndStocksFromERPNext(
   setLoading: (b: boolean) => void,
-  setProducts: (products: Product[]) => void,
+  setProducts: (fn: (products: Product[]) => Product[]) => void,
   currentProducts: Product[]
 ) {
   try {
@@ -108,7 +108,7 @@ export async function updatePricesAndStocksFromERPNext(
     }
 
     let updatedCount = 0;
-    const updatedProducts = await Promise.all(currentProducts.map(async (p: Product) => {
+    const updatedProductsPromises = currentProducts.map(async (p: Product) => {
       let price = p.price;
       let qty = p.quantity;
       let hasUpdate = false;
@@ -137,9 +137,11 @@ export async function updatePricesAndStocksFromERPNext(
       
       if(hasUpdate) updatedCount++;
       return { ...p, price, quantity: qty };
-    }));
+    });
+    
+    const updatedProducts = await Promise.all(updatedProductsPromises);
 
-    setProducts(updatedProducts);
+    setProducts(() => updatedProducts);
     alert(`Update complete. ${updatedCount} products were updated with new data from ERPNext.`);
   } catch (err: any) {
     console.error(err);
@@ -183,5 +185,26 @@ export async function exportProductsToERPNext(
     alert(`Export failed: ${err.message}`);
   } finally {
     setLoading(false);
+  }
+}
+
+// 5. Universal Search Function
+export async function searchInERPNext(
+  doctype: string,
+  filters: any[][],
+  fields: string[],
+  pageLength = 20,
+  start = 0
+): Promise<any[]> {
+  try {
+    const filtersParam = encodeURIComponent(JSON.stringify(filters));
+    const fieldsParam = encodeURIComponent(JSON.stringify(fields));
+    const endpoint = `/api/resource/${doctype}?filters=${filtersParam}&fields=${fieldsParam}&limit_start=${start}&limit_page_length=${pageLength}`;
+    const resp = await erpNextRequest(endpoint);
+    return resp.data || [];
+  } catch(err) {
+    console.error(`Search in ${doctype} failed:`, err);
+    // Return empty array in case of error to avoid breaking the UI
+    return [];
   }
 }
