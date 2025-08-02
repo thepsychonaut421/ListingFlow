@@ -43,8 +43,14 @@ const nextConfig: NextConfig = {
     ],
   },
   webpack: (config) => {
-    // TEMPORARY: Suppress warnings from OTEL/firebase
-    config.externals.push('pino-pretty', 'lokijs', 'encoding');
+    config.resolve.alias['@opentelemetry/exporter-jaeger'] = false;
+    config.resolve.alias['@opentelemetry/winston-transport'] = false;
+    
+    config.module.rules.push({
+      test: /handlebars\/lib\/index.js/,
+      use: 'null-loader',
+    });
+
     return config;
   },
 };
