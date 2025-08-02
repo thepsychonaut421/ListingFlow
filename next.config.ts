@@ -42,6 +42,20 @@ const nextConfig: NextConfig = {
       }
     ],
   },
+   webpack: (config, { isServer }) => {
+    // Genkit uses handlebars, which breaks the Next.js build.
+    if (isServer) {
+        config.plugins.push(
+            new (require('webpack').NormalModuleReplacementPlugin)(
+                /handlebars/,
+                (resource: any) => {
+                    resource.request = 'node-noop';
+                }
+            )
+        );
+    }
+    return config;
+  },
 };
 
 export default nextConfig;
