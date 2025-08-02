@@ -47,13 +47,6 @@ const nextConfig: NextConfig = {
         'https://6000-firebase-studio-1753103304989.cluster-6vyo4gb53jczovun3dxslzjahs.cloudworkstations.dev',
     ],
   },
-  webpack: (config, { isServer }) => {
-    // This is a workaround for the issue with opentelemetry/exporter-jaeger as it's not needed for the build.
-    if (isServer) {
-        config.resolve.alias['@opentelemetry/exporter-jaeger'] = false;
-    }
-    return config;
-  }
 };
 
 export default nextConfig;
