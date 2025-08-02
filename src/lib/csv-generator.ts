@@ -71,15 +71,8 @@ const generateEbayCsvContent = (products: Product[]): string => {
     };
     return headers.map(header => escapeTabCsvField(rowData[header as keyof typeof rowData])).join('\t');
   });
-
-  const fileInfoHeaders = [
-    '#INFO	Version=0.0.2	Template=eBay-draft-listings-template_DE',
-    '#INFO	Action und Category ID sind erforderliche Felder. 1) Stellen Sie Action auf Draft ein. 2) Die Kategorie-ID für Ihre Angebote finden Sie hier: https://pages.ebay.com/sellerinformation/news/categorychanges.html',
-    '#INFO	Nachdem Sie Ihren Entwurf erfolgreich im Berichte-Tab Ihres Verkäufer-Cockpit Pro heruntergeladen haben	 können Sie die Entwürfe hier zu aktiven Angeboten vervollständigen: https://www.ebay.de/sh/lst/drafts',
-    '#INFO'
-  ];
-
-  return [...fileInfoHeaders, headers.join('\t'), ...rows].join('\n');
+  
+  return [headers.join('\t'), ...rows].join('\n');
 };
 
 // --- Shopify Specific Logic ---
