@@ -42,14 +42,6 @@ const nextConfig: NextConfig = {
       }
     ],
   },
-   webpack: (config, { isServer }) => {
-    if (isServer) {
-      // Genkit uses handlebars, which breaks the Next.js build.
-      // This is a workaround to prevent Next.js from trying to bundle it.
-      config.externals = [...config.externals, 'handlebars'];
-    }
-    return config;
-  },
 };
 
 export default nextConfig;
