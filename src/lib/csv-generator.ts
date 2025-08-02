@@ -5,22 +5,23 @@ import type { Product } from './types';
 type Platform = 'ebay' | 'shopify';
 
 // --- Constants ---
-const EOL = '\r\n'; // End of Line - CRLF for better compatibility
+const EOL = '\n'; // Use LF for internal generation, will be converted to CRLF for final output.
 const UTF8_BOM = '\uFEFF'; // UTF-8 Byte Order Mark for Excel compatibility
 
 // --- Helper Functions ---
 
 /**
- * Cleans a field for tab-delimited CSV files by removing characters 
- * that would break the format and trimming whitespace.
+ * Cleans a field for semicolon-delimited CSV files by removing characters
+ * that would break the format (semicolons, newlines) and trimming whitespace.
  * @param field The value to clean.
  * @returns The cleaned string.
  */
-const cleanTabCsvField = (field: any): string => {
+const cleanSemicolonCsvField = (field: any): string => {
     if (field === null || field === undefined) return '';
-    // For tab-separated, we remove tabs, newlines, and carriage returns from within fields.
-    return String(field).replace(/[\t\n\r]/g, ' ').trim();
+    // For semicolon-separated, we remove semicolons, tabs, newlines, and carriage returns.
+    return String(field).replace(/[\t\n\r;]/g, ' ').trim();
 };
+
 
 /**
  * Escapes a field for comma-delimited CSV files.
@@ -42,7 +43,7 @@ const escapeCommaCsvField = (field: any): string => {
  * @param headers An array of header strings.
  * @param dataRows A 2D array of data rows.
  * @param delimiter The character to use for separating columns.
- * @returns A complete CSV content string with BOM and EOL.
+ * @returns A complete CSV content string with EOL.
  */
 const buildCsvContent = (headers: string[], dataRows: string[][], delimiter: string): string => {
   const headerRow = headers.join(delimiter);
@@ -62,7 +63,7 @@ const getEbayConditionId = (status: Product['listingStatus']): number => {
 };
 
 const generateEbayCsvContent = (products: Product[]): string => {
-  // Strict headers required by eBay File Exchange for drafts.
+  // Strict headers required by eBay File Exchange for drafts (semicolon-separated).
   const headers = [
     'Action(SiteID=Germany|Country=DE|Currency=EUR|Version=1193|CC=UTF-8)',
     'Custom label (SKU)', 'Category ID', 'Title', 'UPC', 'Price', 'Quantity',
@@ -70,7 +71,6 @@ const generateEbayCsvContent = (products: Product[]): string => {
   ];
 
   const dataRows = products
-    // Basic validation: A product must have a SKU to be included in the export.
     .filter(product => product.code) 
     .map(product => [
       'Draft',
@@ -86,11 +86,12 @@ const generateEbayCsvContent = (products: Product[]): string => {
       'FixedPrice',
       product.brand,
       product.productType
-    ].map(cleanTabCsvField));
+    ].map(cleanSemicolonCsvField));
   
-  const csvContent = buildCsvContent(headers, dataRows, '\t');
+  const rawCsv = buildCsvContent(headers, dataRows, ';');
   
-  return UTF8_BOM + csvContent;
+  // Convert LF to CRLF for Windows/eBay compatibility, WITHOUT BOM.
+  return rawCsv.replace(/\n/g, '\r\n');
 };
 
 
@@ -125,7 +126,6 @@ const generateShopifyCsvContent = (products: Product[]): string => {
   ];
 
   const dataRows = products
-    // Basic validation: A product must have a SKU (handle is derived from name, but SKU is better)
     .filter(product => product.code)
     .map(product => {
       const handle = product.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
@@ -148,9 +148,10 @@ const generateShopifyCsvContent = (products: Product[]): string => {
       return headers.map(header => escapeCommaCsvField(rowData[header] ?? ''));
     });
 
-  const csvContent = buildCsvContent(headers, dataRows, ',');
+  const rawCsv = buildCsvContent(headers, dataRows, ',');
   
-  return UTF8_BOM + csvContent;
+  // Shopify works well with BOM for Excel compatibility.
+  return UTF8_BOM + rawCsv.replace(/\n/g, '\r\n');
 };
 
 
@@ -169,7 +170,6 @@ export const generateCsv = (products: Product[], platform: Platform): string => 
     case 'shopify':
       return generateShopifyCsvContent(products);
     default:
-      // This should ideally not be reached if types are correct.
       console.error(`Unsupported platform: ${platform}`);
       return '';
   }
