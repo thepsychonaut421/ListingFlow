@@ -55,7 +55,7 @@ const generateEbayCsvContent = (products: Product[]): string => {
 
   const rows = products.map(product => {
     const rowData = {
-      'Action': 'Draft',
+      'Action(SiteID=Germany|Country=DE|Currency=EUR|Version=1193|CC=UTF-8)': 'Draft',
       'Custom label (SKU)': product.code,
       'Category ID': product.ebayCategoryId,
       'Title': product.name,
