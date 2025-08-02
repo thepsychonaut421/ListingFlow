@@ -197,11 +197,24 @@ export async function searchInERPNext(
   start = 0
 ): Promise<any[]> {
   try {
-    const filtersParam = encodeURIComponent(JSON.stringify(filters));
-    const fieldsParam = encodeURIComponent(JSON.stringify(fields));
-    const endpoint = `/api/resource/${doctype}?filters=${filtersParam}&fields=${fieldsParam}&limit_start=${start}&limit_page_length=${pageLength}`;
-    const resp = await erpNextRequest(endpoint);
-    return resp.data || [];
+    // The standard API does not support OR filters, it treats arrays of filters as AND.
+    // To simulate an OR, we have to make separate requests and combine the results.
+    const requests = filters.map(filter => {
+       const singleFilterParam = encodeURIComponent(JSON.stringify([filter]));
+       const fieldsParam = encodeURIComponent(JSON.stringify(fields));
+       const endpoint = `/api/resource/${doctype}?filters=${singleFilterParam}&fields=${fieldsParam}&limit_start=${start}&limit_page_length=${pageLength}`;
+       return erpNextRequest(endpoint);
+    });
+
+    const responses = await Promise.all(requests);
+    const allResults = responses.flatMap(resp => resp.data || []);
+    
+    // Remove duplicates based on the 'name' field, which is the unique ID in ERPNext
+    const uniqueResults = allResults.filter((item, index, self) =>
+        index === self.findIndex((t) => t.name === item.name)
+    );
+
+    return uniqueResults;
   } catch(err) {
     console.error(`Search in ${doctype} failed:`, err);
     // Return empty array in case of error to avoid breaking the UI

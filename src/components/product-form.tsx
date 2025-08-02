@@ -249,15 +249,21 @@ export function ProductForm({ product, onSave, onCancel }: ProductFormProps) {
 
   const handleAutocomplete = async (code: string) => {
     if (!code) return;
+
+    // Search by both SKU (name in ERPNext) and EAN
+    const filters = [
+        ['Item', 'name', 'like', `%${code}%`],
+        ['Item', 'ean', 'like', `%${code}%`],
+    ];
   
     const results = await searchInERPNext(
       'Item',
-      [['name', 'like', `%${code}%`]],
+      filters,
       ['name', 'item_name', 'item_group', 'brand', 'ean']
     );
 
     if (results.length > 0) {
-      const found = results[0];
+      const found = results[0]; // Use the first result
       form.setValue('name', found.item_name || found.name, { shouldValidate: true });
       form.setValue('category', found.item_group || '', { shouldValidate: true });
       form.setValue('code', found.name, { shouldValidate: true });
