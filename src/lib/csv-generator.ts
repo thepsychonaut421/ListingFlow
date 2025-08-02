@@ -54,13 +54,13 @@ const generateEbayCsvContent = (products: Product[]): string => {
   ];
 
   const rows = products.map(product => {
-    const rowValues = [
-      'Draft',
+    const rowData = [
+      'Draft', // Action
       product.code,
       product.ebayCategoryId,
       product.name,
       product.ean || '',
-      product.price.toFixed(2),
+      product.price ? product.price.toFixed(2) : '0.00',
       product.quantity,
       product.image,
       getEbayConditionId(product.listingStatus),
@@ -69,9 +69,9 @@ const generateEbayCsvContent = (products: Product[]): string => {
       product.brand,
       product.productType
     ];
-    return rowValues.map(escapeTabCsvField).join('\t');
+    return rowData.map(escapeTabCsvField).join('\t');
   });
-  
+
   return [headers.join('\t'), ...rows].join('\n');
 };
 
