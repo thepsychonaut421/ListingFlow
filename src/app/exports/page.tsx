@@ -113,28 +113,28 @@ function ExportsClient() {
           </TabsList>
           <TabsContent value="ebay">
              <p className="text-sm text-muted-foreground my-4">
-              This tool generates a CSV file based on the eBay File Exchange format for drafts. The file is tab-separated. Below is a preview of the key data points that will be included in the export.
+              This tool generates a CSV file based on the eBay File Exchange format for drafts. The file is tab-separated and must start with a specific header row. Ensure you are uploading this file to the "Upload Template" section in your Seller Hub Reports tab.
             </p>
             <div className="rounded-md border">
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead>Action</TableHead>
                     <TableHead>Title</TableHead>
                     <TableHead>Custom label (SKU)</TableHead>
                     <TableHead>Category ID</TableHead>
                     <TableHead>Price</TableHead>
-                    <TableHead>UPC</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {products.length > 0 ? (
                     products.map((product) => (
                       <TableRow key={product.id}>
-                        <TableCell className="font-medium">{product.name}</TableCell>
+                        <TableCell className="font-medium">Draft</TableCell>
+                        <TableCell>{product.name}</TableCell>
                         <TableCell>{product.code}</TableCell>
                         <TableCell>{product.ebayCategoryId}</TableCell>
                         <TableCell>{product.price ? product.price.toFixed(2) : '0.00'}</TableCell>
-                        <TableCell>{product.ean}</TableCell>
                       </TableRow>
                     ))
                   ) : (

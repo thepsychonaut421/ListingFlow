@@ -54,22 +54,22 @@ const generateEbayCsvContent = (products: Product[]): string => {
   ];
 
   const rows = products.map(product => {
-    const rowData = {
-      'Action(SiteID=Germany|Country=DE|Currency=EUR|Version=1193|CC=UTF-8)': 'Draft',
-      'Custom label (SKU)': product.code,
-      'Category ID': product.ebayCategoryId,
-      'Title': product.name,
-      'UPC': product.ean || '',
-      'Price': product.price.toFixed(2),
-      'Quantity': product.quantity,
-      'Item photo URL': product.image,
-      'Condition ID': getEbayConditionId(product.listingStatus),
-      'Description': product.description,
-      'Format': 'FixedPrice',
-      'C:Marke': product.brand,
-      'C:Produktart': product.productType
-    };
-    return headers.map(header => escapeTabCsvField(rowData[header as keyof typeof rowData])).join('\t');
+    const rowValues = [
+      'Draft',
+      product.code,
+      product.ebayCategoryId,
+      product.name,
+      product.ean || '',
+      product.price.toFixed(2),
+      product.quantity,
+      product.image,
+      getEbayConditionId(product.listingStatus),
+      product.description,
+      'FixedPrice',
+      product.brand,
+      product.productType
+    ];
+    return rowValues.map(escapeTabCsvField).join('\t');
   });
   
   return [headers.join('\t'), ...rows].join('\n');
