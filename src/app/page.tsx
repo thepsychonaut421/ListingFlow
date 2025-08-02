@@ -8,6 +8,7 @@ import {
   Upload,
   FilePenLine,
   Database,
+  DollarSign,
 } from 'lucide-react';
 import Papa from 'papaparse';
 
@@ -57,6 +58,7 @@ function DashboardClient() {
   const { toast } = useToast();
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const erpFileInputRef = React.useRef<HTMLInputElement>(null);
+  const priceFileInputRef = React.useRef<HTMLInputElement>(null);
   const { setErpData, erpData } = useErpData();
 
   React.useEffect(() => {
@@ -263,6 +265,10 @@ function DashboardClient() {
   const handleErpImportClick = () => {
     erpFileInputRef.current?.click();
   };
+  
+  const handlePriceImportClick = () => {
+    priceFileInputRef.current?.click();
+  };
 
   const handleCSVUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -326,6 +332,74 @@ function DashboardClient() {
       },
     });
     
+    if(event.target) {
+        event.target.value = '';
+    }
+  };
+
+  const handlePriceCSVUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    Papa.parse(file, {
+      header: true,
+      skipEmptyLines: true,
+      complete: (results) => {
+        let updatedCount = 0;
+        let notFoundCount = 0;
+        
+        const priceMap = new Map<string, number>();
+        results.data.forEach((row: any) => {
+          const sku = row['Cod articol'] || row['Artikel-Code'];
+          const price = row['Pret'] || row['Preis'];
+          if (sku && price !== undefined) {
+             const parsedPrice = parseFloat(String(price).replace(',', '.'));
+             if (!isNaN(parsedPrice)) {
+                priceMap.set(String(sku).trim(), parsedPrice);
+             }
+          }
+        });
+        
+        if(priceMap.size === 0) {
+            toast({
+              variant: 'destructive',
+              title: 'Update Failed',
+              description: 'No valid price data found in the CSV. Check column headers (e.g., "Cod articol", "Pret").',
+            });
+            return;
+        }
+
+        setProducts(currentProducts => {
+            const updatedProducts = currentProducts.map(p => {
+                if (priceMap.has(p.code)) {
+                    updatedCount++;
+                    return { ...p, price: priceMap.get(p.code)! };
+                }
+                return p;
+            });
+
+            const productsInFile = Array.from(priceMap.keys());
+            const productsInTable = currentProducts.map(p => p.code);
+            notFoundCount = productsInFile.filter(code => !productsInTable.includes(code)).length;
+
+            toast({
+              title: 'Price Update Complete',
+              description: `${updatedCount} prices updated. ${notFoundCount} SKUs from the file were not found in the table.`,
+            });
+            return updatedProducts;
+        });
+
+      },
+      error: (err) => {
+        console.error("Error parsing Price CSV:", err);
+        toast({
+            variant: 'destructive',
+            title: 'Import Failed',
+            description: 'Could not parse the price CSV file.',
+        });
+      },
+    });
+
     if(event.target) {
         event.target.value = '';
     }
@@ -413,6 +487,13 @@ function DashboardClient() {
               accept=".csv"
               className="hidden"
             />
+             <input
+              type="file"
+              ref={priceFileInputRef}
+              onChange={handlePriceCSVUpload}
+              accept=".csv"
+              className="hidden"
+            />
             <Button size="sm" variant="outline" className="h-8 gap-1" onClick={handleErpImportClick}>
               <Database className="h-3.5 w-3.5" />
               <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
@@ -430,6 +511,12 @@ function DashboardClient() {
               <Upload className="h-3.5 w-3.5" />
               <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
                 Import Products
+              </span>
+            </Button>
+            <Button size="sm" variant="outline" className="h-8 gap-1" onClick={handlePriceImportClick}>
+              <DollarSign className="h-3.5 w-3.5" />
+              <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
+                Update Prices
               </span>
             </Button>
             <Button size="sm" variant="outline" className="h-8 gap-1" onClick={handleExportToCSV}>
