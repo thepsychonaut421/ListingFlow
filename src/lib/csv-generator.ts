@@ -16,12 +16,11 @@ const escapeCommaCsvField = (field: any): string => {
   return stringField;
 };
 
-// Escapes a field for tab-delimited CSV files (eBay).
-const escapeTabCsvField = (field: any): string => {
+// Cleans a field for tab-delimited CSV files by removing characters that would break the format.
+const cleanTabCsvField = (field: any): string => {
     if (field === null || field === undefined) return '';
-    // For tab-separated, we mainly need to remove tabs and newlines from within the fields.
-    // Quoting is not standard in the same way as comma-separated files.
-    return String(field).replace(/\t|\n|\r/g, ' ');
+    // For tab-separated, we need to remove tabs, newlines, and carriage returns from within fields.
+    return String(field).replace(/[\t\n\r]/g, ' ');
 };
 
 
@@ -37,6 +36,7 @@ const getEbayConditionId = (status: Product['listingStatus']): number => {
 };
 
 const generateEbayCsvContent = (products: Product[]): string => {
+  // Strict headers required by eBay File Exchange for drafts in Germany.
   const headers = [
     'Action(SiteID=Germany|Country=DE|Currency=EUR|Version=1193|CC=UTF-8)',
     'Custom label (SKU)',
@@ -53,9 +53,12 @@ const generateEbayCsvContent = (products: Product[]): string => {
     'C:Produktart'
   ];
 
-  const rows = products.map(product => {
-    const rowData = [
-      'Draft', // Action
+  const headerRow = headers.join('\t');
+
+  const dataRows = products.map(product => {
+    // Each row must be an array of values in the exact order of the headers.
+    const row = [
+      'Draft', // Action is always 'Draft'
       product.code,
       product.ebayCategoryId,
       product.name,
@@ -65,14 +68,17 @@ const generateEbayCsvContent = (products: Product[]): string => {
       product.image,
       getEbayConditionId(product.listingStatus),
       product.description,
-      'FixedPrice',
+      'FixedPrice', // Format is always 'FixedPrice' for this template
       product.brand,
       product.productType
     ];
-    return rowData.map(escapeTabCsvField).join('\t');
+    // Clean each field and join with a tab character.
+    return row.map(cleanTabCsvField).join('\t');
   });
 
-  return [headers.join('\t'), ...rows].join('\n');
+  // The final CSV content is the header row followed by data rows, joined by newlines.
+  // No other lines or comments should be present.
+  return [headerRow, ...dataRows].join('\n');
 };
 
 // --- Shopify Specific Logic ---
