@@ -4,61 +4,76 @@ import type { Product } from './types';
 
 type Platform = 'ebay' | 'shopify';
 
+// --- Constants ---
+const EOL = '\r\n'; // End of Line - CRLF for better compatibility
+const UTF8_BOM = '\uFEFF'; // UTF-8 Byte Order Mark for Excel compatibility
+
 // --- Helper Functions ---
 
-// Escapes a field for comma-delimited CSV files.
+/**
+ * Cleans a field for tab-delimited CSV files by removing characters 
+ * that would break the format and trimming whitespace.
+ * @param field The value to clean.
+ * @returns The cleaned string.
+ */
+const cleanTabCsvField = (field: any): string => {
+    if (field === null || field === undefined) return '';
+    // For tab-separated, we remove tabs, newlines, and carriage returns from within fields.
+    return String(field).replace(/[\t\n\r]/g, ' ').trim();
+};
+
+/**
+ * Escapes a field for comma-delimited CSV files.
+ * @param field The value to escape.
+ * @returns The escaped string.
+ */
 const escapeCommaCsvField = (field: any): string => {
   if (field === null || field === undefined) return '';
-  const stringField = String(field);
-  if (/[,"\n]/.test(stringField)) {
+  const stringField = String(field).trim();
+  // Enclose in double quotes if it contains a comma, double quote, or newline.
+  if (/[,"\n\r]/.test(stringField)) {
     return `"${stringField.replace(/"/g, '""')}"`;
   }
   return stringField;
 };
 
-// Cleans a field for tab-delimited CSV files by removing characters that would break the format.
-const cleanTabCsvField = (field: any): string => {
-    if (field === null || field === undefined) return '';
-    // For tab-separated, we need to remove tabs, newlines, and carriage returns from within fields.
-    return String(field).replace(/[\t\n\r]/g, ' ');
+/**
+ * Builds a CSV string from headers and data rows.
+ * @param headers An array of header strings.
+ * @param dataRows A 2D array of data rows.
+ * @param delimiter The character to use for separating columns.
+ * @returns A complete CSV content string with BOM and EOL.
+ */
+const buildCsvContent = (headers: string[], dataRows: string[][], delimiter: string): string => {
+  const headerRow = headers.join(delimiter);
+  const contentRows = dataRows.map(row => row.join(delimiter));
+  return [headerRow, ...contentRows].join(EOL);
 };
-
 
 // --- eBay Specific Logic ---
 
 const getEbayConditionId = (status: Product['listingStatus']): number => {
   switch (status) {
-    case 'new': return 1000; // New
-    case 'used': return 3000; // Used
-    case 'refurbished': return 2500; // Certified Refurbished
-    default: return 1000; // Default to New
+    case 'new': return 1000;
+    case 'used': return 3000;
+    case 'refurbished': return 2500;
+    default: return 1000;
   }
 };
 
 const generateEbayCsvContent = (products: Product[]): string => {
-  // Strict headers required by eBay File Exchange for drafts in Germany.
+  // Strict headers required by eBay File Exchange for drafts.
   const headers = [
     'Action(SiteID=Germany|Country=DE|Currency=EUR|Version=1193|CC=UTF-8)',
-    'Custom label (SKU)',
-    'Category ID',
-    'Title',
-    'UPC',
-    'Price',
-    'Quantity',
-    'Item photo URL',
-    'Condition ID',
-    'Description',
-    'Format',
-    'C:Marke',
-    'C:Produktart'
+    'Custom label (SKU)', 'Category ID', 'Title', 'UPC', 'Price', 'Quantity',
+    'Item photo URL', 'Condition ID', 'Description', 'Format', 'C:Marke', 'C:Produktart'
   ];
 
-  const headerRow = headers.join('\t');
-
-  const dataRows = products.map(product => {
-    // Each row must be an array of values in the exact order of the headers.
-    const row = [
-      'Draft', // Action is always 'Draft'
+  const dataRows = products
+    // Basic validation: A product must have a SKU to be included in the export.
+    .filter(product => product.code) 
+    .map(product => [
+      'Draft',
       product.code,
       product.ebayCategoryId,
       product.name,
@@ -68,18 +83,16 @@ const generateEbayCsvContent = (products: Product[]): string => {
       product.image,
       getEbayConditionId(product.listingStatus),
       product.description,
-      'FixedPrice', // Format is always 'FixedPrice' for this template
+      'FixedPrice',
       product.brand,
       product.productType
-    ];
-    // Clean each field and join with a tab character.
-    return row.map(cleanTabCsvField).join('\t');
-  });
-
-  // The final CSV content is the header row followed by data rows, joined by newlines.
-  // No other lines or comments should be present.
-  return [headerRow, ...dataRows].join('\n');
+    ].map(cleanTabCsvField));
+  
+  const csvContent = buildCsvContent(headers, dataRows, '\t');
+  
+  return UTF8_BOM + csvContent;
 };
+
 
 // --- Shopify Specific Logic ---
 
@@ -93,6 +106,7 @@ const getShopifyCondition = (status: Product['listingStatus']): string => {
 };
 
 const generateShopifyCsvContent = (products: Product[]): string => {
+  // Standard Shopify product import headers.
   const headers = [
     'Handle', 'Title', 'Body (HTML)', 'Vendor', 'Product Category', 'Type', 'Tags', 
     'Published', 'Option1 Name', 'Option1 Value', 'Option2 Name', 'Option2 Value', 
@@ -110,58 +124,44 @@ const generateShopifyCsvContent = (products: Product[]): string => {
     'Variant Tax Code', 'Cost per item', 'Status'
   ];
 
-  const rows = products.map(product => {
-    const handle = product.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
-    const rowData = {
-      'Handle': handle,
-      'Title': product.name,
-      'Body (HTML)': product.description,
-      'Vendor': product.brand,
-      'Product Category': product.category,
-      'Type': product.productType,
-      'Tags': product.tags.join(', '),
-      'Published': 'true',
-      'Option1 Name': 'Title',
-      'Option1 Value': 'Default Title',
-      'Option2 Name': '', 'Option2 Value': '', 'Option3 Name': '', 'Option3 Value': '',
-      'Variant SKU': product.code,
-      'Variant Grams': '0',
-      'Variant Inventory Tracker': 'shopify',
-      'Variant Inventory Qty': product.quantity,
-      'Variant Inventory Policy': 'deny',
-      'Variant Fulfillment Service': 'manual',
-      'Variant Price': product.price.toFixed(2),
-      'Variant Compare At Price': '',
-      'Variant Requires Shipping': 'true',
-      'Variant Taxable': 'true',
-      'Variant Barcode': product.ean,
-      'Image Src': product.image,
-      'Image Position': '1',
-      'Image Alt Text': product.name,
-      'Gift Card': 'false',
-      'SEO Title': `${product.name} - ${product.brand || ''}`,
-      'SEO Description': product.description ? product.description.substring(0, 320) : '',
-      'Google Shopping / Google Product Category': product.category,
-      'Google Shopping / Gender': '', 'Google Shopping / Age Group': '',
-      'Google Shopping / MPN': product.code,
-      'Google Shopping / AdWords Grouping': '', 'Google Shopping / AdWords Labels': '',
-      'Google Shopping / Condition': getShopifyCondition(product.listingStatus),
-      'Google Shopping / Custom Product': '', 'Google Shopping / Custom Label 0': '',
-      'Google Shopping / Custom Label 1': '', 'Google Shopping / Custom Label 2': '',
-      'Google Shopping / Custom Label 3': '', 'Google Shopping / Custom Label 4': '',
-      'Variant Image': '', 'Variant Weight Unit': 'kg', 'Variant Tax Code': '',
-      'Cost per item': '',
-      'Status': 'active'
-    };
-    return headers.map(header => escapeCommaCsvField(rowData[header as keyof typeof rowData])).join(',');
-  });
+  const dataRows = products
+    // Basic validation: A product must have a SKU (handle is derived from name, but SKU is better)
+    .filter(product => product.code)
+    .map(product => {
+      const handle = product.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+      const rowData: Record<string, any> = {
+        'Handle': handle, 'Title': product.name, 'Body (HTML)': product.description,
+        'Vendor': product.brand, 'Product Category': product.category, 'Type': product.productType,
+        'Tags': product.tags.join(', '), 'Published': 'true', 'Option1 Name': 'Title',
+        'Option1 Value': 'Default Title', 'Variant SKU': product.code, 'Variant Grams': '0',
+        'Variant Inventory Tracker': 'shopify', 'Variant Inventory Qty': product.quantity,
+        'Variant Inventory Policy': 'deny', 'Variant Fulfillment Service': 'manual',
+        'Variant Price': product.price.toFixed(2), 'Variant Requires Shipping': 'true',
+        'Variant Taxable': 'true', 'Variant Barcode': product.ean, 'Image Src': product.image,
+        'Image Position': '1', 'Image Alt Text': product.name, 'Gift Card': 'false',
+        'SEO Title': `${product.name} - ${product.brand || ''}`,
+        'SEO Description': product.description ? product.description.substring(0, 320) : '',
+        'Google Shopping / Google Product Category': product.category,
+        'Google Shopping / Condition': getShopifyCondition(product.listingStatus),
+        'Status': 'active'
+      };
+      return headers.map(header => escapeCommaCsvField(rowData[header] ?? ''));
+    });
 
-  return [headers.join(','), ...rows].join('\n');
+  const csvContent = buildCsvContent(headers, dataRows, ',');
+  
+  return UTF8_BOM + csvContent;
 };
 
 
 // --- Main Export Function ---
 
+/**
+ * Generates CSV content for a specified e-commerce platform.
+ * @param products The array of products to export.
+ * @param platform The target platform ('ebay' or 'shopify').
+ * @returns A string containing the full CSV content.
+ */
 export const generateCsv = (products: Product[], platform: Platform): string => {
   switch (platform) {
     case 'ebay':
@@ -169,6 +169,8 @@ export const generateCsv = (products: Product[], platform: Platform): string => 
     case 'shopify':
       return generateShopifyCsvContent(products);
     default:
-      throw new Error(`Unsupported platform: ${platform}`);
+      // This should ideally not be reached if types are correct.
+      console.error(`Unsupported platform: ${platform}`);
+      return '';
   }
 };
