@@ -42,11 +42,9 @@ const nextConfig: NextConfig = {
       }
     ],
   },
-  webpack: (config, { isServer }) => {
-    config.module.rules.push({
-      test: /handlebars\/lib\/index\.js$/,
-      use: 'null-loader',
-    });
+  webpack: (config) => {
+    // TEMPORARY: Suppress warnings from OTEL/firebase
+    config.externals.push('pino-pretty', 'lokijs', 'encoding');
     return config;
   },
 };
