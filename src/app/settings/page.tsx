@@ -7,9 +7,12 @@ import {
   Card,
   CardContent,
   CardDescription,
+  CardFooter,
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { Trash2 } from 'lucide-react';
 import {
@@ -26,9 +29,36 @@ import {
 
 function SettingsClient() {
   const { toast } = useToast();
+  const [erpNextUrl, setErpNextUrl] = React.useState('');
+  const [erpNextApiKey, setErpNextApiKey] = React.useState('');
+  const [erpNextApiSecret, setErpNextApiSecret] = React.useState('');
+
+  React.useEffect(() => {
+    const savedCreds = localStorage.getItem('erpnext-credentials');
+    if (savedCreds) {
+      const { url, apiKey, apiSecret } = JSON.parse(savedCreds);
+      setErpNextUrl(url || '');
+      setErpNextApiKey(apiKey || '');
+      setErpNextApiSecret(apiSecret || '');
+    }
+  }, []);
+
+  const handleSaveErpNextCredentials = () => {
+    const credentials = {
+      url: erpNextUrl,
+      apiKey: erpNextApiKey,
+      apiSecret: erpNextApiSecret,
+    };
+    localStorage.setItem('erpnext-credentials', JSON.stringify(credentials));
+    toast({
+      title: 'Settings Saved',
+      description: 'Your ERPNext credentials have been saved locally.',
+    });
+  };
   
   const handleClearData = () => {
     localStorage.removeItem('listingFlowProducts');
+    localStorage.removeItem('erpnext-credentials');
     toast({
       title: 'Data Cleared',
       description: 'All local product data has been successfully deleted.',
@@ -38,6 +68,32 @@ function SettingsClient() {
 
   return (
     <div className="grid gap-6">
+       <Card>
+        <CardHeader>
+          <CardTitle>ERPNext Integration</CardTitle>
+          <CardDescription>
+            Configure the connection to your ERPNext instance. This information is saved securely in your browser's local storage.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="erp-url">ERPNext URL</Label>
+            <Input id="erp-url" placeholder="https://your-erp.rembayer.info" value={erpNextUrl} onChange={(e) => setErpNextUrl(e.target.value)} />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="api-key">API Key</Label>
+            <Input id="api-key" placeholder="e.g., 4219f2a59843e43" value={erpNextApiKey} onChange={(e) => setErpNextApiKey(e.target.value)} />
+          </div>
+           <div className="space-y-2">
+            <Label htmlFor="api-secret">API Secret</Label>
+            <Input id="api-secret" type="password" value={erpNextApiSecret} onChange={(e) => setErpNextApiSecret(e.target.value)} />
+          </div>
+        </CardContent>
+        <CardFooter className="border-t px-6 py-4">
+          <Button onClick={handleSaveErpNextCredentials}>Save</Button>
+        </CardFooter>
+      </Card>
+      
       <Card>
         <CardHeader>
           <CardTitle>Settings</CardTitle>
@@ -74,7 +130,7 @@ function SettingsClient() {
                       <AlertDialogHeader>
                       <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
                       <AlertDialogDescription>
-                          This action cannot be undone. This will permanently delete all your product data
+                          This action cannot be undone. This will permanently delete all your product data and settings
                           from your browser's local storage.
                       </AlertDialogDescription>
                       </AlertDialogHeader>
