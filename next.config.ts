@@ -42,6 +42,13 @@ const nextConfig: NextConfig = {
       }
     ],
   },
+  webpack: (config, { isServer }) => {
+    config.module.rules.push({
+      test: /handlebars\/lib\/index\.js$/,
+      use: 'null-loader',
+    });
+    return config;
+  },
 };
 
 export default nextConfig;
