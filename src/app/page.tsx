@@ -9,6 +9,10 @@ import {
   FilePenLine,
   Database,
   DollarSign,
+  Download,
+  RefreshCw,
+  Send,
+  Loader2
 } from 'lucide-react';
 import Papa from 'papaparse';
 
@@ -46,6 +50,12 @@ import { useToast } from '@/hooks/use-toast';
 import { ProductForm } from '@/components/product-form';
 import { BulkEditForm } from '@/components/bulk-edit-form';
 import { ErpDataProvider, useErpData } from '@/contexts/erp-data-context';
+import {
+  importProductsFromERPNext,
+  updatePricesAndStocksFromERPNext,
+  exportProductsToERPNext,
+} from '@/lib/erpnext';
+
 
 function DashboardClient() {
   const [products, setProducts] = React.useState<Product[]>([]);
@@ -54,6 +64,7 @@ function DashboardClient() {
   const [selectedProduct, setSelectedProduct] = React.useState<Product | null>(null);
   const [selectedProductIds, setSelectedProductIds] = React.useState<string[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
+  const [isErpLoading, setIsErpLoading] = React.useState(false);
   const [generatingProductId, setGeneratingProductId] = React.useState<string | null>(null);
   const { toast } = useToast();
   const fileInputRef = React.useRef<HTMLInputElement>(null);
@@ -404,46 +415,17 @@ function DashboardClient() {
         event.target.value = '';
     }
   };
+  
+    const handleErpImport = async () => {
+    await importProductsFromERPNext(setIsErpLoading, setProducts);
+  };
 
-  const handleErpCSVUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
+  const handleErpUpdate = async () => {
+    await updatePricesAndStocksFromERPNext(setIsErpLoading, setProducts, products);
+  };
 
-    Papa.parse(file, {
-      header: true,
-      skipEmptyLines: true,
-      complete: (results) => {
-        const mappedData = results.data.map((row: any) => {
-          const sku = row['Artikel-Code'] || row['Cod articol'] || '';
-          const name = row['Artikelname'] || row['Numele articolului'] || '';
-          const category = row['Artikelgruppe'] || row['Grup Articol'] || '';
-          
-          return {
-            sku: sku.toString().trim(),
-            ean: sku.toString().trim(), // Assuming EAN is same as SKU for now
-            name: name.toString().trim(),
-            category: category.toString().trim(),
-          }
-        }).filter(item => item.sku);
-
-        setErpData(mappedData);
-        toast({
-          title: "ERP Data Loaded",
-          description: `${mappedData.length} records are now available for autocompletion.`,
-        });
-      },
-      error: (err) => {
-        console.error("Error parsing ERP CSV:", err);
-        toast({
-            variant: 'destructive',
-            title: 'ERP Import Failed',
-            description: 'Could not parse the ERP CSV file.',
-        });
-      },
-    });
-     if(event.target) {
-        event.target.value = '';
-    }
+  const handleErpExport = async () => {
+    await exportProductsToERPNext(setIsErpLoading, products);
   };
 
 
@@ -473,56 +455,44 @@ function DashboardClient() {
           <div>
             <CardTitle>Products</CardTitle>
              <CardDescription>
-              Manage your products.{' '}
-              <span className="text-primary font-medium">
-                {erpData.length > 0 ? `${erpData.length} ERP records loaded.` : 'No ERP data loaded.'}
-              </span>
+              Manage your products. Use the buttons to sync with ERPNext.
             </CardDescription>
           </div>
           <div className="ml-auto flex items-center gap-2">
-             <input
-              type="file"
-              ref={erpFileInputRef}
-              onChange={handleErpCSVUpload}
-              accept=".csv"
-              className="hidden"
-            />
-             <input
-              type="file"
-              ref={priceFileInputRef}
-              onChange={handlePriceCSVUpload}
-              accept=".csv"
-              className="hidden"
-            />
-            <Button size="sm" variant="outline" className="h-8 gap-1" onClick={handleErpImportClick}>
-              <Database className="h-3.5 w-3.5" />
-              <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
-                Import ERP Data
-              </span>
-            </Button>
-            <input
-              type="file"
-              ref={fileInputRef}
-              onChange={handleCSVUpload}
-              accept=".csv"
-              className="hidden"
-            />
-            <Button size="sm" variant="outline" className="h-8 gap-1" onClick={handleImportClick}>
-              <Upload className="h-3.5 w-3.5" />
-              <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
-                Import Products
-              </span>
-            </Button>
-            <Button size="sm" variant="outline" className="h-8 gap-1" onClick={handlePriceImportClick}>
-              <DollarSign className="h-3.5 w-3.5" />
-              <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
-                Update Prices
-              </span>
-            </Button>
+            
+            {isErpLoading ? (
+               <Button size="sm" variant="outline" className="h-8 gap-1" disabled>
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
+                    Syncing...
+                  </span>
+                </Button>
+            ) : (
+                <div className="flex items-center gap-2">
+                   <Button size="sm" variant="outline" className="h-8 gap-1" onClick={handleErpImport}>
+                      <Download className="h-3.5 w-3.5" />
+                      <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
+                        Import from ERPNext
+                      </span>
+                    </Button>
+                    <Button size="sm" variant="outline" className="h-8 gap-1" onClick={handleErpUpdate}>
+                      <RefreshCw className="h-3.5 w-3.5" />
+                      <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
+                        Update from ERPNext
+                      </span>
+                    </Button>
+                    <Button size="sm" variant="outline" className="h-8 gap-1" onClick={handleErpExport}>
+                      <Send className="h-3.5 w-3.5" />
+                      <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
+                        Export to ERPNext
+                      </span>
+                    </Button>
+                </div>
+            )}
             <Button size="sm" variant="outline" className="h-8 gap-1" onClick={handleExportToCSV}>
               <File className="h-3.5 w-3.5" />
               <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
-                Export
+                Export CSV
               </span>
             </Button>
              <Dialog open={isBulkEditOpen} onOpenChange={setIsBulkEditOpen}>
