@@ -274,10 +274,14 @@ function DashboardClient() {
       complete: (results) => {
         try {
           const newProducts = results.data.map((row: any): Product => {
+            const code = row['Artikel-Code'] || row['Cod articol'] || '';
+            const name = row['Artikelname'] || row['Numele articolului'] || 'No Name';
+            const category = row['Artikelgruppe'] || row['Grup Articol'] || '';
+            
             return {
               id: crypto.randomUUID(),
-              name: row['Artikelname'] || 'No Name',
-              code: row['Artikel-Code']?.toString() || '',
+              name: name,
+              code: code.toString(),
               quantity: 0,
               price: 0,
               description: '',
@@ -286,7 +290,7 @@ function DashboardClient() {
               location: '',
               tags: [],
               keywords: [],
-              category: row['Artikelgruppe'] || '',
+              category: category,
               ebayCategoryId: '',
               listingStatus: 'draft',
               brand: '',
@@ -335,12 +339,19 @@ function DashboardClient() {
       header: true,
       skipEmptyLines: true,
       complete: (results) => {
-        const mappedData = results.data.map(row => ({
-          sku: (row as any)["Artikel-Code"]?.toString().trim() || "",
-          ean: (row as any)["Artikel-Code"]?.toString().trim() || "", // Assuming EAN is same as SKU for now
-          name: (row as any)["Artikelname"]?.toString().trim() || "",
-          category: (row as any)["Artikelgruppe"]?.toString().trim() || "",
-        }));
+        const mappedData = results.data.map((row: any) => {
+          const sku = row['Artikel-Code'] || row['Cod articol'] || '';
+          const name = row['Artikelname'] || row['Numele articolului'] || '';
+          const category = row['Artikelgruppe'] || row['Grup Articol'] || '';
+          
+          return {
+            sku: sku.toString().trim(),
+            ean: sku.toString().trim(), // Assuming EAN is same as SKU for now
+            name: name.toString().trim(),
+            category: category.toString().trim(),
+          }
+        }).filter(item => item.sku);
+
         setErpData(mappedData);
         toast({
           title: "ERP Data Loaded",
