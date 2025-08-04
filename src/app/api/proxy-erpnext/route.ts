@@ -42,7 +42,8 @@ export async function POST(req: Request) {
         } catch {
             errorDetails = await response.text();
         }
-        return NextResponse.json({ error: `${response.status} - ${errorDetails}` }, { status: response.status });
+        // Prepend the HTTP status to the error message for more context
+        return NextResponse.json({ error: `Request failed with status ${response.status}: ${errorDetails}` }, { status: response.status });
     }
 
     // Handle no content response
@@ -55,8 +56,13 @@ export async function POST(req: Request) {
 
   } catch (err: any) {
     console.error("API Proxy Error:", err);
+    // Provide a more specific error message for network/fetch failures
+    const errorMessage = err.cause?.code === 'ENOTFOUND'
+      ? `Could not connect to ERPNext server at ${process.env.ERPNEXT_URL}. Please check the URL and network connection.`
+      : err.message || 'An unexpected error occurred in the API proxy.';
+      
     return NextResponse.json(
-      { error: err.message || 'An unexpected error occurred in the API proxy.' },
+      { error: errorMessage },
       { status: 500 }
     );
   }
