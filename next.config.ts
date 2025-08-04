@@ -47,12 +47,16 @@ const nextConfig: NextConfig = {
     config.resolve.alias['@opentelemetry/winston-transport'] = false;
     
     config.module.rules.push({
-      test: /handlebars\/lib\/index.js/,
+      test: /handlebars/,
       use: 'null-loader',
     });
 
     if (!isServer) {
       config.resolve.alias['handlebars'] = false;
+    }
+    
+    if (isServer) {
+      config.externals = [...(config.externals || []), 'pino-pretty', 'lokijs', 'encoding'];
     }
 
     return config;
