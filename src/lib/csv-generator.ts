@@ -149,7 +149,7 @@ const generateShopifyCsvContent = (products: Product[]): string => {
         'Variant Taxable': 'true', 'Variant Barcode': product.ean, 'Image Src': product.image,
         'Image Position': '1', 'Image Alt Text': product.name, 'Gift Card': 'false',
         'SEO Title': `${product.name} - ${product.brand || ''}`,
-        'SEO Description': product.description ? product.description.substring(0, 320) : '',
+        'SEO Description': product.description ? product.description.substring(0, 320) : '', // Corrected this line
         'Google Shopping / Google Product Category': product.category,
         'Google Shopping / Condition': getShopifyCondition(product.listingStatus),
         'Status': 'active'

@@ -42,7 +42,7 @@ const nextConfig: NextConfig = {
       }
     ],
   },
-  webpack: (config) => {
+  webpack: (config, { isServer }) => {
     config.resolve.alias['@opentelemetry/exporter-jaeger'] = false;
     config.resolve.alias['@opentelemetry/winston-transport'] = false;
     
@@ -50,6 +50,10 @@ const nextConfig: NextConfig = {
       test: /handlebars\/lib\/index.js/,
       use: 'null-loader',
     });
+
+    if (!isServer) {
+      config.resolve.alias['handlebars'] = false;
+    }
 
     return config;
   },
