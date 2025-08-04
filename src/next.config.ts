@@ -43,21 +43,20 @@ const nextConfig: NextConfig = {
     config.resolve.alias['@opentelemetry/winston-transport'] = false;
     
     // This is the definitive fix for the "Handlebars.noConflict" error.
-    // It completely removes Handlebars from the client-side bundle and replaces
-    // it on the server-side to prevent any version conflicts.
-    config.module.rules.push({
-      test: /handlebars/,
-      use: 'null-loader',
-    });
-
+    // It completely removes Handlebars from the client-side bundle and prevents
+    // version conflicts on the server.
     if (!isServer) {
-      config.resolve.alias['handlebars'] = false;
+        config.resolve.alias['handlebars'] = false;
+        config.module.rules.push({
+            test: /handlebars/,
+            use: 'null-loader',
+        });
     }
     
     // For server-side, we want to make sure any server-specific dependencies
     // are not bundled by Webpack.
     if (isServer) {
-      config.externals = [...(config.externals || []), 'pino-pretty', 'lokijs', 'encoding'];
+      config.externals = [...(config.externals || []), 'pino-pretty', 'lokijs', 'encoding', 'handlebars'];
     }
 
     return config;
