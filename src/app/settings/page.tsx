@@ -29,39 +29,14 @@ import {
 
 function SettingsClient() {
   const { toast } = useToast();
-  const [erpNextUrl, setErpNextUrl] = React.useState('');
-  const [erpNextApiKey, setErpNextApiKey] = React.useState('');
-  const [erpNextApiSecret, setErpNextApiSecret] = React.useState('');
 
-  React.useEffect(() => {
-    const savedCreds = localStorage.getItem('erpnext-credentials');
-    if (savedCreds) {
-      const { url, apiKey, apiSecret } = JSON.parse(savedCreds);
-      setErpNextUrl(url || '');
-      setErpNextApiKey(apiKey || '');
-      setErpNextApiSecret(apiSecret || '');
-    }
-  }, []);
-
-  const handleSaveErpNextCredentials = () => {
-    const credentials = {
-      url: erpNextUrl,
-      apiKey: erpNextApiKey,
-      apiSecret: erpNextApiSecret,
-    };
-    localStorage.setItem('erpnext-credentials', JSON.stringify(credentials));
-    toast({
-      title: 'Settings Saved',
-      description: 'Your ERPNext credentials have been saved locally.',
-    });
-  };
-  
   const handleClearData = () => {
     localStorage.removeItem('listingFlowProducts');
-    localStorage.removeItem('erpnext-credentials');
+    // Note: This does not clear .env variables as they are server-side.
+    // Advise user to clear them manually if needed.
     toast({
-      title: 'Data Cleared',
-      description: 'All local product data has been successfully deleted.',
+      title: 'Local Data Cleared',
+      description: 'Your local product data has been successfully deleted from the browser. Your API credentials in the .env file are not affected.',
     });
      setTimeout(() => window.location.href = '/', 1000);
   };
@@ -72,26 +47,16 @@ function SettingsClient() {
         <CardHeader>
           <CardTitle>ERPNext Integration</CardTitle>
           <CardDescription>
-            Configure the connection to your ERPNext instance. This information is saved securely in your browser's local storage.
+            Your ERPNext credentials should be stored securely in an <strong>.env</strong> file in the root of your project. This file is not checked into version control.
+            <br /><br />
+            Create a file named <strong>.env</strong> and add the following lines:
+             <pre className="mt-2 p-2 bg-muted rounded-md text-sm font-mono">
+              ERPNEXT_URL=https://your-erp.rembayer.info<br/>
+              ERPNEXT_API_KEY=your_api_key<br/>
+              ERPNEXT_API_SECRET=your_api_secret
+            </pre>
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="erp-url">ERPNext URL</Label>
-            <Input id="erp-url" placeholder="https://your-erp.rembayer.info" value={erpNextUrl} onChange={(e) => setErpNextUrl(e.target.value)} />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="api-key">API Key</Label>
-            <Input id="api-key" placeholder="e.g., 4219f2a59843e43" value={erpNextApiKey} onChange={(e) => setErpNextApiKey(e.target.value)} />
-          </div>
-           <div className="space-y-2">
-            <Label htmlFor="api-secret">API Secret</Label>
-            <Input id="api-secret" type="password" value={erpNextApiSecret} onChange={(e) => setErpNextApiSecret(e.target.value)} />
-          </div>
-        </CardContent>
-        <CardFooter className="border-t px-6 py-4">
-          <Button onClick={handleSaveErpNextCredentials}>Save</Button>
-        </CardFooter>
       </Card>
       
       <Card>
@@ -123,15 +88,15 @@ function SettingsClient() {
                   <AlertDialogTrigger asChild>
                       <Button variant="destructive">
                           <Trash2 className="mr-2 h-4 w-4" />
-                          Clear All Local Data
+                          Clear All Local Product Data
                       </Button>
                   </AlertDialogTrigger>
                   <AlertDialogContent>
                       <AlertDialogHeader>
                       <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
                       <AlertDialogDescription>
-                          This action cannot be undone. This will permanently delete all your product data and settings
-                          from your browser's local storage.
+                          This action cannot be undone. This will permanently delete all your product data
+                          from your browser's local storage. Your API credentials in .env will not be affected.
                       </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>

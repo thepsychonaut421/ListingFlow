@@ -2,36 +2,34 @@
 'use client';
 
 import type { Product } from './types';
-import { proxyErpNextRequest } from '@/ai/flows/proxy-erpnext-request';
 
+// Helper function to call our new server-side proxy
+async function erpNextRequest(
+  endpoint: string,
+  method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE' = 'GET',
+  body?: any
+) {
+  const response = await fetch('/api/proxy-erpnext', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ endpoint, method, body }),
+  });
 
-// 1. Helper API general
-async function erpNextRequest(endpoint: string, method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE' = 'GET', body?: any) {
-  const credsJSON = localStorage.getItem('erpnext-credentials');
-  if (!credsJSON) {
-    throw new Error('Missing ERPNext credentials. Please save them in Settings.');
+  if (!response.ok) {
+    const errorBody = await response.json();
+    throw new Error(`ERPNext API error: ${errorBody.error || response.statusText}`);
   }
 
-  const creds = JSON.parse(credsJSON);
-  if (!creds.url || !creds.apiKey || !creds.apiSecret) {
-    throw new Error('Incomplete ERPNext credentials. Please check them in Settings.');
+  // Handle cases with no content in response
+  if (response.status === 204) {
+    return null;
   }
-
-  try {
-    const result = await proxyErpNextRequest({
-        url: creds.url,
-        apiKey: creds.apiKey,
-        apiSecret: creds.apiSecret,
-        endpoint,
-        method,
-        body,
-    });
-    return result;
-  } catch (err: any) {
-    // The error from the flow will be more descriptive.
-    throw new Error(`ERPNext API error: ${err.message || 'An unknown error occurred.'}`);
-  }
+  
+  return response.json();
 }
+
 
 // 2. Import produse din ERPNext
 export async function importProductsFromERPNext(
@@ -191,9 +189,7 @@ export async function searchInERPNext(
     // The standard API does not support OR filters, it treats arrays of filters as AND.
     // To simulate an OR, we have to make separate requests and combine the results.
     const requests = filters.map(filter => {
-       const singleFilterParam = encodeURIComponent(JSON.stringify([filter]));
-       const fieldsParam = encodeURIComponent(JSON.stringify(fields));
-       const endpoint = `/api/resource/${doctype}?filters=${singleFilterParam}&fields=${fieldsParam}&limit_start=${start}&limit_page_length=${pageLength}`;
+       const endpoint = `/api/resource/${doctype}?filters=${JSON.stringify([filter])}&fields=${JSON.stringify(fields)}&limit_start=${start}&limit_page_length=${pageLength}`;
        return erpNextRequest(endpoint);
     });
 

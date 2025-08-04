@@ -5,7 +5,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { cors } from '@genkit-ai/next/cors';
 import { createNextRequest, createStreamingNextResponse } from '@genkit-ai/next';
 
-import '@/ai/flows/proxy-erpnext-request';
 import '@/ai/flows/generate-product-description';
 import '@/ai/flows/find-ean';
 import '@/ai/flows/find-product-description';
