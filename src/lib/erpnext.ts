@@ -30,7 +30,7 @@ async function erpNextRequest(
       return null;
     }
     return response.json();
-  } catch (err) {
+  } catch (err: any) {
     console.warn('First ERPNext API request failed, retrying once...', err);
     // Retry once after a short delay
     await new Promise(resolve => setTimeout(resolve, 500)); 
@@ -56,7 +56,7 @@ export async function importProductsFromERPNext(
   try {
     setLoading(true);
 
-    const itemsData = await erpNextRequest('/api/resource/Item?fields=["name","item_code","item_name","standard_rate","brand","ean"]&limit=100');
+    const itemsData = await erpNextRequest('/api/resource/Item?fields=["name","item_code","item_name","standard_rate","brand"]&limit=100');
     
     if (!itemsData || !itemsData.data || itemsData.data.length === 0) {
       alert('No products found in ERPNext to import.');
