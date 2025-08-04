@@ -7,9 +7,12 @@ import {
   Card,
   CardContent,
   CardDescription,
+  CardFooter,
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { Trash2 } from 'lucide-react';
 import {
@@ -26,18 +29,36 @@ import {
 
 function SettingsClient() {
   const { toast } = useToast();
-  
+
   const handleClearData = () => {
     localStorage.removeItem('listingFlowProducts');
+    // Note: This does not clear .env variables as they are server-side.
+    // Advise user to clear them manually if needed.
     toast({
-      title: 'Data Cleared',
-      description: 'All local product data has been successfully deleted.',
+      title: 'Local Data Cleared',
+      description: 'Your local product data has been successfully deleted from the browser. Your API credentials in the .env file are not affected.',
     });
      setTimeout(() => window.location.href = '/', 1000);
   };
 
   return (
     <div className="grid gap-6">
+       <Card>
+        <CardHeader>
+          <CardTitle>ERPNext Integration</CardTitle>
+          <CardDescription>
+            Your ERPNext credentials should be stored securely in an <strong>.env</strong> file in the root of your project. This file is not checked into version control.
+            <br /><br />
+            Create a file named <strong>.env</strong> and add the following lines:
+             <pre className="mt-2 p-2 bg-muted rounded-md text-sm font-mono">
+              ERPNEXT_URL=https://your-erp.rembayer.info<br/>
+              ERPNEXT_API_KEY=your_api_key<br/>
+              ERPNEXT_API_SECRET=your_api_secret
+            </pre>
+          </CardDescription>
+        </CardHeader>
+      </Card>
+      
       <Card>
         <CardHeader>
           <CardTitle>Settings</CardTitle>
@@ -67,7 +88,7 @@ function SettingsClient() {
                   <AlertDialogTrigger asChild>
                       <Button variant="destructive">
                           <Trash2 className="mr-2 h-4 w-4" />
-                          Clear All Local Data
+                          Clear All Local Product Data
                       </Button>
                   </AlertDialogTrigger>
                   <AlertDialogContent>
@@ -75,7 +96,7 @@ function SettingsClient() {
                       <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
                       <AlertDialogDescription>
                           This action cannot be undone. This will permanently delete all your product data
-                          from your browser's local storage.
+                          from your browser's local storage. Your API credentials in .env will not be affected.
                       </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>

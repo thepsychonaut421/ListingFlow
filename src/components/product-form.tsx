@@ -36,6 +36,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Loader2, Search, Copy, Trash2, PlusCircle } from 'lucide-react';
 import {CopyToClipboard} from 'react-copy-to-clipboard';
 import { useErpData } from '@/contexts/erp-data-context';
+import { searchInERPNext } from '@/lib/erpnext';
 
 
 const productSchema = z.object({
@@ -153,7 +154,7 @@ export function ProductForm({ product, onSave, onCancel }: ProductFormProps) {
   const [isCategoryFinderOpen, setIsCategoryFinderOpen] = React.useState(false);
   const [isFindingEan, setIsFindingEan] = React.useState(false);
   const { toast } = useToast();
-  const { erpData } = useErpData();
+  const { erpData, setErpData } = useErpData();
 
   const form = useForm<ProductFormValues>({
     resolver: zodResolver(productSchema),
@@ -246,20 +247,28 @@ export function ProductForm({ product, onSave, onCancel }: ProductFormProps) {
     }
   };
 
-  const handleAutocomplete = (code: string) => {
-    if (!code || erpData.length === 0) return;
+  const handleAutocomplete = async (code: string) => {
+    if (!code) return;
 
-    const found = erpData.find(
-      item =>
-        item.sku.toLowerCase() === code.toLowerCase() ||
-        item.ean.toLowerCase() === code.toLowerCase()
+    // Search by both SKU (name in ERPNext) and EAN
+    const filters = [
+        ['Item', 'name', 'like', `%${code}%`],
+        ['Item', 'ean', 'like', `%${code}%`],
+    ];
+  
+    const results = await searchInERPNext(
+      'Item',
+      filters,
+      ['name', 'item_name', 'item_group', 'brand', 'ean']
     );
 
-    if (found) {
-      form.setValue('name', found.name, { shouldValidate: true });
-      form.setValue('category', found.category, { shouldValidate: true });
-      form.setValue('code', found.sku, { shouldValidate: true });
-      form.setValue('ean', found.ean, { shouldValidate: true });
+    if (results.length > 0) {
+      const found = results[0]; // Use the first result
+      form.setValue('name', found.item_name || found.name, { shouldValidate: true });
+      form.setValue('category', found.item_group || '', { shouldValidate: true });
+      form.setValue('code', found.name, { shouldValidate: true });
+      form.setValue('brand', found.brand || '', { shouldValidate: true });
+      form.setValue('ean', found.ean || '', { shouldValidate: true });
       toast({
         title: 'Autocomplete Success',
         description: `Fields populated based on SKU/EAN: ${code}.`,
