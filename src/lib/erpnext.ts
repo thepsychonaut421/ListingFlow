@@ -50,14 +50,30 @@ async function erpNextRequest(
 // 2. Import produse din ERPNext
 export async function importProductsFromERPNext(
   setLoading: (b: boolean) => void,
-  setProducts: (products: Product[]) => void
+  setProducts: (products: Product[]) => void,
+  currentProducts: Product[]
 ) {
   try {
     setLoading(true);
 
     const itemsData = await erpNextRequest('/api/resource/Item?fields=["name","item_code","item_name","standard_rate","brand","ean"]&limit=100');
+    
+    if (!itemsData || !itemsData.data || itemsData.data.length === 0) {
+      alert('No products found in ERPNext to import.');
+      return;
+    }
 
-    const importedProducts = await Promise.all(itemsData.data.map(async (item: any) => {
+    // Create a map of existing product SKUs for quick lookup
+    const existingSkuMap = new Set(currentProducts.map(p => p.code));
+    
+    const newItems = itemsData.data.filter((item: any) => !existingSkuMap.has(item.name));
+
+    if (newItems.length === 0) {
+        alert('All ERPNext products are already in ListingFlow. Use "Update from ERPNext" to sync data.');
+        return;
+    }
+
+    const importedProducts = await Promise.all(newItems.map(async (item: any) => {
       let qty = 0;
       try {
         const binData = await erpNextRequest(`/api/resource/Bin?filters=[["item_code","=","${item.name}"]]&fields=["actual_qty"]`);
@@ -88,8 +104,8 @@ export async function importProductsFromERPNext(
       } as Product;
     }));
 
-    setProducts(importedProducts);
-    alert(`Successfully imported ${importedProducts.length} products from ERPNext.`);
+    setProducts([...importedProducts, ...currentProducts]);
+    alert(`Successfully imported ${importedProducts.length} new products from ERPNext.`);
   } catch (err: any) {
     console.error(err);
     alert(`Import failed: ${err.message}`);
@@ -172,11 +188,13 @@ export async function exportProductsToERPNext(
     let successCount = 0;
     for (const p of productsToExport) {
       try {
+        // We only update fields that are safe to update.
+        // We do not update stock level as that requires a Stock Entry.
         await erpNextRequest(`/api/resource/Item/${p.code}`, 'PUT', {
+          item_name: p.name,
           standard_rate: p.price,
-          // Note: ERPNext does not allow direct update of `actual_qty`.
-          // This requires creating a Stock Entry document.
-          // This export only updates the price.
+          brand: p.brand,
+          ean: p.ean
         });
         successCount++;
       } catch (err) {

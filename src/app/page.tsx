@@ -417,7 +417,7 @@ function DashboardClient() {
   };
   
     const handleErpImport = async () => {
-    await importProductsFromERPNext(setIsErpLoading, setProducts);
+    await importProductsFromERPNext(setIsErpLoading, setProducts, products);
   };
 
   const handleErpUpdate = async () => {
