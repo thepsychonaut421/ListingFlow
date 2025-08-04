@@ -2,44 +2,35 @@
 'use client';
 
 import type { Product } from './types';
+import { proxyErpNextRequest } from '@/ai/flows/proxy-erpnext-request';
+
 
 // 1. Helper API general
-async function erpNextRequest(endpoint: string, method: string = 'GET', body?: any) {
+async function erpNextRequest(endpoint: string, method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE' = 'GET', body?: any) {
   const credsJSON = localStorage.getItem('erpnext-credentials');
   if (!credsJSON) {
     throw new Error('Missing ERPNext credentials. Please save them in Settings.');
   }
-  
+
   const creds = JSON.parse(credsJSON);
   if (!creds.url || !creds.apiKey || !creds.apiSecret) {
     throw new Error('Incomplete ERPNext credentials. Please check them in Settings.');
   }
 
-  const headers: Record<string, string> = {
-    'Authorization': `token ${creds.apiKey}:${creds.apiSecret}`,
-    'Content-Type': 'application/json'
-  };
-
-  const res = await fetch(`${creds.url}${endpoint}`, {
-    method,
-    headers,
-    body: body ? JSON.stringify(body) : undefined,
-    cache: 'no-store', // Ensure fresh data is fetched every time
-  });
-
-  if (!res.ok) {
-    const errText = await res.text();
-    let errorDetails = '';
-    try {
-        const errJson = JSON.parse(errText);
-        errorDetails = errJson.message || errJson.exception || errText;
-    } catch {
-        errorDetails = errText;
-    }
-    throw new Error(`ERPNext API error: ${res.status} - ${errorDetails}`);
+  try {
+    const result = await proxyErpNextRequest({
+        url: creds.url,
+        apiKey: creds.apiKey,
+        apiSecret: creds.apiSecret,
+        endpoint,
+        method,
+        body,
+    });
+    return result;
+  } catch (err: any) {
+    // The error from the flow will be more descriptive.
+    throw new Error(`ERPNext API error: ${err.message || 'An unknown error occurred.'}`);
   }
-
-  return res.json();
 }
 
 // 2. Import produse din ERPNext
