@@ -9,41 +9,25 @@ async function erpNextRequest(
   method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE' = 'GET',
   body?: any
 ) {
-  const doFetch = async () => {
-    return fetch('/api/proxy-erpnext', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ endpoint, method, body }),
-    });
-  };
+  const response = await fetch('/api/proxy-erpnext', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ endpoint, method, body }),
+  });
 
-  try {
-    const response = await doFetch();
-    if (!response.ok) {
-      const errorBody = await response.json().catch(() => ({ error: response.statusText }));
-      throw new Error(`ERPNext API error: ${errorBody.error || response.statusText}`);
-    }
-    // Handle cases with no content in response
-    if (response.status === 204) {
-      return null;
-    }
-    return response.json();
-  } catch (err: any) {
-    console.warn('First ERPNext API request failed, retrying once...', err);
-    // Retry once after a short delay
-    await new Promise(resolve => setTimeout(resolve, 500)); 
-    const retryResponse = await doFetch();
-    if (!retryResponse.ok) {
-        const errorBody = await retryResponse.json().catch(() => ({ error: retryResponse.statusText }));
-        throw new Error(`ERPNext API error after retry: ${errorBody.error || retryResponse.statusText}`);
-    }
-     if (retryResponse.status === 204) {
-      return null;
-    }
-    return retryResponse.json();
+  if (!response.ok) {
+    const errorBody = await response.json().catch(() => ({ error: response.statusText }));
+    throw new Error(`ERPNext API error: ${errorBody.error || response.statusText}`);
   }
+  
+  // Handle cases with no content in response
+  if (response.status === 204) {
+    return null;
+  }
+  
+  return response.json();
 }
 
 
