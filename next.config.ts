@@ -39,6 +39,11 @@ const nextConfig: NextConfig = {
         protocol: 'https',
         hostname: 'erp.rembayer.info',
         pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'www.lidl.de',
+        pathname: '/**',
       }
     ],
   },
