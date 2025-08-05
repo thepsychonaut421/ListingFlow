@@ -164,6 +164,31 @@ function CategoryFinder({ onSelectCategory }: { onSelectCategory: (id: string) =
   );
 }
 
+const toProductFormValues = (product: Product | null): ProductFormValues => {
+    const technicalSpecs = product?.technicalSpecs 
+        ? Object.entries(product.technicalSpecs).map(([key, value]) => ({ 
+              key, 
+              value: Array.isArray(value) ? value.join(', ') : String(value) 
+          }))
+        : [];
+
+    return {
+        name: product?.name || '',
+        code: product?.code || '',
+        quantity: product?.quantity || 0,
+        price: product?.price || 0,
+        description: product?.description || '',
+        image: product?.image || '',
+        category: product?.category || '',
+        ebayCategoryId: product?.ebayCategoryId || '',
+        listingStatus: product?.listingStatus || 'draft',
+        brand: product?.brand || '',
+        productType: product?.productType || '',
+        ean: product?.ean || '',
+        technicalSpecs: technicalSpecs,
+    };
+};
+
 
 export function ProductForm({ product, onSave, onCancel }: ProductFormProps) {
   const [isCategoryFinderOpen, setIsCategoryFinderOpen] = React.useState(false);
@@ -173,27 +198,17 @@ export function ProductForm({ product, onSave, onCancel }: ProductFormProps) {
 
   const form = useForm<ProductFormValues>({
     resolver: zodResolver(productSchema),
-    defaultValues: {
-      name: product?.name || '',
-      code: product?.code || '',
-      quantity: product?.quantity || 0,
-      price: product?.price || 0,
-      description: product?.description || '',
-      image: product?.image || '',
-      category: product?.category || '',
-      ebayCategoryId: product?.ebayCategoryId || '',
-      listingStatus: product?.listingStatus || 'draft',
-      brand: product?.brand || '',
-      productType: product?.productType || '',
-      ean: product?.ean || '',
-      technicalSpecs: product?.technicalSpecs ? Object.entries(product.technicalSpecs).map(([key, value]) => ({ key, value })) : [],
-    },
+    defaultValues: toProductFormValues(product),
   });
 
   const { fields, append, remove } = useFieldArray({
     control: form.control,
     name: "technicalSpecs",
   });
+  
+  React.useEffect(() => {
+    form.reset(toProductFormValues(product));
+  }, [product, form]);
 
   const descriptionValue = useWatch({
     control: form.control,
@@ -211,9 +226,13 @@ export function ProductForm({ product, onSave, onCancel }: ProductFormProps) {
       }),
       ...data,
       technicalSpecs: data.technicalSpecs?.reduce((acc, { key, value }) => {
-        if(key) acc[key] = value;
+        if(key) {
+            // This is a simple heuristic. If value contains comma, split it into an array.
+            // A more robust solution might require a different UI for array values.
+            acc[key] = value.includes(',') ? value.split(',').map(s => s.trim()) : value;
+        }
         return acc;
-      }, {} as Record<string, string>),
+      }, {} as Record<string, string | string[]>),
     };
     onSave(finalData);
   };

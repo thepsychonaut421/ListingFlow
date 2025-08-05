@@ -16,5 +16,5 @@ export type Product = {
   brand?: string;
   productType?: string;
   ean?: string;
-  technicalSpecs: Record<string, string>;
+  technicalSpecs: Record<string, string | string[]>;
 };

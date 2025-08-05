@@ -18,7 +18,7 @@ const FindTechnicalSpecsInputSchema = z.object({
 export type FindTechnicalSpecsInput = z.infer<typeof FindTechnicalSpecsInputSchema>;
 
 const FindTechnicalSpecsOutputSchema = z.object({
-   specs: z.any().describe('A key-value object of technical specifications found for the product. For example, {"Leistung": "600 W", "Material": "Edelstahl"}.'),
+   specs: z.record(z.string().or(z.array(z.string()))).describe('A key-value object of technical specifications found for the product. For example, {"Leistung": "600 W", "Material": "Edelstahl"}.'),
 });
 export type FindTechnicalSpecsOutput = z.infer<typeof FindTechnicalSpecsOutputSchema>;
 
@@ -30,11 +30,23 @@ const prompt = ai.definePrompt({
     name: 'findTechnicalSpecsPrompt',
     input: { schema: FindTechnicalSpecsInputSchema },
     output: { schema: FindTechnicalSpecsOutputSchema },
-    prompt: `From the following product title and description, extract a JSON object containing the product's technical specifications.
+    prompt: `From the following German product title and description, extract the product's key technical specifications in JSON format.
+The output must be only a single JSON object with the extracted specifications. The keys and values in the JSON object must be in German.
 
-The keys of the JSON object should be the specification name (e.g., "Brand", "Model", "Power", "Material", "Color", "Dimensions", "Weight") and the values should be the corresponding specification details.
+Extract the following fields if available:
+- Marke (brand)
+- Modell (model)
+- Leistung (power in W)
+- Kapazität (capacity in L)
+- Material (material)
+- Maximale Temperatur (max temperature in °C)
+- Spannung (voltage in V)
+- Maße (dimensions in cm)
+- Timer-Bereich (timer range in minutes)
+- Funktionen (functions as a list of strings)
+- Zubehör (accessories as a list of strings)
 
-If a specification is not mentioned, do not include it in the output. Extract as many relevant technical details as you can find. The output must be in German if the input is in German.
+If a field is not available in the text, do not include it in the final JSON object.
 
 Title: {{{productName}}}
 Description: {{{description}}}
