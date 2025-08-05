@@ -66,7 +66,12 @@ const findTechnicalSpecsFlow = ai.defineFlow(
     const { output } = await prompt(input);
     // Ensure the output conforms to the expected structure even if AI returns something unexpected.
     if (output && typeof output.specs === 'object' && output.specs !== null) {
-      return { specs: output.specs };
+      const specs = output.specs as any;
+      if (specs.brand && !specs.Marke) {
+        specs.Marke = specs.brand;
+        delete specs.brand;
+      }
+      return { specs: specs };
     }
     return { specs: {} };
   }

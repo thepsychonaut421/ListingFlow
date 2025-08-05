@@ -48,7 +48,7 @@ export async function importProductsFromERPNext(
   try {
     setLoading(true);
 
-    const itemsData = await erpNextRequest('/api/resource/Item?fields=["name","item_code","item_name","standard_rate","brand"]&limit=100');
+    const itemsData = await erpNextRequest('/api/resource/Item?fields=["name","item_code","item_name","standard_rate"]&limit=100');
     
     if (!itemsData || !itemsData.data || itemsData.data.length === 0) {
       alert('No products found in ERPNext to import.');
@@ -89,7 +89,7 @@ export async function importProductsFromERPNext(
         category: '',
         ebayCategoryId: '',
         listingStatus: 'draft',
-        brand: item.brand || '',
+        brand: '', // Removed brand import
         productType: '',
         ean: item.ean || '',
         technicalSpecs: {},
@@ -181,10 +181,11 @@ export async function exportProductsToERPNext(
     let errorMessages = [];
 
     for (const p of productsToExport) {
+        // Renamed 'brand' to 'Marke' and using 'productType' field as the source
         const itemPayload = {
             item_name: p.name,
             standard_rate: p.price,
-            brand: p.brand,
+            Marke: p.productType, // Using productType for Marke
             ean: p.ean
         };
 
@@ -192,31 +193,9 @@ export async function exportProductsToERPNext(
             await erpNextRequest(`/api/resource/Item/${p.code}`, 'PUT', itemPayload);
             successCount++;
         } catch (error: any) {
-            // Check if it's a LinkValidationError for the brand
-            if (error.message && error.message.includes('LinkValidationError') && error.message.includes('Marke')) {
-                console.log(`Brand "${p.brand}" not found for item ${p.code}. Attempting to create it...`);
-                try {
-                    // Attempt to create the brand
-                    await erpNextRequest('/api/resource/Brand', 'POST', {
-                        brand_name: p.brand,
-                        description: `Brand automatically created from ListingFlow for product ${p.name}`
-                    });
-                    console.log(`Brand "${p.brand}" created successfully. Retrying item update...`);
-
-                    // Retry updating the item
-                    await erpNextRequest(`/api/resource/Item/${p.code}`, 'PUT', itemPayload);
-                    successCount++;
-
-                } catch (retryError: any) {
-                    const message = `Failed to create or re-link brand for ${p.code}: ${retryError.message}`;
-                    console.error(message);
-                    errorMessages.push(message);
-                }
-            } else {
-                const message = `Failed to export product ${p.code}: ${error.message}`;
-                console.error(message);
-                errorMessages.push(message);
-            }
+             const message = `Failed to export product ${p.code}: ${error.message}`;
+             console.error(message);
+             errorMessages.push(message);
         }
     }
 

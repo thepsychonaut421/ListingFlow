@@ -293,7 +293,7 @@ export function ProductForm({ product, onSave, onCancel }: ProductFormProps) {
     const results = await searchInERPNext(
       'Item',
       filters,
-      ['name', 'item_name', 'item_group', 'brand', 'ean']
+      ['name', 'item_name', 'item_group', 'ean'] // Removed 'brand'
     );
 
     if (results.length > 0) {
@@ -301,7 +301,6 @@ export function ProductForm({ product, onSave, onCancel }: ProductFormProps) {
       form.setValue('name', found.item_name || found.name, { shouldValidate: true });
       form.setValue('category', found.item_group || '', { shouldValidate: true });
       form.setValue('code', found.name, { shouldValidate: true });
-      form.setValue('brand', found.brand || '', { shouldValidate: true });
       form.setValue('ean', found.ean || '', { shouldValidate: true });
       toast({
         title: 'Autocomplete Success',
