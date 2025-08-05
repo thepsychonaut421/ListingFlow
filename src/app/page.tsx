@@ -46,6 +46,7 @@ import { ProductDataTable } from '@/components/product-data-table';
 import { getColumns } from '@/components/product-columns';
 import { generateProductDescription } from '@/ai/flows/generate-product-description';
 import { findProductDescription } from '@/ai/flows/find-product-description';
+import { findTechnicalSpecs } from '@/ai/flows/find-technical-specs';
 import { useToast } from '@/hooks/use-toast';
 import { ProductForm } from '@/components/product-form';
 import { BulkEditForm } from '@/components/bulk-edit-form';
@@ -231,6 +232,44 @@ function DashboardClient() {
       });
     } finally {
       setGeneratingProductId(null);
+    }
+  };
+
+  const handleExtractTechSpecs = async (product: Product) => {
+    setGeneratingProductId(product.id);
+    try {
+        const result = await findTechnicalSpecs({
+            productName: product.name,
+            description: product.description,
+        });
+
+        if (Object.keys(result.specs).length > 0) {
+            handleUpdateProduct(product.id, {
+                technicalSpecs: {
+                    ...product.technicalSpecs,
+                    ...result.specs,
+                },
+            });
+            toast({
+                title: 'AI Extraction Successful',
+                description: `Technical specs for "${product.name}" have been extracted.`,
+            });
+        } else {
+            toast({
+                variant: 'destructive',
+                title: 'Extraction Failed',
+                description: `Could not find any technical specs for "${product.name}".`,
+            });
+        }
+    } catch (error) {
+        console.error('Failed to extract tech specs:', error);
+        toast({
+            variant: 'destructive',
+            title: 'AI Extraction Failed',
+            description: 'An error occurred while extracting technical specs.',
+        });
+    } finally {
+        setGeneratingProductId(null);
     }
   };
 
@@ -435,6 +474,7 @@ function DashboardClient() {
       onGenerate: handleGenerateDescription,
       onUpdate: handleUpdateProduct,
       onCopyDescription: handleCopyDescription,
+      onExtractTechSpecs: handleExtractTechSpecs,
       generatingProductId,
   }), [generatingProductId, products]);
 

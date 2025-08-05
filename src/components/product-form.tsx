@@ -55,7 +55,7 @@ const productSchema = z.object({
   technicalSpecs: z.array(z.object({
     key: z.string().min(1, 'Key cannot be empty'),
     value: z.string().min(1, 'Value cannot be empty'),
-  })).optional(),
+  })),
 });
 
 type ProductFormValues = z.infer<typeof productSchema>;
@@ -97,7 +97,7 @@ function CategoryFinder({ onSelectCategory }: { onSelectCategory: (id: string) =
     setIsLoading(true);
     setResult(null);
     try {
-      const res = await callGenkitAPI('findCategory', { input: searchTerm });
+      const res = await findEbayCategoryId({ productDescription: searchTerm });
       setResult(res);
     } catch (err) {
       console.error(err);
@@ -236,7 +236,7 @@ export function ProductForm({ product, onSave, onCancel }: ProductFormProps) {
     }
     setIsFindingEan(true);
     try {
-        const result = await callGenkitAPI('findEan', { productName, brand });
+        const result = await findEan({ productName, brand });
         if (result.ean) {
             form.setValue('ean', result.ean, { shouldValidate: true });
             toast({
@@ -556,6 +556,7 @@ export function ProductForm({ product, onSave, onCancel }: ProductFormProps) {
                           <FormControl>
                             <Input placeholder="e.g. Leistung" {...field} />
                           </FormControl>
+                           <FormMessage />
                         </FormItem>
                       )}
                     />
@@ -567,6 +568,7 @@ export function ProductForm({ product, onSave, onCancel }: ProductFormProps) {
                           <FormControl>
                             <Input placeholder="e.g. 600 W" {...field} />
                           </FormControl>
+                           <FormMessage />
                         </FormItem>
                       )}
                     />
