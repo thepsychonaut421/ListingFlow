@@ -18,7 +18,7 @@ const FindTechnicalSpecsInputSchema = z.object({
 export type FindTechnicalSpecsInput = z.infer<typeof FindTechnicalSpecsInputSchema>;
 
 const FindTechnicalSpecsOutputSchema = z.object({
-  specs: z.record(z.string()).describe('A key-value object of technical specifications found for the product. For example, {"Leistung": "600 W", "Material": "Edelstahl"}.'),
+   specs: z.any().describe('A key-value object of technical specifications found for the product. For example, {"Leistung": "600 W", "Material": "Edelstahl"}.'),
 });
 export type FindTechnicalSpecsOutput = z.infer<typeof FindTechnicalSpecsOutputSchema>;
 
@@ -52,6 +52,10 @@ const findTechnicalSpecsFlow = ai.defineFlow(
   },
   async (input) => {
     const { output } = await prompt(input);
-    return output || { specs: {} };
+    // Ensure the output conforms to the expected structure even if AI returns something unexpected.
+    if (output && typeof output.specs === 'object' && output.specs !== null) {
+      return { specs: output.specs };
+    }
+    return { specs: {} };
   }
 );
