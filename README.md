@@ -60,7 +60,7 @@ Zubehör:
 🛠 Installation & Setup
 	1.	Clone the repository
 
-git clone https://github.com/[user]/ListingFlow.git
+git clone https://github.com/thepsychonaut421/ListingFlow.git
 cd ListingFlow
 
 	2.	Install dependencies
