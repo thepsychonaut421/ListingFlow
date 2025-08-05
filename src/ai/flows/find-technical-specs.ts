@@ -18,7 +18,7 @@ const FindTechnicalSpecsInputSchema = z.object({
 export type FindTechnicalSpecsInput = z.infer<typeof FindTechnicalSpecsInputSchema>;
 
 const FindTechnicalSpecsOutputSchema = z.object({
-   specs: z.record(z.string().or(z.array(z.string()))).describe('A key-value object of technical specifications found for the product. For example, {"Leistung": "600 W", "Material": "Edelstahl"}.'),
+   specs: z.any().describe('A key-value object of technical specifications found for the product. For example, {"Leistung": "600 W", "Material": "Edelstahl"}.'),
 });
 export type FindTechnicalSpecsOutput = z.infer<typeof FindTechnicalSpecsOutputSchema>;
 
