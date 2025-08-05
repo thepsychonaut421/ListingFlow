@@ -18,29 +18,30 @@ async function erpNextRequest(
   });
 
   if (!response.ok) {
-    let errorMessage = response.statusText;
+    let errorMessage = `Request failed with status ${response.status}`;
     try {
-        const errorBody = await response.text();
+        const errorText = await response.text();
+        
         // Check if the response is HTML (like a Cloudflare error page)
-        if (errorBody.trim().startsWith('<!doctype html>')) {
-            const match = errorBody.match(/<h2.*?>(.*?)<\/h2>/);
-            if (match && match[1]) {
-                errorMessage = match[1].replace(/<[^>]+>/g, '').trim(); // Strip tags and trim
-            } else {
-                 errorMessage = 'Received an HTML error page from the server.';
-            }
+        if (errorText.trim().startsWith('<!doctype html>')) {
+            const $ = (await import('cheerio')).load(errorText);
+            // Extract a more meaningful title or header from the HTML
+            const pageTitle = $('title').text();
+            const h2Title = $('h2').first().text();
+            errorMessage = `${pageTitle || h2Title || 'Received an HTML error page.'}`;
         } else {
-             // Try to parse it as JSON
-            const errorJson = JSON.parse(errorBody);
-             if (errorJson._server_messages) {
-                 const serverMessage = JSON.parse(errorJson._server_messages)[0];
+             // Try to parse it as JSON, as expected from the API
+            const errorBody = JSON.parse(errorText);
+            if (errorBody._server_messages) {
+                 const serverMessage = JSON.parse(errorBody._server_messages)[0];
                  errorMessage = JSON.parse(serverMessage).message || serverMessage;
             } else {
-                errorMessage = errorJson.message || errorJson.exception || errorJson.error || JSON.stringify(errorJson);
+                errorMessage = errorBody.message || errorBody.exception || errorBody.error || JSON.stringify(errorBody);
             }
         }
     } catch {
-        // Fallback if parsing fails
+        // If any parsing fails, fallback to the status text
+         errorMessage = `${errorMessage}: ${response.statusText}`;
     }
     const error = new Error(`ERPNext API error: ${errorMessage}`);
     (error as any).response = response;
@@ -65,7 +66,7 @@ export async function importProductsFromERPNext(
   try {
     setLoading(true);
 
-    const itemsData = await erpNextRequest('/api/resource/Item?fields=["name","item_code","item_name","standard_rate"]&limit=100');
+    const itemsData = await erpNextRequest('/api/resource/Item?fields=["name","item_code","item_name","standard_rate","image","ean"]&limit=100');
     
     if (!itemsData || !itemsData.data || itemsData.data.length === 0) {
       alert('No products found in ERPNext to import.');
@@ -90,6 +91,10 @@ export async function importProductsFromERPNext(
       } catch (err) {
         console.warn(`No Bin data for item ${item.name}`, err);
       }
+      
+      const erpNextUrl = process.env.NEXT_PUBLIC_ERPNEXT_URL || '';
+      const imageUrl = item.image ? (erpNextUrl.replace(/\/$/, '') + item.image) : '';
+
 
       return {
         id: item.name, // Use ERPNext's unique name as the ID
@@ -98,7 +103,7 @@ export async function importProductsFromERPNext(
         price: item.standard_rate || 0,
         quantity: qty,
         description: '',
-        image: '',
+        image: imageUrl,
         supplier: '',
         location: '',
         tags: [],
@@ -106,7 +111,6 @@ export async function importProductsFromERPNext(
         category: '',
         ebayCategoryId: '',
         listingStatus: 'draft',
-        brand: '', // Removed brand import
         productType: '',
         ean: item.ean || '',
         technicalSpecs: {},
@@ -123,7 +127,7 @@ export async function importProductsFromERPNext(
   }
 }
 
-// 3. Update prețuri/stocuri din ERPNext
+// 3. Update prețuri/stocuri/imagini din ERPNext
 export async function updatePricesAndStocksFromERPNext(
   setLoading: (b: boolean) => void,
   setProducts: (fn: (products: Product[]) => Product[]) => void,
@@ -141,17 +145,27 @@ export async function updatePricesAndStocksFromERPNext(
     const updatedProductsPromises = currentProducts.map(async (p: Product) => {
       let price = p.price;
       let qty = p.quantity;
+      let image = p.image;
       let hasUpdate = false;
+      
+      const erpNextUrl = process.env.NEXT_PUBLIC_ERPNEXT_URL || '';
 
       try {
-        const details = await erpNextRequest(`/api/resource/Item/${p.code}?fields=["standard_rate"]`);
+        const details = await erpNextRequest(`/api/resource/Item/${p.code}?fields=["standard_rate","image"]`);
         const newPrice = details.data.standard_rate;
         if (newPrice !== undefined && newPrice !== price) {
           price = newPrice;
           hasUpdate = true;
         }
+
+        const newImage = details.data.image ? (erpNextUrl.replace(/\/$/, '') + details.data.image) : '';
+        if (newImage && newImage !== image) {
+            image = newImage;
+            hasUpdate = true;
+        }
+
       } catch (err) {
-        console.warn(`Could not update price for ${p.code}`, err);
+        console.warn(`Could not update details for ${p.code}`, err);
       }
 
       try {
@@ -166,20 +180,22 @@ export async function updatePricesAndStocksFromERPNext(
       }
       
       if(hasUpdate) updatedCount++;
-      return { ...p, price, quantity: qty };
+      return { ...p, price, quantity: qty, image };
     });
     
     const updatedProducts = await Promise.all(updatedProductsPromises);
 
     setProducts(() => updatedProducts);
     alert(`Update complete. ${updatedCount} products were updated with new data from ERPNext.`);
-  } catch (err: any) {
+  } catch (err: any)
+ {
     console.error(err);
     alert(`Update failed: ${err.message}`);
   } finally {
     setLoading(false);
   }
 }
+
 
 /**
  * Builds a comprehensive description string from product data,
@@ -237,12 +253,19 @@ export async function exportProductsToERPNext(
     for (const p of productsToExport) {
         const fullDescription = buildFullDescription(p);
 
-        const itemPayload = {
+        const itemPayload: Record<string, any> = {
             item_name: p.name,
             standard_rate: p.price,
             description: fullDescription,
-            ean: p.ean
+            ean: p.ean,
+            // We don't export the image back, as it's managed in ERPNext
         };
+
+        // Only add 'productType' to the payload if it's not empty,
+        // to avoid validation errors for a potentially non-existent "Marke"
+        if(p.productType) {
+            itemPayload.marke = p.productType;
+        }
 
         try {
             await erpNextRequest(`/api/resource/Item/${p.code}`, 'PUT', itemPayload);
