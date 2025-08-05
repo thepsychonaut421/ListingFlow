@@ -2,7 +2,7 @@
 
 import type { ColumnDef } from '@tanstack/react-table';
 import Image from 'next/image';
-import { MoreHorizontal, ArrowUpDown, Sparkles, Loader2, Edit, Trash2, Search, Copy } from 'lucide-react';
+import { MoreHorizontal, ArrowUpDown, Sparkles, Loader2, Edit, Trash2, Search, Copy, PackageSearch } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -29,6 +29,7 @@ type GetColumnsProps = {
   onGenerate: (product: Product) => void;
   onUpdate: (id: string, data: Partial<Product>) => void;
   onCopyDescription: (product: Product, source: 'otto' | 'ebay') => void;
+  onExtractTechSpecs: (product: Product) => void;
   generatingProductId: string | null;
 };
 
@@ -39,7 +40,7 @@ const formatCurrency = (amount: number) => {
     }).format(amount);
 }
 
-export const getColumns = ({ onEdit, onDelete, onGenerate, onCopyDescription, generatingProductId }: GetColumnsProps): ColumnDef<Product>[] => [
+export const getColumns = ({ onEdit, onDelete, onGenerate, onCopyDescription, onExtractTechSpecs, generatingProductId }: GetColumnsProps): ColumnDef<Product>[] => [
   {
     id: 'select',
     header: ({ table }) => (
@@ -158,6 +159,10 @@ export const getColumns = ({ onEdit, onDelete, onGenerate, onCopyDescription, ge
                         <DropdownMenuItem onClick={() => onGenerate(product)}>
                             <Sparkles className="mr-2 h-4 w-4 text-primary" />
                             <span>Auto-fill with AI</span>
+                        </DropdownMenuItem>
+                         <DropdownMenuItem onClick={() => onExtractTechSpecs(product)}>
+                            <PackageSearch className="mr-2 h-4 w-4" />
+                            <span>Extract Tech Specs</span>
                         </DropdownMenuItem>
                         <DropdownMenuSub>
                             <DropdownMenuSubTrigger>

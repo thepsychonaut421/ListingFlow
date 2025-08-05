@@ -46,6 +46,7 @@ import { ProductDataTable } from '@/components/product-data-table';
 import { getColumns } from '@/components/product-columns';
 import { generateProductDescription } from '@/ai/flows/generate-product-description';
 import { findProductDescription } from '@/ai/flows/find-product-description';
+import { findTechnicalSpecs } from '@/ai/flows/find-technical-specs';
 import { useToast } from '@/hooks/use-toast';
 import { ProductForm } from '@/components/product-form';
 import { BulkEditForm } from '@/components/bulk-edit-form';
@@ -231,6 +232,44 @@ function DashboardClient() {
       });
     } finally {
       setGeneratingProductId(null);
+    }
+  };
+
+  const handleExtractTechSpecs = async (product: Product) => {
+    setGeneratingProductId(product.id);
+    try {
+        const result = await findTechnicalSpecs({
+            productName: product.name,
+            description: product.description,
+        });
+
+        if (result.specs && Object.keys(result.specs).length > 0) {
+            handleUpdateProduct(product.id, {
+                technicalSpecs: {
+                    ...product.technicalSpecs,
+                    ...result.specs,
+                },
+            });
+            toast({
+                title: 'AI Extraction Successful',
+                description: `Technical specs for "${product.name}" have been extracted.`,
+            });
+        } else {
+            toast({
+                variant: 'destructive',
+                title: 'Extraction Failed',
+                description: `Could not find any technical specs for "${product.name}".`,
+            });
+        }
+    } catch (error) {
+        console.error('Failed to extract tech specs:', error);
+        toast({
+            variant: 'destructive',
+            title: 'AI Extraction Failed',
+            description: 'An error occurred while extracting technical specs.',
+        });
+    } finally {
+        setGeneratingProductId(null);
     }
   };
 
@@ -425,7 +464,16 @@ function DashboardClient() {
   };
 
   const handleErpExport = async () => {
-    await exportProductsToERPNext(setIsErpLoading, products);
+    if (selectedProductIds.length === 0) {
+      toast({
+        variant: 'destructive',
+        title: 'Export Failed',
+        description: 'Please select at least one product to export.',
+      });
+      return;
+    }
+    const productsToExport = products.filter(p => selectedProductIds.includes(p.id));
+    await exportProductsToERPNext(setIsErpLoading, productsToExport);
   };
 
 
@@ -435,6 +483,7 @@ function DashboardClient() {
       onGenerate: handleGenerateDescription,
       onUpdate: handleUpdateProduct,
       onCopyDescription: handleCopyDescription,
+      onExtractTechSpecs: handleExtractTechSpecs,
       generatingProductId,
   }), [generatingProductId, products]);
 
@@ -484,7 +533,7 @@ function DashboardClient() {
                     <Button size="sm" variant="outline" className="h-8 gap-1" onClick={handleErpExport}>
                       <Send className="h-3.5 w-3.5" />
                       <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
-                        Export to ERPNext
+                        Export to ERPNext ({selectedProductIds.length > 0 ? selectedProductIds.length : 'selected'})
                       </span>
                     </Button>
                 </div>

@@ -28,8 +28,6 @@ import {
 } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import type { Product } from '@/lib/types';
-import { HTMLPreview } from './html-preview';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { findEbayCategoryId } from '@/ai/flows/find-ebay-category-id';
 import { findEan } from '@/ai/flows/find-ean';
 import { useToast } from '@/hooks/use-toast';
@@ -37,6 +35,8 @@ import { Loader2, Search, Copy, Trash2, PlusCircle } from 'lucide-react';
 import {CopyToClipboard} from 'react-copy-to-clipboard';
 import { useErpData } from '@/contexts/erp-data-context';
 import { searchInERPNext } from '@/lib/erpnext';
+import { HTMLPreview } from './html-preview';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 
 
 const productSchema = z.object({
@@ -55,7 +55,7 @@ const productSchema = z.object({
   technicalSpecs: z.array(z.object({
     key: z.string().min(1, 'Key cannot be empty'),
     value: z.string().min(1, 'Value cannot be empty'),
-  })).optional(),
+  })),
 });
 
 type ProductFormValues = z.infer<typeof productSchema>;
@@ -64,6 +64,21 @@ interface ProductFormProps {
   product: Product | null;
   onSave: (data: Product) => void;
   onCancel: () => void;
+}
+
+async function callGenkitAPI(action: string, payload: any) {
+  const res = await fetch('/api/genkit-proxy', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action, payload }),
+  });
+
+  if (!res.ok) {
+    const err = await res.json();
+    throw new Error(err.error || 'Genkit API call failed');
+  }
+
+  return res.json();
 }
 
 function CategoryFinder({ onSelectCategory }: { onSelectCategory: (id: string) => void }) {
@@ -149,6 +164,31 @@ function CategoryFinder({ onSelectCategory }: { onSelectCategory: (id: string) =
   );
 }
 
+const toProductFormValues = (product: Product | null): ProductFormValues => {
+    const technicalSpecs = product?.technicalSpecs 
+        ? Object.entries(product.technicalSpecs).map(([key, value]) => ({ 
+              key, 
+              value: Array.isArray(value) ? value.join(', ') : String(value) 
+          }))
+        : [];
+
+    return {
+        name: product?.name || '',
+        code: product?.code || '',
+        quantity: product?.quantity || 0,
+        price: product?.price || 0,
+        description: product?.description || '',
+        image: product?.image || '',
+        category: product?.category || '',
+        ebayCategoryId: product?.ebayCategoryId || '',
+        listingStatus: product?.listingStatus || 'draft',
+        brand: product?.brand || '',
+        productType: product?.productType || '',
+        ean: product?.ean || '',
+        technicalSpecs: technicalSpecs,
+    };
+};
+
 
 export function ProductForm({ product, onSave, onCancel }: ProductFormProps) {
   const [isCategoryFinderOpen, setIsCategoryFinderOpen] = React.useState(false);
@@ -158,27 +198,17 @@ export function ProductForm({ product, onSave, onCancel }: ProductFormProps) {
 
   const form = useForm<ProductFormValues>({
     resolver: zodResolver(productSchema),
-    defaultValues: {
-      name: product?.name || '',
-      code: product?.code || '',
-      quantity: product?.quantity || 0,
-      price: product?.price || 0,
-      description: product?.description || '',
-      image: product?.image || '',
-      category: product?.category || '',
-      ebayCategoryId: product?.ebayCategoryId || '',
-      listingStatus: product?.listingStatus || 'draft',
-      brand: product?.brand || '',
-      productType: product?.productType || '',
-      ean: product?.ean || '',
-      technicalSpecs: product?.technicalSpecs ? Object.entries(product.technicalSpecs).map(([key, value]) => ({ key, value })) : [],
-    },
+    defaultValues: toProductFormValues(product),
   });
 
   const { fields, append, remove } = useFieldArray({
     control: form.control,
     name: "technicalSpecs",
   });
+  
+  React.useEffect(() => {
+    form.reset(toProductFormValues(product));
+  }, [product, form]);
 
   const descriptionValue = useWatch({
     control: form.control,
@@ -196,9 +226,13 @@ export function ProductForm({ product, onSave, onCancel }: ProductFormProps) {
       }),
       ...data,
       technicalSpecs: data.technicalSpecs?.reduce((acc, { key, value }) => {
-        if(key) acc[key] = value;
+        if(key) {
+            // This is a simple heuristic. If value contains comma, split it into an array.
+            // A more robust solution might require a different UI for array values.
+            acc[key] = value.includes(',') ? value.split(',').map(s => s.trim()) : value;
+        }
         return acc;
-      }, {} as Record<string, string>),
+      }, {} as Record<string, string | string[]>),
     };
     onSave(finalData);
   };
@@ -259,7 +293,7 @@ export function ProductForm({ product, onSave, onCancel }: ProductFormProps) {
     const results = await searchInERPNext(
       'Item',
       filters,
-      ['name', 'item_name', 'item_group', 'brand', 'ean']
+      ['name', 'item_name', 'item_group', 'ean'] // Removed 'brand'
     );
 
     if (results.length > 0) {
@@ -267,7 +301,6 @@ export function ProductForm({ product, onSave, onCancel }: ProductFormProps) {
       form.setValue('name', found.item_name || found.name, { shouldValidate: true });
       form.setValue('category', found.item_group || '', { shouldValidate: true });
       form.setValue('code', found.name, { shouldValidate: true });
-      form.setValue('brand', found.brand || '', { shouldValidate: true });
       form.setValue('ean', found.ean || '', { shouldValidate: true });
       toast({
         title: 'Autocomplete Success',
@@ -541,6 +574,7 @@ export function ProductForm({ product, onSave, onCancel }: ProductFormProps) {
                           <FormControl>
                             <Input placeholder="e.g. Leistung" {...field} />
                           </FormControl>
+                           <FormMessage />
                         </FormItem>
                       )}
                     />
@@ -552,6 +586,7 @@ export function ProductForm({ product, onSave, onCancel }: ProductFormProps) {
                           <FormControl>
                             <Input placeholder="e.g. 600 W" {...field} />
                           </FormControl>
+                           <FormMessage />
                         </FormItem>
                       )}
                     />
