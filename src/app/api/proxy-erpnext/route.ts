@@ -37,11 +37,21 @@ export async function POST(req: Request) {
     if (!response.ok) {
         let errorDetails = '';
         try {
-            const errorBody = await response.json();
-            errorDetails = errorBody.message || errorBody.exception || errorBody.error || JSON.stringify(errorBody);
+            // Read the body as text first, as it's the most robust way.
+            const errorText = await response.text();
+            try {
+                // Try to parse it as JSON.
+                const errorBody = JSON.parse(errorText);
+                errorDetails = errorBody.message || errorBody.exception || errorBody.error || JSON.stringify(errorBody);
+            } catch {
+                // If JSON parsing fails, use the raw text.
+                errorDetails = errorText;
+            }
         } catch {
-            errorDetails = await response.text();
+            // If reading the body fails entirely, fall back to status text.
+            errorDetails = response.statusText;
         }
+        
         // Prepend the HTTP status to the error message for more context
         return NextResponse.json({ error: `Request failed with status ${response.status}: ${errorDetails}` }, { status: response.status });
     }

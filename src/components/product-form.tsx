@@ -28,8 +28,6 @@ import {
 } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import type { Product } from '@/lib/types';
-import { HTMLPreview } from './html-preview';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { findEbayCategoryId } from '@/ai/flows/find-ebay-category-id';
 import { findEan } from '@/ai/flows/find-ean';
 import { useToast } from '@/hooks/use-toast';
@@ -37,6 +35,8 @@ import { Loader2, Search, Copy, Trash2, PlusCircle } from 'lucide-react';
 import {CopyToClipboard} from 'react-copy-to-clipboard';
 import { useErpData } from '@/contexts/erp-data-context';
 import { searchInERPNext } from '@/lib/erpnext';
+import { HTMLPreview } from './html-preview';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 
 
 const productSchema = z.object({
@@ -66,6 +66,21 @@ interface ProductFormProps {
   onCancel: () => void;
 }
 
+async function callGenkitAPI(action: string, payload: any) {
+  const res = await fetch('/api/genkit-proxy', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action, payload }),
+  });
+
+  if (!res.ok) {
+    const err = await res.json();
+    throw new Error(err.error || 'Genkit API call failed');
+  }
+
+  return res.json();
+}
+
 function CategoryFinder({ onSelectCategory }: { onSelectCategory: (id: string) => void }) {
   const [searchTerm, setSearchTerm] = React.useState('');
   const [result, setResult] = React.useState<{ ebayCategoryId: string; categoryPath: string } | null>(null);
@@ -82,7 +97,7 @@ function CategoryFinder({ onSelectCategory }: { onSelectCategory: (id: string) =
     setIsLoading(true);
     setResult(null);
     try {
-      const res = await findEbayCategoryId({ productDescription: searchTerm });
+      const res = await callGenkitAPI('findCategory', { input: searchTerm });
       setResult(res);
     } catch (err) {
       console.error(err);
@@ -221,7 +236,7 @@ export function ProductForm({ product, onSave, onCancel }: ProductFormProps) {
     }
     setIsFindingEan(true);
     try {
-        const result = await findEan({ productName, brand });
+        const result = await callGenkitAPI('findEan', { productName, brand });
         if (result.ean) {
             form.setValue('ean', result.ean, { shouldValidate: true });
             toast({
