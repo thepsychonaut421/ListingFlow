@@ -18,15 +18,32 @@ async function erpNextRequest(
   });
 
   if (!response.ok) {
-    const errorBody = await response.json().catch(() => ({ error: response.statusText }));
-    const errorMessage = typeof errorBody._server_messages === 'string' 
-      ? JSON.parse(errorBody._server_messages)[0] 
-      : errorBody.error || errorBody.exception || response.statusText;
-      
-    // Create a new error to capture the stack trace correctly
+    let errorMessage = response.statusText;
+    try {
+        const errorBody = await response.text();
+        // Check if the response is HTML (like a Cloudflare error page)
+        if (errorBody.trim().startsWith('<!doctype html>')) {
+            const match = errorBody.match(/<h2.*?>(.*?)<\/h2>/);
+            if (match && match[1]) {
+                errorMessage = match[1].replace(/<[^>]+>/g, '').trim(); // Strip tags and trim
+            } else {
+                 errorMessage = 'Received an HTML error page from the server.';
+            }
+        } else {
+             // Try to parse it as JSON
+            const errorJson = JSON.parse(errorBody);
+             if (errorJson._server_messages) {
+                 const serverMessage = JSON.parse(errorJson._server_messages)[0];
+                 errorMessage = JSON.parse(serverMessage).message || serverMessage;
+            } else {
+                errorMessage = errorJson.message || errorJson.exception || errorJson.error || JSON.stringify(errorJson);
+            }
+        }
+    } catch {
+        // Fallback if parsing fails
+    }
     const error = new Error(`ERPNext API error: ${errorMessage}`);
-    // Attach the original error response if needed elsewhere
-    (error as any).response = errorBody;
+    (error as any).response = response;
     throw error;
   }
   
@@ -164,6 +181,43 @@ export async function updatePricesAndStocksFromERPNext(
   }
 }
 
+/**
+ * Builds a comprehensive description string from product data,
+ * including its base description and all technical specifications.
+ * @param product The product object.
+ * @returns A formatted string ready to be used as a description.
+ */
+const buildFullDescription = (product: Product): string => {
+  let fullDescription = product.description || '';
+
+  const specs = {
+    'Marke': product.brand,
+    'Produktart': product.productType,
+    ...product.technicalSpecs,
+  };
+
+  const specEntries = Object.entries(specs)
+    .map(([key, value]) => {
+      if (!value) return null; // Skip if value is empty
+      const formattedValue = Array.isArray(value) ? value.join(', ') : value;
+      // Capitalize the first letter of the key
+      const formattedKey = key.charAt(0).toUpperCase() + key.slice(1);
+      return `${formattedKey}: ${formattedValue}`;
+    })
+    .filter(Boolean); // Remove null entries
+
+  if (specEntries.length > 0) {
+    fullDescription += '\n\n<hr>\n\n<h3>Technische Daten:</h3>\n<ul>\n';
+    specEntries.forEach(entry => {
+      fullDescription += `  <li>${entry}</li>\n`;
+    });
+    fullDescription += '</ul>';
+  }
+
+  return fullDescription.trim();
+};
+
+
 // 4. Export modificări către ERPNext
 export async function exportProductsToERPNext(
   setLoading: (b: boolean) => void,
@@ -178,14 +232,15 @@ export async function exportProductsToERPNext(
     }
 
     let successCount = 0;
-    let errorMessages = [];
+    let errorMessages: string[] = [];
 
     for (const p of productsToExport) {
-        // Renamed 'brand' to 'Marke' and using 'productType' field as the source
+        const fullDescription = buildFullDescription(p);
+
         const itemPayload = {
             item_name: p.name,
             standard_rate: p.price,
-            Marke: p.productType, // Using productType for Marke
+            description: fullDescription,
             ean: p.ean
         };
 
