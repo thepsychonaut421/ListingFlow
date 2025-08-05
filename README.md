@@ -1,11 +1,3 @@
-Da — aproape 👍, dar dacă vrei să arate „cum trebuie” pe GitHub, trebuie să corectăm câteva lucruri:
-	1.	Indentarea ta cu • și taburi în secțiuni precum Project Structure și Notes nu e nevoie — pe GitHub e mai bine să folosești listă markdown cu - sau *.
-	2.	Blocurile de cod pentru comenzi (git clone, npm install etc.) trebuie închise corect în bash și env.
-	3.	Secțiunea ERPNext Export Format e mai lizibilă dacă o punem într-un bloc de cod.
-	4.	Evităm amestecul de stiluri (bullet-uri + taburi + linii „⸻”) și folosim separator markdown --- unde vrei o linie.
-
-Ți-l rescriu rapid optimizat pentru GitHub:
-
 # Overview
 
 **ListingFlow** is a middleware between **ERPNext** and e-commerce platforms like **eBay** and **Shopify**.  
