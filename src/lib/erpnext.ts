@@ -19,7 +19,15 @@ async function erpNextRequest(
 
   if (!response.ok) {
     const errorBody = await response.json().catch(() => ({ error: response.statusText }));
-    throw new Error(`ERPNext API error: ${errorBody.error || response.statusText}`);
+    const errorMessage = typeof errorBody._server_messages === 'string' 
+      ? JSON.parse(errorBody._server_messages)[0] 
+      : errorBody.error || errorBody.exception || response.statusText;
+      
+    // Create a new error to capture the stack trace correctly
+    const error = new Error(`ERPNext API error: ${errorMessage}`);
+    // Attach the original error response if needed elsewhere
+    (error as any).response = errorBody;
+    throw error;
   }
   
   // Handle cases with no content in response
@@ -170,30 +178,65 @@ export async function exportProductsToERPNext(
     }
 
     let successCount = 0;
+    let errorMessages = [];
+
     for (const p of productsToExport) {
-      try {
-        // We only update fields that are safe to update.
-        // We do not update stock level as that requires a Stock Entry.
-        await erpNextRequest(`/api/resource/Item/${p.code}`, 'PUT', {
-          item_name: p.name,
-          standard_rate: p.price,
-          brand: p.brand,
-          ean: p.ean
-        });
-        successCount++;
-      } catch (err) {
-          console.error(`Failed to export product ${p.code}:`, err);
-      }
+        const itemPayload = {
+            item_name: p.name,
+            standard_rate: p.price,
+            brand: p.brand,
+            ean: p.ean
+        };
+
+        try {
+            await erpNextRequest(`/api/resource/Item/${p.code}`, 'PUT', itemPayload);
+            successCount++;
+        } catch (error: any) {
+            // Check if it's a LinkValidationError for the brand
+            if (error.message && error.message.includes('LinkValidationError') && error.message.includes('Marke')) {
+                console.log(`Brand "${p.brand}" not found for item ${p.code}. Attempting to create it...`);
+                try {
+                    // Attempt to create the brand
+                    await erpNextRequest('/api/resource/Brand', 'POST', {
+                        brand_name: p.brand,
+                        description: `Brand automatically created from ListingFlow for product ${p.name}`
+                    });
+                    console.log(`Brand "${p.brand}" created successfully. Retrying item update...`);
+
+                    // Retry updating the item
+                    await erpNextRequest(`/api/resource/Item/${p.code}`, 'PUT', itemPayload);
+                    successCount++;
+
+                } catch (retryError: any) {
+                    const message = `Failed to create or re-link brand for ${p.code}: ${retryError.message}`;
+                    console.error(message);
+                    errorMessages.push(message);
+                }
+            } else {
+                const message = `Failed to export product ${p.code}: ${error.message}`;
+                console.error(message);
+                errorMessages.push(message);
+            }
+        }
     }
 
-    alert(`Export complete. Successfully updated ${successCount}/${productsToExport.length} products in ERPNext.`);
+    if (errorMessages.length > 0) {
+      alert(`Export partially complete. 
+Successfully updated ${successCount}/${productsToExport.length} products.
+Errors encountered:
+- ${errorMessages.join('\n- ')}`);
+    } else {
+      alert(`Export complete. Successfully updated ${successCount}/${productsToExport.length} products in ERPNext.`);
+    }
+
   } catch (err: any) {
-    console.error(err);
+    console.error('A general error occurred during export:', err);
     alert(`Export failed: ${err.message}`);
   } finally {
     setLoading(false);
   }
 }
+
 
 // 5. Universal Search Function
 export async function searchInERPNext(
