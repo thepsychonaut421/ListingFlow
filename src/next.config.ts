@@ -34,6 +34,11 @@ const nextConfig: NextConfig = {
         protocol: 'https',
         hostname: 'shop.retoura.de',
         pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'www.lidl.de',
+        pathname: '/**',
       }
     ],
   },
