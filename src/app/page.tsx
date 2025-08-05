@@ -243,7 +243,7 @@ function DashboardClient() {
             description: product.description,
         });
 
-        if (Object.keys(result.specs).length > 0) {
+        if (result.specs && Object.keys(result.specs).length > 0) {
             handleUpdateProduct(product.id, {
                 technicalSpecs: {
                     ...product.technicalSpecs,
@@ -464,7 +464,16 @@ function DashboardClient() {
   };
 
   const handleErpExport = async () => {
-    await exportProductsToERPNext(setIsErpLoading, products);
+    if (selectedProductIds.length === 0) {
+      toast({
+        variant: 'destructive',
+        title: 'Export Failed',
+        description: 'Please select at least one product to export.',
+      });
+      return;
+    }
+    const productsToExport = products.filter(p => selectedProductIds.includes(p.id));
+    await exportProductsToERPNext(setIsErpLoading, productsToExport);
   };
 
 
@@ -524,7 +533,7 @@ function DashboardClient() {
                     <Button size="sm" variant="outline" className="h-8 gap-1" onClick={handleErpExport}>
                       <Send className="h-3.5 w-3.5" />
                       <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
-                        Export to ERPNext
+                        Export to ERPNext ({selectedProductIds.length > 0 ? selectedProductIds.length : 'selected'})
                       </span>
                     </Button>
                 </div>
