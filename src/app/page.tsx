@@ -273,6 +273,33 @@ function DashboardClient() {
     }
   };
 
+  const handleSendToEbayDraft = async (product: Product) => {
+    setGeneratingProductId(product.id);
+    try {
+      const res = await fetch('/api/ebay/drafts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(product),
+      });
+      if (!res.ok) {
+        throw new Error('Failed to create eBay draft');
+      }
+      toast({
+        title: 'Sent to eBay',
+        description: `"${product.name}" has been sent to eBay drafts.`,
+      });
+    } catch (error) {
+      console.error('Failed to send to eBay', error);
+      toast({
+        variant: 'destructive',
+        title: 'eBay Draft Failed',
+        description: 'Could not send product to eBay drafts.',
+      });
+    } finally {
+      setGeneratingProductId(null);
+    }
+  };
+
   const handleExportToCSV = () => {
     const headers = [
       'id', 'name', 'code', 'quantity', 'price', 'description', 
@@ -484,6 +511,7 @@ function DashboardClient() {
       onUpdate: handleUpdateProduct,
       onCopyDescription: handleCopyDescription,
       onExtractTechSpecs: handleExtractTechSpecs,
+      onSendToEbay: handleSendToEbayDraft,
       generatingProductId,
   }), [generatingProductId, products]);
 

@@ -1,8 +1,7 @@
 'use client';
 
 import type { ColumnDef } from '@tanstack/react-table';
-import Image from 'next/image';
-import { MoreHorizontal, ArrowUpDown, Sparkles, Loader2, Edit, Trash2, Search, Copy, PackageSearch } from 'lucide-react';
+import { MoreHorizontal, ArrowUpDown, Sparkles, Loader2, Edit, Trash2, Search, Copy, PackageSearch, Send } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -30,6 +29,7 @@ type GetColumnsProps = {
   onUpdate: (id: string, data: Partial<Product>) => void;
   onCopyDescription: (product: Product, source: 'otto' | 'ebay') => void;
   onExtractTechSpecs: (product: Product) => void;
+  onSendToEbay: (product: Product) => void;
   generatingProductId: string | null;
 };
 
@@ -40,7 +40,7 @@ const formatCurrency = (amount: number) => {
     }).format(amount);
 }
 
-export const getColumns = ({ onEdit, onDelete, onGenerate, onCopyDescription, onExtractTechSpecs, generatingProductId }: GetColumnsProps): ColumnDef<Product>[] => [
+export const getColumns = ({ onEdit, onDelete, onGenerate, onCopyDescription, onExtractTechSpecs, onSendToEbay, generatingProductId }: GetColumnsProps): ColumnDef<Product>[] => [
   {
     id: 'select',
     header: ({ table }) => (
@@ -81,7 +81,7 @@ export const getColumns = ({ onEdit, onDelete, onGenerate, onCopyDescription, on
       const imageUrl = product.image || 'https://placehold.co/40x40.png';
       return (
         <div className="flex items-center gap-4">
-          <Image
+          <img
             src={imageUrl}
             alt={product.name}
             width={40}
@@ -152,6 +152,10 @@ export const getColumns = ({ onEdit, onDelete, onGenerate, onCopyDescription, on
                     <DropdownMenuItem onClick={() => onDelete(product.id)} className="text-destructive">
                         <Trash2 className="mr-2 h-4 w-4" />
                         <span>Delete</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => onSendToEbay(product)}>
+                        <Send className="mr-2 h-4 w-4" />
+                        <span>Send to eBay Drafts</span>
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuGroup>
