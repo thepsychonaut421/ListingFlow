@@ -1,7 +1,6 @@
 'use client';
 
 import type { ColumnDef } from '@tanstack/react-table';
-import Image from 'next/image';
 import { MoreHorizontal, ArrowUpDown, Sparkles, Loader2, Edit, Trash2, Search, Copy, Send } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -81,7 +80,8 @@ export const getColumns = ({ onEdit, onDelete, onGenerate, onCopyDescription, on
       const imageUrl = product.image || 'https://placehold.co/40x40.png';
       return (
         <div className="flex items-center gap-4">
-          <Image
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
             src={imageUrl}
             alt={product.name}
             width={40}
