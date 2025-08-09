@@ -237,29 +237,35 @@ function DashboardClient() {
   const handleSendToEbayDraft = async (product: Product) => {
     setGeneratingProductId(product.id);
     try {
-      const res = await fetch('/api/ebay/drafts', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(product),
-      });
-      if (!res.ok) {
-        throw new Error('Failed to create eBay draft');
-      }
-      toast({
-        title: 'Sent to eBay',
-        description: `"${product.name}" has been sent to eBay drafts.`,
-      });
-    } catch (error) {
-      console.error('Failed to send to eBay', error);
-      toast({
-        variant: 'destructive',
-        title: 'eBay Draft Failed',
-        description: 'Could not send product to eBay drafts.',
-      });
+        const res = await fetch('/api/ebay/create-draft', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(product),
+        });
+
+        const result = await res.json();
+
+        if (!res.ok) {
+            throw new Error(result.error || 'Failed to create eBay draft');
+        }
+
+        toast({
+            title: 'Sent to eBay ✅',
+            description: `Offer draft for "${product.name}" was created/updated.`,
+        });
+
+    } catch (error: any) {
+        console.error('Failed to send to eBay', error);
+        toast({
+            variant: 'destructive',
+            title: 'eBay Draft Failed',
+            description: error.message || 'Could not send product to eBay drafts.',
+        });
     } finally {
-      setGeneratingProductId(null);
+        setGeneratingProductId(null);
     }
   };
+
 
   const handleExportToCSV = () => {
     const headers = [
@@ -452,8 +458,18 @@ function DashboardClient() {
   };
 
   const handleErpExport = async () => {
-    await exportProductsToERPNext(setIsErpLoading, products);
+    if (selectedProductIds.length === 0) {
+      toast({
+        variant: 'destructive',
+        title: 'Export Not Started',
+        description: 'Please select products to export to ERPNext.',
+      });
+      return;
+    }
+    const productsToExport = products.filter(p => selectedProductIds.includes(p.id));
+    await exportProductsToERPNext(setIsErpLoading, productsToExport);
   };
+
 
 
   const columns = React.useMemo(() => getColumns({
