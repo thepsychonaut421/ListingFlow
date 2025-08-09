@@ -1,5 +1,4 @@
 // src/lib/ebay/account.ts
-'use server';
 
 import type { Product } from '@/lib/types';
 
