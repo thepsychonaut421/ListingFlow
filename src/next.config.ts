@@ -1,7 +1,10 @@
 import type {NextConfig} from 'next';
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  experimental: {
+    // This allows the Next.js dev server to accept requests from the Studio preview iframe.
+    allowedDevOrigins: ["https://*.cloudworkstations.dev"],
+  },
   typescript: {
     ignoreBuildErrors: true,
   },
@@ -26,7 +29,7 @@ const nextConfig: NextConfig = {
         pathname: '/**',
       },
        {
-        protocol: 'https',
+        protocol: 'https' ,
         hostname: 'i.otto.de',
         pathname: '/**',
       },
@@ -56,7 +59,7 @@ const nextConfig: NextConfig = {
     // For server-side, we want to make sure any server-specific dependencies
     // are not bundled by Webpack.
     if (isServer) {
-      config.externals = [...(config.externals || []), 'pino-pretty', 'lokijs', 'encoding', 'handlebars'];
+      config.externals = [...(config.externals || []), 'pino-pretty', 'lokijs', 'encoding'];
     }
 
     return config;
