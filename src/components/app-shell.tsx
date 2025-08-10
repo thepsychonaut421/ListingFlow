@@ -45,7 +45,7 @@ import { useAuth } from '@/contexts/auth-context';
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { toast } = useToast();
-  const { user, loading, logout } = useAuth();
+  const { user, logout } = useAuth();
   
   const [theme, setTheme] = React.useState('system');
 
@@ -84,14 +84,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     { href: '/', icon: Home, label: 'Dashboard' },
     { href: '/exports', icon: File, label: 'Exports' },
   ];
-
-  if (loading || !user) {
-      return (
-        <div className="flex items-center justify-center min-h-screen">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        </div>
-      );
-  }
 
   return (
     <TooltipProvider>
