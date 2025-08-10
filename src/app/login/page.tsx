@@ -9,6 +9,8 @@ import {
   getRedirectResult,
   setPersistence,
   browserLocalPersistence,
+  signInWithPopup,
+  onAuthStateChanged,
 } from 'firebase/auth';
 import { auth } from '@/lib/firebase/client';
 import { useAuth } from '@/contexts/auth-context';
@@ -19,12 +21,15 @@ export default function LoginPage() {
   const [submitting, setSubmitting] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [isCheckingRedirect, setIsCheckingRedirect] = React.useState(true);
+  const redirected = React.useRef(false);
 
+  // 1) Process the result after returning from the redirect
   React.useEffect(() => {
     getRedirectResult(auth)
       .then((result) => {
-        if (result?.user) {
-          // Redirect handled by the main auth context watcher
+        if (result?.user && !redirected.current) {
+            redirected.current = true;
+            router.replace('/'); 
         }
       })
       .catch((e) => {
@@ -34,26 +39,48 @@ export default function LoginPage() {
       .finally(() => {
         setIsCheckingRedirect(false);
       });
-  }, []);
+  }, [router]);
 
+  // 2) If the user is already logged in (from onAuthStateChanged in context), go directly to the app
   React.useEffect(() => {
-    if (!loading && user) {
-      router.replace('/');
+    if (!loading && user && !redirected.current) {
+        redirected.current = true;
+        router.replace('/');
     }
   }, [loading, user, router]);
 
+  // 3) Login button: popup -> redirect fallback
   const handleMicrosoftLogin = async () => {
     setError(null);
     setSubmitting(true);
     try {
-      await loginWithMicrosoft();
+      await setPersistence(auth, browserLocalPersistence);
+      const provider = new OAuthProvider('microsoft.com');
+
+      const tenant = process.env.NEXT_PUBLIC_MICROSOFT_TENANT_ID;
+      if (!tenant || tenant === 'your-tenant-id') {
+        throw new Error('FATAL: Microsoft Tenant ID is not configured in environment variables.');
+      }
+      provider.setCustomParameters({ tenant, prompt: 'select_account' });
+      
+      try {
+        await signInWithPopup(auth, provider);
+        // onAuthStateChanged will handle the redirect
+      } catch (e: any) {
+        if (e?.code === 'auth/popup-blocked' || e?.code === 'auth/cancelled-popup-request') {
+          await signInWithRedirect(auth, provider);
+        } else {
+          throw e;
+        }
+      }
+
     } catch (e: any) {
       setError(e?.message ?? 'Login failed');
       setSubmitting(false);
     }
   };
 
-  if (loading || isCheckingRedirect || user) {
+  if (loading || isCheckingRedirect) {
     return (
       <div className="min-h-screen flex items-center justify-center p-6">
         <div className="flex items-center space-x-2 text-sm text-muted-foreground">
@@ -64,31 +91,44 @@ export default function LoginPage() {
     );
   }
 
-  return (
-    <div className="min-h-screen flex items-center justify-center p-6">
-      <div className="w-full max-w-md rounded-2xl border p-6 space-y-6">
-        <div className="space-y-1">
-          <h1 className="text-2xl font-semibold">Login to ListingFlow</h1>
-          <p className="text-sm text-muted-foreground">
-            Sign in using your Microsoft 365 account.
-          </p>
+  // Render login page only if not logged in and not loading
+  if (!user) {
+    return (
+        <div className="min-h-screen flex items-center justify-center p-6">
+        <div className="w-full max-w-md rounded-2xl border p-6 space-y-6">
+            <div className="space-y-1">
+            <h1 className="text-2xl font-semibold">Login to ListingFlow</h1>
+            <p className="text-sm text-muted-foreground">
+                Sign in using your Microsoft 365 account.
+            </p>
+            </div>
+
+            <button
+            onClick={handleMicrosoftLogin}
+            disabled={submitting}
+            className="w-full inline-flex items-center justify-center rounded-md border px-4 py-2"
+            >
+            {submitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+            Sign in with Microsoft
+            </button>
+
+            {error && (
+            <div className="text-sm text-red-600 border border-red-200 rounded-md p-2">
+                {error}
+            </div>
+            )}
         </div>
+        </div>
+    );
+  }
 
-        <button
-          onClick={handleMicrosoftLogin}
-          disabled={submitting}
-          className="w-full inline-flex items-center justify-center rounded-md border px-4 py-2"
-        >
-          {submitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-          Sign in with Microsoft
-        </button>
-
-        {error && (
-          <div className="text-sm text-red-600 border border-red-200 rounded-md p-2">
-            {error}
-          </div>
-        )}
+  // If user is loaded and we are on this page, it's a transitional state, show loading.
+  return (
+      <div className="min-h-screen flex items-center justify-center p-6">
+        <div className="flex items-center space-x-2 text-sm text-muted-foreground">
+          <Loader2 className="h-4 w-4 animate-spin" />
+          <span>Redirecting...</span>
+        </div>
       </div>
-    </div>
-  );
+    );
 }
