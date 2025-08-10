@@ -13,6 +13,14 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
+import {
+  getRedirectResult,
+  OAuthProvider,
+  setPersistence,
+  signInWithRedirect,
+  browserLocalPersistence,
+} from 'firebase/auth';
+import { auth } from '@/lib/firebase/client';
 
 const MicrosoftIcon = () => (
   <svg
@@ -28,12 +36,42 @@ const MicrosoftIcon = () => (
 );
 
 export default function LoginPage() {
-  const { user, loading, loginWithMicrosoft } = useAuth();
+  const { user, loading } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
-  const [isLoggingIn, setIsLoggingIn] = React.useState(false);
+  const [isLoggingIn, setIsLoggingIn] = React.useState(true); // Start as true to handle redirect check
+
+  // Check for redirect result on component mount
+  React.useEffect(() => {
+    getRedirectResult(auth)
+      .then((result) => {
+        if (result?.user) {
+          router.replace('/dashboard');
+        } else {
+            setIsLoggingIn(false); // No user from redirect, allow login attempt
+        }
+      })
+      .catch((e) => {
+        console.error(
+          'getRedirectResult error:',
+          e,
+          e?.customData,
+          e?.customData?._tokenResponse
+        );
+        toast({
+          variant: 'destructive',
+          title: 'Login Failed',
+          description: e?.message ?? 'An unknown error occurred during redirect.',
+        });
+        setIsLoggingIn(false);
+      });
+  // This should only run once on mount
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
 
   React.useEffect(() => {
+    // This effect handles users who are already logged in and land on this page
     if (!loading && user) {
       router.replace('/dashboard');
     }
@@ -42,23 +80,35 @@ export default function LoginPage() {
   const handleLogin = async () => {
     setIsLoggingIn(true);
     try {
-      await loginWithMicrosoft();
-      // On success, the onAuthStateChanged in AuthProvider will handle the redirect.
+      await setPersistence(auth, browserLocalPersistence);
+      const tenantId = process.env.NEXT_PUBLIC_MICROSOFT_TENANT_ID;
+      
+      if (!tenantId) {
+        throw new Error('Microsoft Tenant ID is not configured.');
+      }
+      
+      const provider = new OAuthProvider('microsoft.com');
+      provider.setCustomParameters({
+        tenant: tenantId,
+        prompt: 'select_account',
+      });
+      
+      // Force redirect flow to avoid popup issues
+      await signInWithRedirect(auth, provider);
+
     } catch (error: any) {
+      console.error('Microsoft login initiation error:', error);
       toast({
         variant: 'destructive',
         title: 'Login Failed',
-        description:
-          error.message || 'An unexpected error occurred during login.',
+        description: error?.message ?? 'An unknown error occurred.',
       });
-    } finally {
-        // We don't set isLoggingIn to false here, because a redirect is in progress.
-        // If it fails, the user remains on the page and can try again.
+      setIsLoggingIn(false);
     }
   };
 
-  // While auth state is loading, or if the user is found and we are about to redirect
-  if (loading || user) {
+  // While auth state is loading from context, or if we are processing login
+  if (loading || isLoggingIn) {
     return (
       <div className="flex h-screen items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin" />
