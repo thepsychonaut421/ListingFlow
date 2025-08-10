@@ -53,10 +53,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const loginWithMicrosoft = async () => {
+    const tenantId = process.env.NEXT_PUBLIC_MICROSOFT_TENANT_ID;
+    if (!tenantId) {
+        throw new Error('Microsoft Tenant ID is not configured. Please set NEXT_PUBLIC_MICROSOFT_TENANT_ID in your environment variables.');
+    }
     const provider = new OAuthProvider('microsoft.com');
     // enforce tenant (belt & suspenders – Azure e deja single-tenant)
     provider.setCustomParameters({
-      tenant: process.env.NEXT_PUBLIC_MICROSOFT_TENANT_ID!,
+      tenant: tenantId,
       prompt: 'select_account',
     });
 
