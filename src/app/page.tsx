@@ -1,5 +1,21 @@
-import { redirect } from 'next/navigation';
+"use client";
+
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/contexts/auth-context';
 
 export default function Root() {
-  redirect('/login');
+  const { user, loading } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (loading) return;
+    if (user) {
+      router.replace('/listings');
+    } else {
+      router.replace('/login');
+    }
+  }, [user, loading, router]);
+
+  return null;
 }
