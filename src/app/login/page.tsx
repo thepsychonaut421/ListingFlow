@@ -38,17 +38,18 @@ export default function LoginPage() {
       router.replace('/dashboard');
     }
   }, [user, loading, router]);
-  
+
   const handleLogin = async () => {
     setIsLoggingIn(true);
     try {
       await loginWithMicrosoft();
       // On success, the onAuthStateChanged in AuthProvider will handle the redirect.
     } catch (error: any) {
-       toast({
+      toast({
         variant: 'destructive',
         title: 'Login Failed',
-        description: error.message || 'An unexpected error occurred during login.',
+        description:
+          error.message || 'An unexpected error occurred during login.',
       });
       setIsLoggingIn(false);
     }
@@ -72,7 +73,8 @@ export default function LoginPage() {
           </div>
           <CardTitle className="text-2xl">Login to ListingFlow</CardTitle>
           <CardDescription>
-            Please sign in using your company&apos;s Microsoft account to continue.
+            Please sign in using your company&apos;s Microsoft account to
+            continue.
           </CardDescription>
         </CardHeader>
         <CardContent>
