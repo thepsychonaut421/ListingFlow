@@ -1,8 +1,7 @@
 // src/app/api/genkit/[[...path]]/route.ts
 import { genkit } from 'genkit';
 import {googleAI} from '@genkit-ai/googleai';
-import { NextRequest } from 'next/server';
-import { genkitNext } from '@genkit-ai/next';
+import { defineNextHandler } from '@genkit-ai/next';
 
 import '@/ai/flows/generate-product-description';
 import '@/ai/flows/find-ean';
@@ -19,8 +18,6 @@ genkit({
   enableTracingAndMetrics: true,
 });
 
-const all = genkitNext({
-  // The new recommended way to handle Genkit routes in Next.js
-});
+const handler = defineNextHandler();
 
-export { all as GET, all as POST, all as PUT, all as PATCH, all as DELETE, all as OPTIONS };
+export { handler as GET, handler as POST, handler as PUT, handler as PATCH, handler as DELETE };
