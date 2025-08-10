@@ -7,6 +7,8 @@ import {
   signOut,
   type User,
   OAuthProvider,
+  setPersistence,
+  browserLocalPersistence,
   signInWithPopup,
   signInWithRedirect,
 } from 'firebase/auth';
@@ -43,7 +45,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   React.useEffect(() => {
     if (loading) return;
 
-    const isProtectedRoute = !['/login'].includes(pathname);
+    const isAuthPage = pathname === '/login';
 
     if (!user && !isAuthPage) {
       router.replace('/login');
@@ -52,15 +54,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [user, loading, pathname, router]);
 
-  const logout = () => {
-    return signOut(auth);
-  };
-
-  const signup = React.useCallback(
-    (email: string, pass: string) => createUserWithEmailAndPassword(auth, email, pass),
-    []
-  );
-
   const logout = React.useCallback(async () => {
       await signOut(auth);
       // Ensure redirect after logout
@@ -68,6 +61,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [router]);
 
   const loginWithMicrosoft = React.useCallback(async () => {
+    const tenantId = process.env.NEXT_PUBLIC_MICROSOFT_TENANT_ID;
+    if (!tenantId) {
+        throw new Error('Microsoft Tenant ID is not configured.');
+    }
+    
     await setPersistence(auth, browserLocalPersistence);
     const provider = new OAuthProvider('microsoft.com');
     provider.setCustomParameters({
@@ -85,7 +83,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       console.error('Microsoft login error:', e);
       throw e;
     }
-  };
+  }, []);
   
   const value = {
     user,
