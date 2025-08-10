@@ -11,7 +11,7 @@ export default function Root() {
   useEffect(() => {
     if (loading) return;
     if (user) {
-      router.replace('/listings');
+      router.replace('/');
     } else {
       router.replace('/login');
     }

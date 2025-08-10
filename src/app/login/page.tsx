@@ -29,7 +29,7 @@ export default function LoginPage() {
       .then((result) => {
         if (result?.user && !redirected.current) {
             redirected.current = true;
-            router.replace('/listings'); 
+            router.replace('/'); 
         }
       })
       .catch((e) => {
@@ -45,7 +45,7 @@ export default function LoginPage() {
   React.useEffect(() => {
     if (!loading && user && !redirected.current) {
         redirected.current = true;
-        router.replace('/listings');
+        router.replace('/');
     }
   }, [loading, user, router]);
 

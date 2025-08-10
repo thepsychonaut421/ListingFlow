@@ -49,7 +49,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!user && !isAuthPage) {
       router.replace('/login');
     } else if (user && isAuthPage) {
-      router.replace('/listings'); // Ruta dashboard după login
+      router.replace('/'); // Ruta dashboard după login
     }
   }, [loading, user, pathname, router]);
 
