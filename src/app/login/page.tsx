@@ -71,7 +71,7 @@ export default function LoginPage() {
             </div>
           <CardTitle className="text-2xl">Login to ListingFlow</CardTitle>
           <CardDescription>
-            Please sign in using your company's Microsoft account to continue.
+            Please sign in using your company&apos;s Microsoft account to continue.
           </CardDescription>
         </CardHeader>
         <CardContent>

@@ -158,7 +158,7 @@ function SettingsClient() {
                       <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
                       <AlertDialogDescription>
                           This action cannot be undone. This will permanently delete all your product data
-                          from your browser's local storage. Your API credentials in .env will not be affected.
+                          from your browser&apos;s local storage. Your API credentials in .env will not be affected.
                       </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>

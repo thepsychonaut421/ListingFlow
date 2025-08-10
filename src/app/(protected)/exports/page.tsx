@@ -141,7 +141,7 @@ function ExportsClient() {
                 : 'Previewing all products for eBay export. Select items on the dashboard to export a specific subset.'
               }
               <br />
-              This tool generates a CSV file based on the eBay File Exchange format for drafts. The file is tab-separated and must start with a specific header row. Ensure you are uploading this file to the "Upload Template" section in your Seller Hub Reports tab.
+              This tool generates a CSV file based on the eBay File Exchange format for drafts. The file is tab-separated and must start with a specific header row. Ensure you are uploading this file to the &quot;Upload Template&quot; section in your Seller Hub Reports tab.
             </p>
             <div className="rounded-md border">
               <Table>
