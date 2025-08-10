@@ -1,23 +1,21 @@
-// src/app/api/genkit/[[...path]]/route.ts
-import { genkit } from 'genkit';
-import {googleAI} from '@genkit-ai/googleai';
-import { defineNextHandler } from '@genkit-ai/next';
+// Temporary stub: disable Genkit route in production to unblock build
+const DISABLED = process.env.ENABLE_GENKIT_API !== 'true';
 
-import '@/ai/flows/generate-product-description';
-import '@/ai/flows/find-ean';
-import '@/ai/flows/find-product-description';
-import '@/ai/flows/suggest-tags-keywords-category';
-import '@/ai/flows/find-ebay-category-id';
+export const dynamic = 'force-dynamic';
 
+export async function GET() {
+  if (DISABLED) {
+    return new Response('Genkit API disabled', { status: 503 });
+  }
+  // lazy import to avoid bundling unless enabled
+  const mod = await import('./real-handler');
+  return mod.GET();
+}
 
-genkit({
-  plugins: [
-    googleAI(),
-  ],
-  logLevel: 'debug',
-  enableTracingAndMetrics: true,
-});
-
-const handler = defineNextHandler();
-
-export { handler as GET, handler as POST, handler as PUT, handler as PATCH, handler as DELETE };
+export async function POST(req: Request) {
+  if (DISABLED) {
+    return new Response('Genkit API disabled', { status: 503 });
+  }
+  const mod = await import('./real-handler');
+  return mod.POST(req);
+}
