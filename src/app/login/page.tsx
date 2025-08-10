@@ -28,7 +28,7 @@ const MicrosoftIcon = () => (
 );
 
 export default function LoginPage() {
-  const { user, loginWithMicrosoft, loading } = useAuth();
+  const { user, loading, loginWithMicrosoft } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
   const [isLoggingIn, setIsLoggingIn] = React.useState(false);
@@ -51,7 +51,9 @@ export default function LoginPage() {
         description:
           error.message || 'An unexpected error occurred during login.',
       });
-      setIsLoggingIn(false);
+    } finally {
+        // We don't set isLoggingIn to false here, because a redirect is in progress.
+        // If it fails, the user remains on the page and can try again.
     }
   };
 
