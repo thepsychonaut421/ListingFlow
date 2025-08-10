@@ -22,9 +22,9 @@ export default function RootLayout({
         ></link>
       </head>
       <body className="font-body antialiased">
-        <AuthProvider>
-          {children}
-        </AuthProvider>
+        <React.Suspense fallback={null}>
+          <AuthProvider>{children}</AuthProvider>
+        </React.Suspense>
         <Toaster />
       </body>
     </html>
