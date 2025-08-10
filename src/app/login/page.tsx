@@ -103,9 +103,16 @@ export default function LoginPage() {
         error.code === 'auth/popup-blocked' ||
         error.code === 'auth/cancelled-popup-request'
       ) {
+        const tenantId = process.env.NEXT_PUBLIC_MICROSOFT_TENANT_ID;
+        if (!tenantId) {
+            // This case should be caught by the check above, but we repeat for safety
+            toast({ variant: 'destructive', title: 'Configuration Error', description: 'Microsoft Tenant ID is not configured.'});
+            setIsMicrosoftLoading(false);
+            return;
+        }
         const provider = new OAuthProvider('microsoft.com');
         provider.setCustomParameters({
-            tenant: process.env.NEXT_PUBLIC_MICROSOFT_TENANT_ID,
+            tenant: tenantId,
             prompt: 'select_account',
         });
         await signInWithRedirect(auth, provider);
