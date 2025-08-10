@@ -7,8 +7,9 @@ import {
   signInWithEmailAndPassword,
   signOut,
   OAuthProvider,
-  signInWithPopup,
   signInWithRedirect,
+  setPersistence,
+  browserLocalPersistence,
   type User,
 } from 'firebase/auth';
 import { auth } from '@/lib/firebase/client';
@@ -63,14 +64,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     []
   );
 
-  const logout = React.useCallback(() => signOut(auth), []);
+  const logout = React.useCallback(async () => {
+      await signOut(auth);
+      // Ensure redirect after logout
+      router.push('/login');
+  }, [router]);
 
   const loginWithMicrosoft = React.useCallback(async () => {
+    await setPersistence(auth, browserLocalPersistence);
     const provider = new OAuthProvider('microsoft.com');
 
     const tenant = process.env.NEXT_PUBLIC_MICROSOFT_TENANT_ID;
     if (!tenant || tenant === 'your-tenant-id') {
-      // Fail fast if the environment variable is not set correctly.
       throw new Error('FATAL: Microsoft Tenant ID is not configured in environment variables.');
     }
 
@@ -79,16 +84,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       prompt: 'select_account',
     });
 
-    try {
-      await signInWithPopup(auth, provider);
-    } catch (e: any) {
-      // fallback when pop-up is blocked or in other similar scenarios
-      if (e?.code === 'auth/popup-blocked' || e?.code === 'auth/cancelled-popup-request') {
-        await signInWithRedirect(auth, provider);
-        return;
-      }
-      throw e;
-    }
+    await signInWithRedirect(auth, provider);
   }, []);
 
   const value: AuthContextType = React.useMemo(
