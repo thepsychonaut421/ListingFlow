@@ -56,7 +56,7 @@ const nextConfig: NextConfig = {
     // For server-side, we want to make sure any server-specific dependencies
     // are not bundled by Webpack.
     if (isServer) {
-      config.externals = [...(config.externals || []), 'pino-pretty', 'lokijs', 'encoding', 'handlebars'];
+      config.externals = [...(config.externals || []), 'pino-pretty', 'lokijs', 'encoding'];
     }
 
     return config;
