@@ -1,4 +1,5 @@
 'use client';
+
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/auth-context';
@@ -16,20 +17,13 @@ export default function RootPage() {
     if (!user) {
       router.replace('/login');
     } else {
-       router.replace('/');
+      router.replace('/dashboard');
     }
-    
   }, [user, loading, router]);
 
-   if (loading || !user) {
-    return (
-      <div className="flex h-screen items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin" />
-      </div>
-    );
-  }
-
-  // If the user is logged in, the protected layout will take over and render the dashboard at '/'.
-  // This component prevents a flash of content before redirecting unauthenticated users.
-  return null;
+  return (
+    <div className="flex h-screen items-center justify-center">
+      <Loader2 className="h-8 w-8 animate-spin" />
+    </div>
+  );
 }
