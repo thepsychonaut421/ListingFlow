@@ -1,134 +1,77 @@
-'use client';
+"use client";
 
-import * as React from 'react';
-import { useRouter } from 'next/navigation';
+import { useEffect, useRef, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
-  getRedirectResult,
-  onAuthStateChanged,
-  setPersistence,
-  browserLocalPersistence,
   OAuthProvider,
   signInWithRedirect,
-  signInWithPopup,
-} from 'firebase/auth';
-import { auth } from '@/lib/firebase/client';
-import { useAuth } from '@/contexts/auth-context';
-import { Loader2 } from 'lucide-react';
+  getRedirectResult,
+  setPersistence,
+  browserLocalPersistence,
+  onAuthStateChanged,
+} from "firebase/auth";
+import { auth } from "@/lib/firebase/client";
 
 export default function LoginPage() {
-  const { user, loading } = useAuth();
   const router = useRouter();
-  const [submitting, setSubmitting] = React.useState(false);
-  const [error, setError] = React.useState<string | null>(null);
-  const [isCheckingRedirect, setIsCheckingRedirect] = React.useState(true);
-  const redirected = React.useRef(false);
+  const params = useSearchParams();
+  const next = params.get("next") || "/";
+  const [isLoading, setIsLoading] = useState(false);
+  const hasHandledRef = useRef(false);
 
-  // 1) Procesează rezultatul după revenirea din redirect
-  React.useEffect(() => {
+  // Redirect after login
+  useEffect(() => {
+    if (hasHandledRef.current) return;
+    hasHandledRef.current = true;
+
     getRedirectResult(auth)
-      .then((result) => {
-        if (result?.user && !redirected.current) {
-            redirected.current = true;
-            router.replace('/'); 
+      .then((cred) => {
+        if (cred?.user) {
+          router.replace(next);
         }
       })
-      .catch((e) => {
-        console.error('Redirect result error:', e);
-        setError(e.message);
-      })
-      .finally(() => {
-        setIsCheckingRedirect(false);
-      });
-  }, [router]);
+      .catch((e) => console.debug("[AUTH DBG] getRedirectResult error", e));
+  }, [next, router]);
 
-  // 2) Dacă userul e deja logat (din onAuthStateChanged în context), mergi direct în app
-  React.useEffect(() => {
-    if (!loading && user && !redirected.current) {
-        redirected.current = true;
-        router.replace('/');
-    }
-  }, [loading, user, router]);
+  // Listen for already signed-in user
+  useEffect(() => {
+    const unsub = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        router.replace(next);
+      }
+    });
+    return () => unsub();
+  }, [next, router]);
 
-  // 3) Buton login: popup -> fallback la redirect
   const handleMicrosoftLogin = async () => {
-    setError(null);
-    setSubmitting(true);
+    setIsLoading(true);
     try {
       await setPersistence(auth, browserLocalPersistence);
-      const provider = new OAuthProvider('microsoft.com');
 
       const tenant = process.env.NEXT_PUBLIC_MICROSOFT_TENANT_ID;
-      if (!tenant || tenant === 'your-tenant-id') {
-        throw new Error('FATAL: Microsoft Tenant ID is not configured in environment variables.');
-      }
-      provider.setCustomParameters({ tenant, prompt: 'select_account' });
-      
-      try {
-        await signInWithPopup(auth, provider);
-        // onAuthStateChanged va gestiona redirectarea
-      } catch (e: any) {
-        if (e?.code === 'auth/popup-blocked' || e?.code === 'auth/cancelled-popup-request') {
-          await signInWithRedirect(auth, provider);
-        } else {
-          throw e;
-        }
+      if (!tenant || tenant === "your-tenant-id") {
+        throw new Error("Microsoft Tenant ID is missing in env variables.");
       }
 
-    } catch (e: any) {
-      setError(e?.message ?? 'Login failed');
-      setSubmitting(false);
+      const provider = new OAuthProvider("microsoft.com");
+      provider.setCustomParameters({ tenant, prompt: "select_account" });
+
+      await signInWithRedirect(auth, provider);
+    } catch (err) {
+      console.error("Login failed", err);
+      setIsLoading(false);
     }
   };
 
-  if (loading || isCheckingRedirect) {
-    return (
-      <div className="min-h-screen flex items-center justify-center p-6">
-        <div className="flex items-center space-x-2 text-sm text-muted-foreground">
-          <Loader2 className="h-4 w-4 animate-spin" />
-          <span>Loading session...</span>
-        </div>
-      </div>
-    );
-  }
-
-  // Afișează pagina de login doar dacă nu e logat și nu se încarcă
-  if (!user) {
-    return (
-        <div className="min-h-screen flex items-center justify-center p-6">
-        <div className="w-full max-w-md rounded-2xl border p-6 space-y-6">
-            <div className="space-y-1">
-            <h1 className="text-2xl font-semibold">Login to ListingFlow</h1>
-            <p className="text-sm text-muted-foreground">
-                Sign in using your Microsoft 365 account.
-            </p>
-            </div>
-
-            <button
-            onClick={handleMicrosoftLogin}
-            disabled={submitting}
-            className="w-full inline-flex items-center justify-center rounded-md border px-4 py-2"
-            >
-            {submitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-            Sign in with Microsoft
-            </button>
-
-            {error && (
-            <div className="text-sm text-red-600 border border-red-200 rounded-md p-2">
-                {error}
-            </div>
-            )}
-        </div>
-        </div>
-    );
-  }
-
-  // Dacă userul e încărcat și suntem pe această pagină, e o stare tranzitorie, arătăm loading.
   return (
-      <div className="min-h-screen flex items-center justify-center p-6">
-        <div className="flex items-center space-x-2 text-sm text-muted-foreground">
-          <Loader2 className="h-4 w-4 animate-spin" />
-          <span>Redirecting...</span>
-        </div>
-      </div>
-    );
+    <div className="min-h-screen flex items-center justify-center p-6">
+      <button
+        className="px-4 py-2 rounded bg-blue-600 text-white"
+        onClick={handleMicrosoftLogin}
+        disabled={isLoading}
+      >
+        {isLoading ? "Redirecting..." : "Sign in with Microsoft"}
+      </button>
+    </div>
+  );
 }
