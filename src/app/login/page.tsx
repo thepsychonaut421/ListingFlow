@@ -1,18 +1,8 @@
 'use client';
 
 import * as React from 'react';
-<<<<<<<<< Temporary merge branch 1
-import { useRouter } from 'next/navigation';
-import { OAuthProvider, signInWithRedirect, getRedirectResult, setPersistence, browserLocalPersistence } from 'firebase/auth';
-import { auth } from '@/lib/firebase/client';
-import { useAuth } from '@/contexts/auth-context';
-import { Loader2 } from 'lucide-react';
-
-export default function LoginPage() {
-  const { user, loading } = useAuth();
-=========
-import { useAuth } from '@/contexts/auth-context';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { useAuth } from '@/contexts/auth-context';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -22,8 +12,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2 } from 'lucide-react';
-import { Package } from 'lucide-react';
+import { Loader2, Package } from 'lucide-react';
 
 const MicrosoftIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" className="mr-2" viewBox="0 0 16 16">
@@ -34,95 +23,20 @@ const MicrosoftIcon = () => (
 export default function LoginPage() {
   const [isMicrosoftLoading, setIsMicrosoftLoading] = React.useState(false);
   const { user, loginWithMicrosoft } = useAuth();
->>>>>>>>> Temporary merge branch 2
   const router = useRouter();
   const searchParams = useSearchParams();
   const { toast } = useToast();
 
-<<<<<<<<< Temporary merge branch 1
-  // 1) Procesează rezultatul după revenirea din redirect
-  React.useEffect(() => {
-    getRedirectResult(auth)
-      .then((result) => {
-        if (result?.user && !redirected.current) {
-            redirected.current = true;
-            router.replace('/'); 
-        }
-      })
-      .catch((e) => {
-        console.error('Redirect result error:', e);
-        setError(e.message);
-      })
-      .finally(() => {
-        setIsCheckingRedirect(false);
-      });
-
-  // 2) Dacă userul e deja logat (din onAuthStateChanged în context), mergi direct în app
-  React.useEffect(() => {
-    if (!loading && user && !redirected.current) {
-        redirected.current = true;
-        router.replace('/');
-=========
   React.useEffect(() => {
     if (user) {
       const nextUrl = searchParams.get('next') || '/';
       router.push(nextUrl);
->>>>>>>>> Temporary merge branch 2
     }
   }, [user, router, searchParams]);
 
-<<<<<<<<< Temporary merge branch 1
-  // 3) Buton login: popup -> fallback la redirect
-=========
->>>>>>>>> Temporary merge branch 2
   const handleMicrosoftLogin = async () => {
     setIsMicrosoftLoading(true);
     try {
-<<<<<<<<< Temporary merge branch 1
-      await setPersistence(auth, browserLocalPersistence);
-      const provider = new OAuthProvider('microsoft.com');
-
-      const tenant = process.env.NEXT_PUBLIC_MICROSOFT_TENANT_ID;
-      if (!tenant) throw new Error('Missing NEXT_PUBLIC_MICROSOFT_TENANT_ID');
-
-      const provider = new OAuthProvider('microsoft.com');
-      provider.setCustomParameters({ tenant, prompt: 'select_account' });
-
-      await setPersistence(auth, browserLocalPersistence);
-      await signInWithRedirect(auth, provider);
-    } catch (e: any) {
-      console.error('Sign-in redirect failed:', e);
-      setError(e?.message ?? 'Login failed.');
-      setSubmitting(false);
-    }
-  };
-
-  if (user) {
-    return (
-      <div className="min-h-screen flex items-center justify-center p-6">
-        <div className="flex items-center space-x-2 text-sm text-muted-foreground">
-          <Loader2 className="h-4 w-4 animate-spin" />
-          <span>Redirecting…</span>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="min-h-screen flex items-center justify-center p-6">
-      <div className="w-full max-w-md rounded-2xl border p-6 space-y-6">
-        <div className="space-y-1">
-          <h1 className="text-2xl font-semibold">Login to ListingFlow</h1>
-          <p className="text-sm text-muted-foreground">Sign in using your Microsoft 365 account.</p>
-        </div>
-        <button onClick={handleMicrosoftLogin} className="w-full inline-flex items-center justify-center rounded-md border px-4 py-2">
-          {submitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-          Sign in with Microsoft
-        </button>
-        {error && <div className="text-sm text-red-600 border border-red-200 rounded-md p-2">{error}</div>}
-      </div>
-    );
-=========
         await loginWithMicrosoft();
         // The useEffect above will handle the redirect on user state change.
     } catch(error: any) {
@@ -163,5 +77,4 @@ export default function LoginPage() {
       </Card>
     </div>
   );
->>>>>>>>> Temporary merge branch 2
 }

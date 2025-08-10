@@ -10,6 +10,7 @@ import {
 } from 'firebase/auth';
 import { auth } from '@/lib/firebase/client';
 import { usePathname, useRouter } from 'next/navigation';
+import { Loader2 } from 'lucide-react';
 
 type AuthContextType = {
   user: User | null;
@@ -24,9 +25,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = React.useState<User | null>(null);
   const [loading, setLoading] = React.useState(true);
   const router = useRouter();
-  const pathname = (usePathname() ?? '').toLowerCase();
-  const isLogin = pathname === '/login' || pathname.startsWith('/login?');
-  const bounced = React.useRef(false);
+  const pathname = usePathname();
 
   React.useEffect(() => {
     const unsub = onAuthStateChanged(auth, (u) => {
@@ -36,56 +35,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => unsub();
   }, []);
 
-<<<<<<<<< Temporary merge branch 1
-  // Logică de redirect centralizată
-=========
->>>>>>>>> Temporary merge branch 2
   React.useEffect(() => {
     if (loading) return;
 
     const isProtectedRoute = !['/login'].includes(pathname);
 
-<<<<<<<<< Temporary merge branch 1
-    if (!user && !isAuthPage) {
-      router.replace('/login');
-    } else if (user && isAuthPage) {
-      router.replace('/'); // Ruta dashboard după login
-=========
     if (!user && isProtectedRoute) {
         router.push('/login');
->>>>>>>>> Temporary merge branch 2
     }
   }, [user, loading, pathname, router]);
+
 
   const logout = () => {
     return signOut(auth);
   };
 
-<<<<<<<<< Temporary merge branch 1
-  const login = React.useCallback(
-    (email: string, pass: string) => signInWithEmailAndPassword(auth, email, pass),
-    []
-  );
-
-  const signup = React.useCallback(
-    (email: string, pass: string) => createUserWithEmailAndPassword(auth, email, pass),
-    []
-  );
-
-  const logout = React.useCallback(async () => {
-    await signOut(auth);
-    router.push('/login');
-  }, [router]);
-
-  const loginWithMicrosoft = React.useCallback(async () => {
-    await setPersistence(auth, browserLocalPersistence);
-=========
   const loginWithMicrosoft = async () => {
     const tenantId = process.env.NEXT_PUBLIC_MICROSOFT_TENANT_ID;
     if (!tenantId) {
         throw new Error('Microsoft Tenant ID is not configured. Please set NEXT_PUBLIC_MICROSOFT_TENANT_ID in your environment variables.');
     }
->>>>>>>>> Temporary merge branch 2
     const provider = new OAuthProvider('microsoft.com');
     provider.setCustomParameters({
       tenant: tenantId,

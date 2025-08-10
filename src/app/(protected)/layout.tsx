@@ -1,11 +1,14 @@
 'use client';
 import * as React from 'react';
 import AppShell from '@/components/app-shell';
-<<<<<<<<< Temporary merge branch 1
 import { useAuth } from '@/contexts/auth-context';
 import { Loader2 } from 'lucide-react';
 
-export default function ProtectedLayout({ children }: { children: React.ReactNode }) {
+export default function ProtectedLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   const { user, loading } = useAuth();
 
   // If loading, or if not loading and no user, show loading screen.
@@ -17,13 +20,6 @@ export default function ProtectedLayout({ children }: { children: React.ReactNod
       </div>
     );
   }
-=========
->>>>>>>>> Temporary merge branch 2
-
-export default function ProtectedLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+  
   return <AppShell>{children}</AppShell>;
 }
