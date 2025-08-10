@@ -12,6 +12,7 @@ import {
   type User,
 } from 'firebase/auth';
 import { auth } from '@/lib/firebase/client';
+import { usePathname, useRouter } from 'next/navigation';
 
 type AuthContextType = {
   user: User | null;
@@ -27,6 +28,8 @@ const AuthContext = React.createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = React.useState<User | null>(null);
   const [loading, setLoading] = React.useState(true);
+  const router = useRouter();
+  const pathname = usePathname();
 
   React.useEffect(() => {
     const unsub = onAuthStateChanged(auth, (u) => {
@@ -35,6 +38,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     });
     return () => unsub();
   }, []);
+
+  // Centralized redirect logic
+  React.useEffect(() => {
+    if (loading) return;
+
+    const isAuthPage = pathname === '/login';
+
+    if (!user && !isAuthPage) {
+      router.replace('/login');
+    } else if (user && isAuthPage) {
+      router.replace('/');
+    }
+  }, [loading, user, pathname, router]);
+
 
   const login = React.useCallback(
     (email: string, pass: string) => signInWithEmailAndPassword(auth, email, pass),
@@ -51,19 +68,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const loginWithMicrosoft = React.useCallback(async () => {
     const provider = new OAuthProvider('microsoft.com');
 
-    // opțional: restrânge pe tenant; dacă nu e setat, merge multi-tenant conform setărilor din Firebase/Azure
     const tenant = process.env.NEXT_PUBLIC_MICROSOFT_TENANT_ID;
-    if (tenant) {
-      provider.setCustomParameters({
-        tenant,
-        prompt: 'select_account',
-      });
+    if (!tenant || tenant === 'your-tenant-id') {
+      // Fail fast if the environment variable is not set correctly.
+      throw new Error('FATAL: Microsoft Tenant ID is not configured in environment variables.');
     }
+
+    provider.setCustomParameters({
+      tenant,
+      prompt: 'select_account',
+    });
 
     try {
       await signInWithPopup(auth, provider);
     } catch (e: any) {
-      // fallback când pop-up-ul e blocat sau există un alt popup în curs
+      // fallback when pop-up is blocked or in other similar scenarios
       if (e?.code === 'auth/popup-blocked' || e?.code === 'auth/cancelled-popup-request') {
         await signInWithRedirect(auth, provider);
         return;
