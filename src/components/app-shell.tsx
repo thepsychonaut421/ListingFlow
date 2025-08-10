@@ -40,13 +40,9 @@ import {
 } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
-import { useAuth } from '@/contexts/auth-context';
+import { AuthProvider, useAuth } from '@/contexts/auth-context';
 
-export function AppShell({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+function AppShellContent({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const { toast } = useToast();
@@ -103,19 +99,13 @@ export function AppShell({
     { href: '/exports', icon: File, label: 'Exports' },
   ];
 
-  // If loading or no user, show a loading screen or nothing to prevent flicker
   if (loading || !user) {
-      // Don't render the shell for the login page
-      if (pathname === '/login') {
-          return <>{children}</>;
-      }
       return (
         <div className="flex items-center justify-center min-h-screen">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
       );
   }
-
 
   return (
     <TooltipProvider>
@@ -281,4 +271,12 @@ export function AppShell({
       </div>
     </TooltipProvider>
   );
+}
+
+export function AppShell({ children }: { children: React.ReactNode }) {
+    return (
+        <AuthProvider>
+            <AppShellContent>{children}</AppShellContent>
+        </AuthProvider>
+    )
 }
