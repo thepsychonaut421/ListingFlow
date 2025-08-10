@@ -3,7 +3,7 @@
 import * as React from 'react';
 import { useForm, useWatch, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import * as z from 'zod';
+import *z from 'zod';
 import {
   SheetFooter,
   SheetClose,
@@ -35,8 +35,6 @@ import { findEan } from '@/ai/flows/find-ean';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Search, Copy, Trash2, PlusCircle } from 'lucide-react';
 import {CopyToClipboard} from 'react-copy-to-clipboard';
-import { useErpData } from '@/contexts/erp-data-context';
-import { searchInERPNext } from '@/lib/erpnext';
 
 
 const productSchema = z.object({
@@ -154,7 +152,6 @@ export function ProductForm({ product, onSave, onCancel }: ProductFormProps) {
   const [isCategoryFinderOpen, setIsCategoryFinderOpen] = React.useState(false);
   const [isFindingEan, setIsFindingEan] = React.useState(false);
   const { toast } = useToast();
-  const { erpData, setErpData } = useErpData();
 
   const form = useForm<ProductFormValues>({
     resolver: zodResolver(productSchema),
@@ -251,35 +248,6 @@ export function ProductForm({ product, onSave, onCancel }: ProductFormProps) {
         setIsFindingEan(false);
     }
   };
-
-  const handleAutocomplete = async (code: string) => {
-    if (!code) return;
-
-    // Search by both SKU (name in ERPNext) and EAN
-    const filters = [
-        ['Item', 'name', 'like', `%${code}%`],
-        ['Item', 'ean', 'like', `%${code}%`],
-    ];
-  
-    const results = await searchInERPNext(
-      'Item',
-      filters,
-      ['name', 'item_name', 'item_group', 'brand', 'ean']
-    );
-
-    if (results.length > 0) {
-      const found = results[0]; // Use the first result
-      form.setValue('name', found.item_name || found.name, { shouldValidate: true });
-      form.setValue('category', found.item_group || '', { shouldValidate: true });
-      form.setValue('code', found.name, { shouldValidate: true });
-      form.setValue('brand', found.brand || '', { shouldValidate: true });
-      form.setValue('ean', found.ean || '', { shouldValidate: true });
-      toast({
-        title: 'Autocomplete Success',
-        description: `Fields populated based on SKU/EAN: ${code}.`,
-      });
-    }
-  }
 
   return (
     <Form {...form}>
@@ -412,11 +380,7 @@ export function ProductForm({ product, onSave, onCancel }: ProductFormProps) {
                     <FormControl>
                       <Input 
                         placeholder="VLW-01" 
-                        {...field} 
-                        onChange={(e) => {
-                          field.onChange(e);
-                          handleAutocomplete(e.target.value);
-                        }}
+                        {...field}
                       />
                     </FormControl>
                     <FormMessage />
@@ -433,11 +397,7 @@ export function ProductForm({ product, onSave, onCancel }: ProductFormProps) {
                       <FormControl>
                         <Input 
                           placeholder="e.g. 4056233833446" 
-                          {...field} 
-                           onChange={(e) => {
-                            field.onChange(e);
-                            handleAutocomplete(e.target.value);
-                          }}
+                          {...field}
                         />
                       </FormControl>
                       <Button type="button" variant="outline" onClick={handleFindEan} disabled={isFindingEan}>

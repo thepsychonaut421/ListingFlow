@@ -52,7 +52,6 @@ import { findProductDescription } from '@/ai/flows/find-product-description';
 import { useToast } from '@/hooks/use-toast';
 import { ProductForm } from '@/components/product-form';
 import { BulkEditForm } from '@/components/bulk-edit-form';
-import { ErpDataProvider, useErpData } from '@/contexts/erp-data-context';
 import {
   importProductsFromERPNext,
   updatePricesAndStocksFromERPNext,
@@ -76,11 +75,15 @@ function DashboardClient() {
   const priceFileInputRef = React.useRef<HTMLInputElement>(null);
 
   const [isErpConfigured, setIsErpConfigured] = React.useState(false);
+  const [isErpCheckLoading, setIsErpCheckLoading] = React.useState(true);
+
 
   React.useEffect(() => {
     const verifyErpConfig = async () => {
+      setIsErpCheckLoading(true);
       const configured = await checkErpCredentials();
       setIsErpConfigured(configured);
+      setIsErpCheckLoading(false);
     };
     verifyErpConfig();
   }, []);
@@ -553,7 +556,7 @@ function DashboardClient() {
           </div>
           <div className="ml-auto flex items-center gap-2">
             
-            {isErpLoading ? (
+            {isErpLoading || isErpCheckLoading ? (
                <Button size="sm" variant="outline" className="h-8 gap-1" disabled>
                   <Loader2 className="h-3.5 w-3.5 animate-spin" />
                   <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
@@ -652,10 +655,6 @@ function DashboardClient() {
 
 export default function Dashboard() {
     return (
-        <ErpDataProvider>
-            <DashboardClient />
-        </ErpDataProvider>
+        <DashboardClient />
     );
 }
-
-    

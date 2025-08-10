@@ -25,6 +25,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Trash2 } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
@@ -42,6 +43,7 @@ export function ProductDataTable<TData extends { id: string }, TValue>({
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
   const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
+  const { toast } = useToast();
 
   const table = useReactTable({
     data,
@@ -70,6 +72,10 @@ export function ProductDataTable<TData extends { id: string }, TValue>({
     if(selectedIds.length > 0) {
       onBulkDelete(selectedIds);
       table.resetRowSelection();
+      toast({
+        title: 'Products Deleted',
+        description: `${selectedIds.length} products have been deleted.`,
+      });
     }
   }
 
