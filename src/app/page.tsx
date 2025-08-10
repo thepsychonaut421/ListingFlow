@@ -466,15 +466,15 @@ function DashboardClient() {
     }
   };
   
-    const handleErpImport = async () => {
+    const handleErpImport = React.useCallback(async () => {
     await importProductsFromERPNext(setIsErpLoading, setProducts, products);
-  };
+  }, [products]);
 
-  const handleErpUpdate = async () => {
+  const handleErpUpdate = React.useCallback(async () => {
     await updatePricesAndStocksFromERPNext(setIsErpLoading, setProducts, products);
-  };
+  }, [products]);
 
-  const handleErpExport = async () => {
+  const handleErpExport = React.useCallback(async () => {
     if (selectedProductIds.length === 0) {
       toast({
         variant: 'destructive',
@@ -485,7 +485,7 @@ function DashboardClient() {
     }
     const productsToExport = products.filter(p => selectedProductIds.includes(p.id));
     await exportProductsToERPNext(setIsErpLoading, productsToExport);
-  };
+  }, [products, selectedProductIds, toast]);
 
 
 

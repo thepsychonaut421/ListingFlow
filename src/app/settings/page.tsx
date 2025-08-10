@@ -49,11 +49,11 @@ function SettingsClient() {
           <CardDescription>
             Your ERPNext credentials should be stored securely in an <strong>.env</strong> file in the root of your project. This file is not checked into version control.
             <br /><br />
-            Create a file named <strong>.env</strong> and add the following lines:
+            Create a file named <strong>.env</strong> and add the following lines, prefixing each with `NEXT_PUBLIC_` to make them available in the browser:
              <pre className="mt-2 p-2 bg-muted rounded-md text-sm font-mono">
-              ERPNEXT_URL=https://your-erp.rembayer.info<br/>
-              ERPNEXT_API_KEY=your_api_key<br/>
-              ERPNEXT_API_SECRET=your_api_secret
+              NEXT_PUBLIC_ERPNEXT_URL=https://your-erp.rembayer.info<br/>
+              NEXT_PUBLIC_ERPNEXT_API_KEY=your_api_key<br/>
+              NEXT_PUBLIC_ERPNEXT_API_SECRET=your_api_secret
             </pre>
           </CardDescription>
         </CardHeader>
