@@ -40,6 +40,7 @@ import {
   DialogDescription,
   DialogTrigger,
 } from '@/components/ui/dialog';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import type { Product } from '@/lib/types';
 import { initialProducts } from '@/lib/data';
 import { ProductDataTable } from '@/components/product-data-table';
@@ -70,6 +71,16 @@ function DashboardClient() {
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const erpFileInputRef = React.useRef<HTMLInputElement>(null);
   const priceFileInputRef = React.useRef<HTMLInputElement>(null);
+
+  const [isErpConfigured, setIsErpConfigured] = React.useState(false);
+
+  React.useEffect(() => {
+    // This check is very basic. In a real app, you might ping an endpoint.
+    const url = process.env.NEXT_PUBLIC_ERPNEXT_URL;
+    const key = process.env.NEXT_PUBLIC_ERPNEXT_API_KEY;
+    const secret = process.env.NEXT_PUBLIC_ERPNEXT_API_SECRET;
+    setIsErpConfigured(!!(url && key && secret));
+  }, []);
   
 
   React.useEffect(() => {
@@ -491,6 +502,36 @@ function DashboardClient() {
   }
 
   const selectedData = products.filter(p => selectedProductIds.includes(p.id));
+  
+  const ErpButton = ({ onClick, disabled, children, tooltipText } : { onClick: () => void, disabled?: boolean, children: React.ReactNode, tooltipText: string }) => {
+    const isDisabled = !isErpConfigured || disabled;
+    
+    if (isDisabled) {
+        return (
+            <TooltipProvider>
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <span tabIndex={0}>
+                            <Button size="sm" variant="outline" className="h-8 gap-1" disabled>
+                                {children}
+                            </Button>
+                        </span>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                        <p>{tooltipText}</p>
+                    </TooltipContent>
+                </Tooltip>
+            </TooltipProvider>
+        );
+    }
+    
+    return (
+        <Button size="sm" variant="outline" className="h-8 gap-1" onClick={onClick}>
+            {children}
+        </Button>
+    )
+  };
+
 
   return (
     <main className="grid flex-1 items-start gap-4 p-4 sm:px-6 sm:py-0 md:gap-8">
@@ -513,24 +554,24 @@ function DashboardClient() {
                 </Button>
             ) : (
                 <div className="flex items-center gap-2">
-                   <Button size="sm" variant="outline" className="h-8 gap-1" onClick={handleErpImport}>
+                   <ErpButton onClick={handleErpImport} tooltipText="Configure ERPNext credentials in Settings.">
                       <Download className="h-3.5 w-3.5" />
                       <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
                         Import from ERPNext
                       </span>
-                    </Button>
-                    <Button size="sm" variant="outline" className="h-8 gap-1" onClick={handleErpUpdate}>
+                   </ErpButton>
+                   <ErpButton onClick={handleErpUpdate} tooltipText="Configure ERPNext credentials in Settings.">
                       <RefreshCw className="h-3.5 w-3.5" />
                       <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
                         Update from ERPNext
                       </span>
-                    </Button>
-                    <Button size="sm" variant="outline" className="h-8 gap-1" onClick={handleErpExport}>
+                   </ErpButton>
+                   <ErpButton onClick={handleErpExport} disabled={selectedProductIds.length === 0} tooltipText="Configure ERPNext credentials in Settings.">
                       <Send className="h-3.5 w-3.5" />
                       <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
                         Export to ERPNext
                       </span>
-                    </Button>
+                   </ErpButton>
                 </div>
             )}
             <Button size="sm" variant="outline" className="h-8 gap-1" onClick={handleExportToCSV}>
