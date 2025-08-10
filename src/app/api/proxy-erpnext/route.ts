@@ -10,9 +10,13 @@ const serviceAccount = process.env.FIREBASE_SERVICE_ACCOUNT
   : undefined;
 
 if (!getApps().length) {
-  initializeApp({
-    credential: serviceAccount ? cert(serviceAccount) : undefined,
-  });
+  if (serviceAccount) {
+    initializeApp({
+      credential: cert(serviceAccount),
+    });
+  } else {
+    initializeApp();
+  }
 }
 
 const db = getFirestore();

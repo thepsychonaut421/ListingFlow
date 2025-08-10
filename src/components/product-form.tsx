@@ -104,14 +104,14 @@ function CategoryFinder({ onSelectCategory }: { onSelectCategory: (id: string) =
       <DialogHeader>
         <DialogTitle>Find eBay Category</DialogTitle>
         <DialogDescription>
-          Describe your product, and we'll find the most relevant eBay category ID for you.
+          Describe your product, and we&apos;ll find the most relevant eBay category ID for you.
         </DialogDescription>
       </DialogHeader>
       <div className="grid gap-4 py-4">
         <div className="flex items-center space-x-2">
           <Input
             id="category-search"
-            placeholder="e.g., men's leather watch"
+            placeholder="e.g., men&apos;s leather watch"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
@@ -195,8 +195,13 @@ export function ProductForm({ product, onSave, onCancel }: ProductFormProps) {
         location: '',
       }),
       ...data,
+      // Ensure required Product fields are always strings
+      description: data.description || '',
+      image: data.image || '',
+      category: data.category || '',
+      ebayCategoryId: data.ebayCategoryId || '',
       technicalSpecs: data.technicalSpecs?.reduce((acc, { key, value }) => {
-        if(key) acc[key] = value;
+        if (key) acc[key] = value;
         return acc;
       }, {} as Record<string, string>),
     };
