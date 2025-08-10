@@ -56,6 +56,7 @@ import {
   importProductsFromERPNext,
   updatePricesAndStocksFromERPNext,
   exportProductsToERPNext,
+  checkErpCredentials,
 } from '@/lib/erpnext';
 
 
@@ -76,11 +77,11 @@ function DashboardClient() {
   const [isErpConfigured, setIsErpConfigured] = React.useState(false);
 
   React.useEffect(() => {
-    // This check is very basic. In a real app, you might ping an endpoint.
-    const url = process.env.NEXT_PUBLIC_ERPNEXT_URL;
-    const key = process.env.NEXT_PUBLIC_ERPNEXT_API_KEY;
-    const secret = process.env.NEXT_PUBLIC_ERPNEXT_API_SECRET;
-    setIsErpConfigured(!!(url && key && secret));
+    const verifyErpConfig = async () => {
+      const configured = await checkErpCredentials();
+      setIsErpConfigured(configured);
+    };
+    verifyErpConfig();
   }, []);
   
 

@@ -3,6 +3,7 @@ import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
 import * as React from 'react';
 import { AppShell } from '@/components/app-shell';
+import { AuthProvider } from '@/contexts/auth-context';
 
 export default function RootLayout({
   children,
@@ -22,9 +23,11 @@ export default function RootLayout({
         ></link>
       </head>
       <body className="font-body antialiased">
-        <AppShell>
-          {children}
-        </AppShell>
+        <AuthProvider>
+          <AppShell>
+            {children}
+          </AppShell>
+        </AuthProvider>
         <Toaster />
       </body>
     </html>

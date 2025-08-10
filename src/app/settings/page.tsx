@@ -14,7 +14,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { Trash2 } from 'lucide-react';
+import { Trash2, Loader2, Save } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -26,17 +26,77 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
+import { useAuth } from '@/contexts/auth-context';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebase/client';
 
 function SettingsClient() {
   const { toast } = useToast();
+  const { user } = useAuth();
+  const [erpUrl, setErpUrl] = React.useState('');
+  const [apiKey, setApiKey] = React.useState('');
+  const [apiSecret, setApiSecret] = React.useState('');
+  const [isLoading, setIsLoading] = React.useState(true);
+  const [isSaving, setIsSaving] = React.useState(false);
+
+  React.useEffect(() => {
+    const fetchCredentials = async () => {
+      if (!user) return;
+      setIsLoading(true);
+      try {
+        const docRef = doc(db, 'userCredentials', user.uid);
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          setErpUrl(data.erpUrl || '');
+          setApiKey(data.apiKey || '');
+          setApiSecret(data.apiSecret || '');
+        }
+      } catch (error) {
+        console.error("Error fetching credentials:", error);
+        toast({
+          variant: 'destructive',
+          title: 'Error',
+          description: 'Failed to load ERPNext credentials.',
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchCredentials();
+  }, [user, toast]);
+  
+
+  const handleSaveCredentials = async () => {
+     if (!user) {
+        toast({ variant: 'destructive', title: 'Error', description: 'You must be logged in to save credentials.' });
+        return;
+    }
+    setIsSaving(true);
+    try {
+        const docRef = doc(db, 'userCredentials', user.uid);
+        await setDoc(docRef, { erpUrl, apiKey, apiSecret }, { merge: true });
+        toast({
+            title: 'Credentials Saved',
+            description: 'Your ERPNext credentials have been securely saved.',
+        });
+    } catch (error) {
+        console.error("Error saving credentials:", error);
+        toast({
+          variant: 'destructive',
+          title: 'Save Failed',
+          description: 'Could not save your credentials. Please try again.',
+        });
+    } finally {
+        setIsSaving(false);
+    }
+  };
 
   const handleClearData = () => {
     localStorage.removeItem('listingFlowProducts');
-    // Note: This does not clear .env variables as they are server-side.
-    // Advise user to clear them manually if needed.
     toast({
       title: 'Local Data Cleared',
-      description: 'Your local product data has been successfully deleted from the browser. Your API credentials in the .env file are not affected.',
+      description: 'Your local product data has been successfully deleted from the browser.',
     });
      setTimeout(() => window.location.href = '/', 1000);
   };
@@ -47,35 +107,37 @@ function SettingsClient() {
         <CardHeader>
           <CardTitle>ERPNext Integration</CardTitle>
           <CardDescription>
-            Your ERPNext credentials should be stored securely in an <strong>.env</strong> file in the root of your project. This file is not checked into version control.
-            <br /><br />
-            Create a file named <strong>.env</strong> and add the following lines, prefixing each with `NEXT_PUBLIC_` to make them available in the browser:
-             <pre className="mt-2 p-2 bg-muted rounded-md text-sm font-mono">
-              NEXT_PUBLIC_ERPNEXT_URL=https://your-erp.rembayer.info<br/>
-              NEXT_PUBLIC_ERPNEXT_API_KEY=your_api_key<br/>
-              NEXT_PUBLIC_ERPNEXT_API_SECRET=your_api_secret
-            </pre>
-          </CardDescription>
-        </CardHeader>
-      </Card>
-      
-      <Card>
-        <CardHeader>
-          <CardTitle>Settings</CardTitle>
-          <CardDescription>
-            Manage your application settings and preferences.
+            Enter your ERPNext credentials below. They will be stored securely and associated with your account.
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="space-y-6">
-            <div>
-              <h3 className="text-lg font-medium">Appearance</h3>
-              <p className="text-sm text-muted-foreground">
-                This setting is now controlled from the user menu in the header.
-              </p>
-            </div>
-          </div>
+            {isLoading ? (
+                <div className="flex items-center justify-center p-8">
+                    <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                </div>
+            ) : (
+                <div className="space-y-4">
+                    <div className="space-y-2">
+                        <Label htmlFor="erp-url">ERPNext URL</Label>
+                        <Input id="erp-url" value={erpUrl} onChange={(e) => setErpUrl(e.target.value)} placeholder="https://your-erp.rembayer.info" />
+                    </div>
+                     <div className="space-y-2">
+                        <Label htmlFor="api-key">API Key</Label>
+                        <Input id="api-key" value={apiKey} onChange={(e) => setApiKey(e.target.value)} placeholder="your_api_key" />
+                    </div>
+                     <div className="space-y-2">
+                        <Label htmlFor="api-secret">API Secret</Label>
+                        <Input id="api-secret" type="password" value={apiSecret} onChange={(e) => setApiSecret(e.target.value)} placeholder="your_api_secret" />
+                    </div>
+                </div>
+            )}
         </CardContent>
+        <CardFooter className="border-t px-6 py-4">
+            <Button onClick={handleSaveCredentials} disabled={isSaving || isLoading}>
+                {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                Save Credentials
+            </Button>
+        </CardFooter>
       </Card>
 
       <Card className="border-destructive">

@@ -2,6 +2,12 @@
 'use client';
 
 import type { Product } from './types';
+import { auth } from './firebase/client';
+
+async function getAuthToken(): Promise<string | null> {
+    if (!auth.currentUser) return null;
+    return auth.currentUser.getIdToken();
+}
 
 // Helper function to call our new server-side proxy
 async function erpNextRequest(
@@ -9,10 +15,16 @@ async function erpNextRequest(
   method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE' = 'GET',
   body?: any
 ) {
+  const token = await getAuthToken();
+  if (!token) {
+    throw new Error('User is not authenticated.');
+  }
+
   const response = await fetch('/api/proxy-erpnext', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
     },
     body: JSON.stringify({ endpoint, method, body }),
   });
@@ -22,12 +34,22 @@ async function erpNextRequest(
     throw new Error(`ERPNext API error: ${errorBody.error || response.statusText}`);
   }
   
-  // Handle cases with no content in response
   if (response.status === 204) {
     return null;
   }
   
   return response.json();
+}
+
+export async function checkErpCredentials(): Promise<boolean> {
+  try {
+    // A simple, lightweight request to check if credentials are valid
+    await erpNextRequest('/api/method/frappe.auth.get_logged_user', 'GET');
+    return true;
+  } catch (error) {
+    console.warn("ERPNext credentials check failed. This is expected if they are not configured yet.", error);
+    return false;
+  }
 }
 
 
@@ -47,7 +69,6 @@ export async function importProductsFromERPNext(
       return;
     }
 
-    // Create a map of existing product SKUs for quick lookup
     const existingSkuMap = new Set(currentProducts.map(p => p.code));
     
     const newItems = itemsData.data.filter((item: any) => !existingSkuMap.has(item.name));
@@ -67,7 +88,7 @@ export async function importProductsFromERPNext(
       }
 
       return {
-        id: item.name, // Use ERPNext's unique name as the ID
+        id: item.name,
         name: item.item_name || item.name,
         code: item.name,
         price: item.standard_rate || 0,
@@ -172,8 +193,6 @@ export async function exportProductsToERPNext(
     let successCount = 0;
     for (const p of productsToExport) {
       try {
-        // We only update fields that are safe to update.
-        // We do not update stock level as that requires a Stock Entry.
         await erpNextRequest(`/api/resource/Item/${p.code}`, 'PUT', {
           item_name: p.name,
           standard_rate: p.price,
@@ -204,8 +223,6 @@ export async function searchInERPNext(
   start = 0
 ): Promise<any[]> {
   try {
-    // The standard API does not support OR filters, it treats arrays of filters as AND.
-    // To simulate an OR, we have to make separate requests and combine the results.
     const requests = filters.map(filter => {
        const endpoint = `/api/resource/${doctype}?filters=${JSON.stringify([filter])}&fields=${JSON.stringify(fields)}&limit_start=${start}&limit_page_length=${pageLength}`;
        return erpNextRequest(endpoint);
@@ -214,7 +231,6 @@ export async function searchInERPNext(
     const responses = await Promise.all(requests);
     const allResults = responses.flatMap(resp => resp.data || []);
     
-    // Remove duplicates based on the 'name' field, which is the unique ID in ERPNext
     const uniqueResults = allResults.filter((item, index, self) =>
         index === self.findIndex((t) => t.name === item.name)
     );
@@ -222,7 +238,6 @@ export async function searchInERPNext(
     return uniqueResults;
   } catch(err) {
     console.error(`Search in ${doctype} failed:`, err);
-    // Return empty array in case of error to avoid breaking the UI
     return [];
   }
 }

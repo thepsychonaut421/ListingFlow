@@ -3,7 +3,7 @@
 
 import * as React from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import {
   File,
   Home,
@@ -15,6 +15,7 @@ import {
   LogOut,
   Moon,
   Sun,
+  Loader2,
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -39,6 +40,7 @@ import {
 } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/contexts/auth-context';
 
 export function AppShell({
   children,
@@ -46,9 +48,19 @@ export function AppShell({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const router = useRouter();
   const { toast } = useToast();
+  const { user, loading, logout } = useAuth();
   
   const [theme, setTheme] = React.useState('system');
+
+  React.useEffect(() => {
+    // If not loading and no user, redirect to login
+    if (!loading && !user) {
+      router.push('/login');
+    }
+  }, [user, loading, router]);
+
 
   React.useEffect(() => {
     const storedTheme = localStorage.getItem('listingFlowTheme') || 'system';
@@ -68,21 +80,42 @@ export function AppShell({
   }, [theme]);
 
 
-  const handleLogout = () => {
-    localStorage.removeItem('listingFlowProducts');
-    toast({
-      title: 'Logged Out',
-      description: 'You have been successfully logged out and your data has been cleared.',
-    });
-    // In a real app, you'd redirect to a login page.
-    // window.location.href = '/login';
-    setTimeout(() => window.location.reload(), 1000);
+  const handleLogout = async () => {
+    try {
+        await logout();
+        localStorage.removeItem('listingFlowProducts');
+        toast({
+            title: 'Logged Out',
+            description: 'You have been successfully logged out.',
+        });
+        router.push('/login');
+    } catch (error) {
+        toast({
+            variant: 'destructive',
+            title: 'Logout Failed',
+            description: 'An error occurred during logout. Please try again.',
+        });
+    }
   };
   
   const navItems = [
     { href: '/', icon: Home, label: 'Dashboard' },
     { href: '/exports', icon: File, label: 'Exports' },
   ];
+
+  // If loading or no user, show a loading screen or nothing to prevent flicker
+  if (loading || !user) {
+      // Don't render the shell for the login page
+      if (pathname === '/login') {
+          return <>{children}</>;
+      }
+      return (
+        <div className="flex items-center justify-center min-h-screen">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      );
+  }
+
 
   return (
     <TooltipProvider>
@@ -189,7 +222,7 @@ export function AppShell({
                   className="overflow-hidden rounded-full"
                 >
                   <img
-                    src="https://placehold.co/36x36.png"
+                    src={user?.photoURL || "https://placehold.co/36x36.png"}
                     width={36}
                     height={36}
                     alt="Avatar"
@@ -199,7 +232,7 @@ export function AppShell({
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuLabel>My Account</DropdownMenuLabel>
+                <DropdownMenuLabel>{user?.email || 'My Account'}</DropdownMenuLabel>
                 <DropdownMenuSeparator />
                  <DropdownMenuSub>
                     <DropdownMenuSubTrigger>
