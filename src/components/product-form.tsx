@@ -3,7 +3,7 @@
 import * as React from 'react';
 import { useForm, useWatch, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import *z from 'zod';
+import * as z from 'zod';
 import {
   SheetFooter,
   SheetClose,
@@ -168,7 +168,7 @@ export function ProductForm({ product, onSave, onCancel }: ProductFormProps) {
       brand: product?.brand || '',
       productType: product?.productType || '',
       ean: product?.ean || '',
-      technicalSpecs: product?.technicalSpecs ? Object.entries(product.technicalSpecs).map(([key, value]) => ({ key, value })) : [],
+      technicalSpecs: product?.technicalSpecs ? Object.entries(product.technicalSpecs).map(([key, value]) => ({ key, value: value as string })) : [],
     },
   });
 
