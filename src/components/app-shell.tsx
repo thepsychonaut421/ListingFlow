@@ -51,14 +51,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const [theme, setTheme] = React.useState('system');
 
   React.useEffect(() => {
-    // If not loading and no user, redirect to login
-    if (!loading && !user) {
-      router.push('/login');
-    }
-  }, [user, loading, router]);
-
-
-  React.useEffect(() => {
     const storedTheme = localStorage.getItem('listingFlowTheme') || 'system';
     setTheme(storedTheme);
   }, []);

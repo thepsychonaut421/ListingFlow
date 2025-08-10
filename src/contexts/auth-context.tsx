@@ -5,7 +5,6 @@ import * as React from 'react';
 import {
   onAuthStateChanged,
   signOut,
-  type Auth,
   type User,
   OAuthProvider,
   signInWithPopup,
@@ -13,6 +12,8 @@ import {
 } from 'firebase/auth';
 import { auth } from '@/lib/firebase/client';
 import { Loader2 } from 'lucide-react';
+import { usePathname, useRouter } from 'next/navigation';
+
 
 interface AuthContextType {
   user: User | null;
@@ -26,6 +27,8 @@ const AuthContext = React.createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = React.useState<User | null>(null);
   const [loading, setLoading] = React.useState(true);
+  const router = useRouter();
+  const pathname = usePathname();
 
   React.useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -35,6 +38,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     return () => unsubscribe();
   }, []);
+
+  React.useEffect(() => {
+    if (loading) return;
+
+    const isProtectedRoute = !['/login'].includes(pathname);
+
+    if (!user && isProtectedRoute) {
+        router.push('/login');
+    }
+  }, [user, loading, pathname, router]);
 
   const logout = () => {
     return signOut(auth);
@@ -46,7 +59,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         throw new Error('Microsoft Tenant ID is not configured. Please set NEXT_PUBLIC_MICROSOFT_TENANT_ID in your environment variables.');
     }
     const provider = new OAuthProvider('microsoft.com');
-    // enforce tenant (belt & suspenders – Azure e deja single-tenant)
     provider.setCustomParameters({
       tenant: tenantId,
       prompt: 'select_account',
@@ -71,15 +83,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     loginWithMicrosoft,
   };
 
-  return (
-    <AuthContext.Provider value={value}>
-      {loading ? (
-         <div className="flex items-center justify-center min-h-screen">
+  if (loading) {
+     return (
+        <div className="flex items-center justify-center min-h-screen">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
-      ) : (
-        children
-      )}
+      );
+  }
+
+  return (
+    <AuthContext.Provider value={value}>
+      {children}
     </AuthContext.Provider>
   );
 }
