@@ -115,22 +115,22 @@ function DashboardClient() {
     setIsSheetOpen(true);
   };
 
-  const handleEditProduct = (product: Product) => {
+  const handleEditProduct = React.useCallback((product: Product) => {
     setSelectedProduct(product);
     setIsSheetOpen(true);
-  };
+  }, []);
 
-  const handleDeleteProduct = (id: string) => {
-    setProducts(products.filter((p) => p.id !== id));
-  };
+  const handleDeleteProduct = React.useCallback((id: string) => {
+    setProducts(prevProducts => prevProducts.filter((p) => p.id !== id));
+  }, []);
   
-  const handleBulkDelete = (ids: string[]) => {
-    setProducts(products.filter((p) => !ids.includes(p.id)));
+  const handleBulkDelete = React.useCallback((ids: string[]) => {
+    setProducts(prevProducts => prevProducts.filter((p) => !ids.includes(p.id)));
     toast({
         title: 'Products Deleted',
         description: `${ids.length} products have been deleted successfully.`,
     });
-  };
+  }, [toast]);
 
   const handleSaveProduct = (productData: Product) => {
     if (selectedProduct) {
@@ -145,9 +145,9 @@ function DashboardClient() {
     setSelectedProduct(null);
   };
   
-  const handleUpdateProduct = (id: string, data: Partial<Product>) => {
-    setProducts(products.map(p => p.id === id ? { ...p, ...data } : p));
-  };
+  const handleUpdateProduct = React.useCallback((id: string, data: Partial<Product>) => {
+    setProducts(prevProducts => prevProducts.map(p => p.id === id ? { ...p, ...data } : p));
+  }, []);
 
   const handleSaveBulkEdit = (data: Partial<Product>) => {
     setProducts(products.map(p => {
@@ -170,7 +170,7 @@ function DashboardClient() {
     setSelectedProductIds([]);
   };
   
-  const handleGenerateDescription = async (product: Product) => {
+  const handleGenerateDescription = React.useCallback(async (product: Product) => {
     setGeneratingProductId(product.id);
     try {
       const result = await generateProductDescription({
@@ -180,8 +180,7 @@ function DashboardClient() {
         brand: product.brand,
       });
       
-      setProducts(products.map(p => p.id === product.id ? {
-        ...p,
+      handleUpdateProduct(product.id, {
         description: result.description,
         tags: Array.isArray(result.tags) ? result.tags : [],
         keywords: Array.isArray(result.keywords) ? result.keywords : [],
@@ -190,7 +189,7 @@ function DashboardClient() {
         brand: result.brand,
         productType: result.productType,
         ean: result.ean,
-      } : p));
+      });
 
       toast({
         title: 'AI Magic Successful!',
@@ -207,9 +206,9 @@ function DashboardClient() {
     } finally {
       setGeneratingProductId(null);
     }
-  };
+  }, [handleUpdateProduct, toast]);
 
-  const handleCopyDescription = async (product: Product, source: 'otto' | 'ebay') => {
+  const handleCopyDescription = React.useCallback(async (product: Product, source: 'otto' | 'ebay') => {
     setGeneratingProductId(product.id);
     try {
       const result = await findProductDescription({
@@ -249,9 +248,9 @@ function DashboardClient() {
     } finally {
       setGeneratingProductId(null);
     }
-  };
+  }, [handleUpdateProduct, toast]);
 
-  const handleSendToEbayDraft = async (product: Product) => {
+  const handleSendToEbayDraft = React.useCallback(async (product: Product) => {
     setGeneratingProductId(product.id);
     try {
         const res = await fetch('/api/ebay/create-draft', {
@@ -281,7 +280,7 @@ function DashboardClient() {
     } finally {
         setGeneratingProductId(null);
     }
-  };
+  }, [toast]);
 
 
   const handleExportToCSV = () => {
@@ -497,7 +496,7 @@ function DashboardClient() {
       onCopyDescription: handleCopyDescription,
       onSendToEbay: handleSendToEbayDraft,
       generatingProductId,
-  }), [generatingProductId]);
+  }), [generatingProductId, handleEditProduct, handleDeleteProduct, handleGenerateDescription, handleUpdateProduct, handleCopyDescription, handleSendToEbayDraft]);
 
   if (isLoading) {
     return (
