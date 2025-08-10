@@ -2,6 +2,7 @@
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
 import * as React from 'react';
+import { AuthProvider } from '@/contexts/auth-context';
 
 export default function RootLayout({
   children,
@@ -21,7 +22,9 @@ export default function RootLayout({
         ></link>
       </head>
       <body className="font-body antialiased">
-        {children}
+        <AuthProvider>
+          {children}
+        </AuthProvider>
         <Toaster />
       </body>
     </html>

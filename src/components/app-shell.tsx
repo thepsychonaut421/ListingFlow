@@ -40,9 +40,9 @@ import {
 } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
-import { AuthProvider, useAuth } from '@/contexts/auth-context';
+import { useAuth } from '@/contexts/auth-context';
 
-function AppShellContent({ children }: { children: React.ReactNode }) {
+export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const { toast } = useToast();
@@ -271,12 +271,4 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
       </div>
     </TooltipProvider>
   );
-}
-
-export function AppShell({ children }: { children: React.ReactNode }) {
-    return (
-        <AuthProvider>
-            <AppShellContent>{children}</AppShellContent>
-        </AuthProvider>
-    )
 }
