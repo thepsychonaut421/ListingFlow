@@ -1,25 +1,12 @@
 'use client';
-
 import * as React from 'react';
-import {
-  onAuthStateChanged,
-  createUserWithEmailAndPassword,
-  signInWithEmailAndPassword,
-  signOut,
-  OAuthProvider,
-  signInWithRedirect,
-  setPersistence,
-  browserLocalPersistence,
-  type User,
-} from 'firebase/auth';
+import { onAuthStateChanged, signOut, OAuthProvider, signInWithRedirect, setPersistence, browserLocalPersistence, type User } from 'firebase/auth';
 import { auth } from '@/lib/firebase/client';
 import { usePathname, useRouter } from 'next/navigation';
 
 type AuthContextType = {
   user: User | null;
   loading: boolean;
-  login: (email: string, pass: string) => Promise<unknown>;
-  signup: (email: string, pass: string) => Promise<unknown>;
   logout: () => Promise<unknown>;
   loginWithMicrosoft: () => Promise<void>;
 };
@@ -30,7 +17,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = React.useState<User | null>(null);
   const [loading, setLoading] = React.useState(true);
   const router = useRouter();
-  const pathname = usePathname();
+  const pathname = (usePathname() ?? '').toLowerCase();
+  const isLogin = pathname === '/login' || pathname.startsWith('/login?');
+  const bounced = React.useRef(false);
 
   React.useEffect(() => {
     const unsub = onAuthStateChanged(auth, (u) => {
@@ -40,57 +29,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => unsub();
   }, []);
 
-  // Logică de redirect centralizată
+  React.useEffect(() => { bounced.current = false; }, [pathname]);
+
   React.useEffect(() => {
     if (loading) return;
-
-    const isAuthPage = pathname === '/login';
-
-    if (!user && !isAuthPage) {
+    if (!user && !isLogin && !bounced.current) {
+      bounced.current = true;
       router.replace('/login');
-    } else if (user && isAuthPage) {
-      router.replace('/'); // Ruta dashboard după login
+    } else if (user && isLogin && !bounced.current) {
+      bounced.current = true;
+      router.replace('/listings');
     }
-  }, [loading, user, pathname, router]);
-
-
-  const login = React.useCallback(
-    (email: string, pass: string) => signInWithEmailAndPassword(auth, email, pass),
-    []
-  );
-
-  const signup = React.useCallback(
-    (email: string, pass: string) => createUserWithEmailAndPassword(auth, email, pass),
-    []
-  );
+  }, [loading, user, isLogin, router]);
 
   const logout = React.useCallback(async () => {
-      await signOut(auth);
-      router.push('/login');
+    await signOut(auth);
+    router.push('/login');
   }, [router]);
 
   const loginWithMicrosoft = React.useCallback(async () => {
     await setPersistence(auth, browserLocalPersistence);
-    const provider = new OAuthProvider('microsoft.com');
-
     const tenant = process.env.NEXT_PUBLIC_MICROSOFT_TENANT_ID;
-    if (!tenant || tenant === 'your-tenant-id') {
-      throw new Error('FATAL: Microsoft Tenant ID is not configured in environment variables.');
-    }
-
-    provider.setCustomParameters({
-      tenant,
-      prompt: 'select_account',
-    });
-
+    if (!tenant) throw new Error('FATAL: Microsoft Tenant ID missing');
+    const provider = new OAuthProvider('microsoft.com');
+    provider.setCustomParameters({ tenant, prompt: 'select_account' });
     await signInWithRedirect(auth, provider);
   }, []);
 
-  const value: AuthContextType = React.useMemo(
-    () => ({ user, loading, login, signup, logout, loginWithMicrosoft }),
-    [user, loading, login, signup, logout, loginWithMicrosoft]
-  );
-
+  const value = React.useMemo(() => ({ user, loading, logout, loginWithMicrosoft }), [user, loading, logout, loginWithMicrosoft]);
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
