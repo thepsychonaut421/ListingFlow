@@ -44,7 +44,6 @@ import { useAuth } from '@/contexts/auth-context';
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const router = useRouter();
   const { toast } = useToast();
   const { user, loading, logout } = useAuth();
   
@@ -71,12 +70,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const handleLogout = async () => {
     try {
         await logout();
-        localStorage.removeItem('listingFlowProducts');
-        toast({
-            title: 'Logged Out',
-            description: 'You have been successfully logged out.',
-        });
-        router.push('/login');
+        // The AuthProvider will handle the redirect
     } catch (error) {
         toast({
             variant: 'destructive',
