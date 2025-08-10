@@ -4,8 +4,6 @@
 import * as React from 'react';
 import {
   onAuthStateChanged,
-  createUserWithEmailAndPassword,
-  signInWithEmailAndPassword,
   signOut,
   type Auth,
   type User,
@@ -19,8 +17,6 @@ import { Loader2 } from 'lucide-react';
 interface AuthContextType {
   user: User | null;
   loading: boolean;
-  login: (email: string, pass: string) => Promise<any>;
-  signup: (email: string, pass: string) => Promise<any>;
   logout: () => Promise<any>;
   loginWithMicrosoft: () => Promise<any>;
 }
@@ -39,14 +35,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     return () => unsubscribe();
   }, []);
-
-  const login = (email: string, pass: string) => {
-    return signInWithEmailAndPassword(auth, email, pass);
-  };
-
-  const signup = (email: string, pass: string) => {
-    return createUserWithEmailAndPassword(auth, email, pass);
-  };
 
   const logout = () => {
     return signOut(auth);
@@ -79,8 +67,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const value = {
     user,
     loading,
-    login,
-    signup,
     logout,
     loginWithMicrosoft,
   };
