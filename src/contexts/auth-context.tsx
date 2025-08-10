@@ -9,6 +9,8 @@ import {
   signOut,
   type Auth,
   type User,
+  OAuthProvider,
+  signInWithPopup,
 } from 'firebase/auth';
 import { auth } from '@/lib/firebase/client';
 import { Loader2 } from 'lucide-react';
@@ -19,6 +21,7 @@ interface AuthContextType {
   login: (email: string, pass: string) => Promise<any>;
   signup: (email: string, pass: string) => Promise<any>;
   logout: () => Promise<any>;
+  loginWithMicrosoft: () => Promise<any>;
 }
 
 const AuthContext = React.createContext<AuthContextType | undefined>(undefined);
@@ -47,6 +50,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const logout = () => {
     return signOut(auth);
   };
+
+  const loginWithMicrosoft = () => {
+    const provider = new OAuthProvider('microsoft.com');
+    // Optional: Add custom parameters
+    // provider.setCustomParameters({
+    //   // Your tenant ID
+    //   tenant: process.env.NEXT_PUBLIC_MICROSOFT_TENANT_ID,
+    // });
+    return signInWithPopup(auth, provider);
+  };
   
   const value = {
     user,
@@ -54,6 +67,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     login,
     signup,
     logout,
+    loginWithMicrosoft,
   };
 
   return (

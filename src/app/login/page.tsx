@@ -17,12 +17,20 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import { Package } from 'lucide-react';
+import { Separator } from '@/components/ui/separator';
+
+const MicrosoftIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" className="mr-2" viewBox="0 0 16 16">
+        <path d="M7.462 0H0v7.462h7.462V0zM16 0H8.538v7.462H16V0zM7.462 8.538H0V16h7.462V8.538zM16 8.538H8.538V16H16V8.538z"/>
+    </svg>
+)
 
 export default function LoginPage() {
   const [email, setEmail] = React.useState('');
   const [password, setPassword] = React.useState('');
   const [isLoading, setIsLoading] = React.useState(false);
-  const { user, login, signup } = useAuth();
+  const [isMicrosoftLoading, setIsMicrosoftLoading] = React.useState(false);
+  const { user, login, signup, loginWithMicrosoft } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
 
@@ -51,6 +59,22 @@ export default function LoginPage() {
       setIsLoading(false);
     }
   };
+  
+  const handleMicrosoftLogin = async () => {
+    setIsMicrosoftLoading(true);
+    try {
+        await loginWithMicrosoft();
+        router.push('/');
+    } catch(error: any) {
+        toast({
+            variant: 'destructive',
+            title: 'Microsoft Login Failed',
+            description: error.message || 'Could not sign in with Microsoft. Please try again.',
+        });
+    } finally {
+        setIsMicrosoftLoading(false);
+    }
+  };
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-muted/40">
@@ -61,11 +85,31 @@ export default function LoginPage() {
             </div>
           <CardTitle className="text-2xl">Login to ListingFlow</CardTitle>
           <CardDescription>
-            Enter your credentials to access your dashboard. New user? We'll create an account for you.
+            Enter your credentials or use a social provider to access your dashboard.
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid gap-4">
+            <Button variant="outline" onClick={handleMicrosoftLogin} disabled={isLoading || isMicrosoftLoading}>
+                {isMicrosoftLoading ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                    <MicrosoftIcon />
+                )}
+                Sign in with Microsoft
+            </Button>
+
+            <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                    <span className="w-full border-t" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                    <span className="bg-background px-2 text-muted-foreground">
+                    Or continue with
+                    </span>
+                </div>
+            </div>
+
             <div className="grid gap-2">
               <Label htmlFor="email">Email</Label>
               <Input
@@ -75,7 +119,7 @@ export default function LoginPage() {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                disabled={isLoading}
+                disabled={isLoading || isMicrosoftLoading}
               />
             </div>
             <div className="grid gap-2">
@@ -86,16 +130,16 @@ export default function LoginPage() {
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                disabled={isLoading}
+                disabled={isLoading || isMicrosoftLoading}
               />
             </div>
             <div className="flex flex-col space-y-2">
-                 <Button onClick={() => handleAuthAction('login')} className="w-full" disabled={isLoading}>
-                    {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                 <Button onClick={() => handleAuthAction('login')} className="w-full" disabled={isLoading || isMicrosoftLoading}>
+                    {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                     Login
                 </Button>
-                <Button onClick={() => handleAuthAction('signup')} variant="outline" className="w-full" disabled={isLoading}>
-                    {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                <Button onClick={() => handleAuthAction('signup')} variant="outline" className="w-full" disabled={isLoading || isMicrosoftLoading}>
+                    {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                     Sign Up
                 </Button>
             </div>
