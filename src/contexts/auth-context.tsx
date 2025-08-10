@@ -19,7 +19,7 @@ interface AuthContextType {
   user: User | null;
   loading: boolean;
   logout: () => Promise<any>;
-  loginWithMicrosoft: () => Promise<any>;
+  loginWithMicrosoft: () => Promise<Error | void>;
 }
 
 const AuthContext = React.createContext<AuthContextType | undefined>(undefined);
@@ -53,10 +53,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return signOut(auth);
   };
 
-  const loginWithMicrosoft = async () => {
+  const loginWithMicrosoft = async (): Promise<Error | void> => {
     const tenantId = process.env.NEXT_PUBLIC_MICROSOFT_TENANT_ID;
     if (!tenantId) {
-        throw new Error('Microsoft Tenant ID is not configured. Please set NEXT_PUBLIC_MICROSOFT_TENANT_ID in your environment variables.');
+      return new Error(
+        'Microsoft Tenant ID is not configured. Please set NEXT_PUBLIC_MICROSOFT_TENANT_ID in your environment variables.'
+      );
     }
     const provider = new OAuthProvider('microsoft.com');
     provider.setCustomParameters({
@@ -72,7 +74,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return;
       }
       console.error('Microsoft login error:', e);
-      throw e;
+      return e instanceof Error
+        ? e
+        : new Error('An unexpected error occurred during Microsoft login.');
     }
   };
   

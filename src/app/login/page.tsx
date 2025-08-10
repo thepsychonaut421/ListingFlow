@@ -39,16 +39,26 @@ export default function LoginPage() {
   const handleMicrosoftLogin = async () => {
     setIsMicrosoftLoading(true);
     try {
-        await loginWithMicrosoft();
-        // The useEffect above will handle the redirect on user state change.
-    } catch(error: any) {
+      const error = await loginWithMicrosoft();
+      if (error) {
         toast({
-            variant: 'destructive',
-            title: 'Microsoft Login Failed',
-            description: error.message || 'Could not sign in with Microsoft. Please try again.',
+          variant: 'destructive',
+          title: 'Microsoft Login Failed',
+          description:
+            error.message ||
+            'Could not sign in with Microsoft. Please try again.',
         });
+      }
+      // The useEffect above will handle the redirect on user state change.
+    } catch (error: any) {
+      toast({
+        variant: 'destructive',
+        title: 'Microsoft Login Failed',
+        description:
+          error.message || 'Could not sign in with Microsoft. Please try again.',
+      });
     } finally {
-        setIsMicrosoftLoading(false);
+      setIsMicrosoftLoading(false);
     }
   };
 
