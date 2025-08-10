@@ -497,7 +497,7 @@ function DashboardClient() {
       onCopyDescription: handleCopyDescription,
       onSendToEbay: handleSendToEbayDraft,
       generatingProductId,
-  }), [generatingProductId, products]);
+  }), [generatingProductId]);
 
   if (isLoading) {
     return (
