@@ -17,48 +17,46 @@ export default function LoginPage() {
   const params = useSearchParams();
   const next = params.get("next") || "/";
   const [isLoading, setIsLoading] = useState(false);
-  const hasHandledRef = useRef(false);
+  const handledRef = useRef(false);
 
-  // Redirect after login
+  // 1) După redirect din Microsoft → du-te la `next`
   useEffect(() => {
-    if (hasHandledRef.current) return;
-    hasHandledRef.current = true;
-
     getRedirectResult(auth)
       .then((cred) => {
-        if (cred?.user) {
+        if (cred?.user && !handledRef.current) {
+          handledRef.current = true;
           router.replace(next);
         }
       })
       .catch((e) => console.debug("[AUTH DBG] getRedirectResult error", e));
   }, [next, router]);
 
-  // Listen for already signed-in user
+  // 2) Dacă user-ul e deja logat → du-te direct la `next`
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (user) => {
-      if (user) {
+      if (user && !handledRef.current) {
+        handledRef.current = true;
         router.replace(next);
       }
     });
     return () => unsub();
   }, [next, router]);
 
+  // 3) Buton login Microsoft (redirect)
   const handleMicrosoftLogin = async () => {
     setIsLoading(true);
     try {
       await setPersistence(auth, browserLocalPersistence);
 
       const tenant = process.env.NEXT_PUBLIC_MICROSOFT_TENANT_ID;
-      if (!tenant || tenant === "your-tenant-id") {
-        throw new Error("Microsoft Tenant ID is missing in env variables.");
-      }
+      if (!tenant) throw new Error("NEXT_PUBLIC_MICROSOFT_TENANT_ID lipsă.");
 
       const provider = new OAuthProvider("microsoft.com");
       provider.setCustomParameters({ tenant, prompt: "select_account" });
 
       await signInWithRedirect(auth, provider);
-    } catch (err) {
-      console.error("Login failed", err);
+    } catch (e) {
+      console.error("Login failed", e);
       setIsLoading(false);
     }
   };
@@ -66,9 +64,9 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen flex items-center justify-center p-6">
       <button
-        className="px-4 py-2 rounded bg-blue-600 text-white"
         onClick={handleMicrosoftLogin}
         disabled={isLoading}
+        className="px-4 py-2 rounded bg-blue-600 text-white"
       >
         {isLoading ? "Redirecting..." : "Sign in with Microsoft"}
       </button>
