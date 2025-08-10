@@ -7,6 +7,9 @@ import {
   OAuthProvider,
   signInWithPopup,
   signInWithRedirect,
+  getRedirectResult,
+  setPersistence,
+  browserLocalPersistence
 } from 'firebase/auth';
 import { auth } from '@/lib/firebase/client';
 import { usePathname, useRouter } from 'next/navigation';
@@ -26,24 +29,51 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = React.useState(true);
   const router = useRouter();
   const pathname = usePathname();
+  
+  // This ref helps prevent multiple redirects during initialization
+  const isProcessingAuth = React.useRef(false);
 
   React.useEffect(() => {
-    const unsub = onAuthStateChanged(auth, (u) => {
-      setUser(u);
-      setLoading(false);
-    });
-    return () => unsub();
+    const processAuth = async () => {
+       if (isProcessingAuth.current) return;
+       isProcessingAuth.current = true;
+       setLoading(true);
+
+        try {
+            // Check for redirect result first
+            const result = await getRedirectResult(auth);
+            if (result?.user) {
+                setUser(result.user);
+                setLoading(false);
+                isProcessingAuth.current = false;
+                router.replace('/dashboard');
+                return; // Stop further processing
+            }
+        } catch (error) {
+            console.error("Error getting redirect result:", error);
+        }
+
+        // If no redirect result, set up the listener
+        const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+            setUser(currentUser);
+
+            const isLoginPage = pathname === '/login';
+            if (currentUser && isLoginPage) {
+                router.replace('/dashboard');
+            } else if (!currentUser && !isLoginPage) {
+                router.replace('/login');
+            }
+            setLoading(false);
+            isProcessingAuth.current = false;
+        });
+
+        return () => unsubscribe();
+    };
+
+    processAuth();
+  // We only want this to run once on mount, so we pass an empty dependency array.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  React.useEffect(() => {
-    if (loading) return;
-
-    const isProtectedRoute = !['/login'].includes(pathname);
-
-    if (!user && isProtectedRoute) {
-        router.push('/login');
-    }
-  }, [user, loading, pathname, router]);
 
 
   const logout = () => {
@@ -51,6 +81,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const loginWithMicrosoft = async () => {
+    await setPersistence(auth, browserLocalPersistence);
     const tenantId = process.env.NEXT_PUBLIC_MICROSOFT_TENANT_ID;
     if (!tenantId) {
         throw new Error('Microsoft Tenant ID is not configured. Please set NEXT_PUBLIC_MICROSOFT_TENANT_ID in your environment variables.');
@@ -58,18 +89,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const provider = new OAuthProvider('microsoft.com');
     provider.setCustomParameters({
       tenant: tenantId,
-      prompt: 'select_account',
     });
 
     try {
       await signInWithPopup(auth, provider);
     } catch (e: any) {
       if (e?.code === 'auth/popup-blocked' || e?.code === 'auth/cancelled-popup-request') {
+        // Fallback to redirect if popup is blocked
         await signInWithRedirect(auth, provider);
-        return;
+      } else {
+        console.error('Microsoft login error:', e);
+        throw e; // Re-throw the error to be caught by the caller
       }
-      console.error('Microsoft login error:', e);
-      throw e;
     }
   };
   
@@ -79,13 +110,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     logout,
     loginWithMicrosoft,
   };
+  
+  const isAuthPage = pathname === '/login';
 
-  if (loading) {
+  // Show a global loader while we are verifying the auth state
+  if (loading && !isAuthPage) {
      return (
         <div className="flex items-center justify-center min-h-screen">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
       );
+  }
+  
+  // Prevent rendering of protected pages if not authenticated and not on the login page
+  if (!loading && !user && !isAuthPage) {
+      return null; // Or a loading screen. AuthProvider's effect will redirect.
   }
 
   return (

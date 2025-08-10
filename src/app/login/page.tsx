@@ -2,16 +2,7 @@
 
 import * as React from 'react';
 import { useRouter } from 'next/navigation';
-import {
-  getRedirectResult,
-  onAuthStateChanged,
-  setPersistence,
-  browserLocalPersistence,
-  OAuthProvider,
-  signInWithRedirect,
-  signInWithPopup,
-} from 'firebase/auth';
-import { auth } from '@/lib/firebase/client';
+import { useAuth } from '@/contexts/auth-context';
 import { Loader2, Package } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -37,104 +28,39 @@ const MicrosoftIcon = () => (
 );
 
 export default function LoginPage() {
+  const { user, loginWithMicrosoft, loading } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
-  const [isMicrosoftLoading, setIsMicrosoftLoading] = React.useState(true); // Start loading
-  const handled = React.useRef(false);
+  const [isLoggingIn, setIsLoggingIn] = React.useState(false);
 
   React.useEffect(() => {
-    if (handled.current) return;
-    handled.current = true;
-
-    // First, check for redirect result
-    getRedirectResult(auth)
-      .then((result) => {
-        if (result?.user) {
-          console.log('[Login] Redirect result processed. User found.');
-          router.replace('/dashboard');
-        } else {
-          // If no redirect result, set up auth state listener
-          const unsubscribe = onAuthStateChanged(auth, (user) => {
-            if (user) {
-              console.log('[Login] Auth state changed. User found.');
-              router.replace('/dashboard');
-            } else {
-              // No user, ready for login
-              setIsMicrosoftLoading(false);
-              console.log('[Login] No user session found. Ready to log in.');
-            }
-          });
-          return () => unsubscribe();
-        }
-      })
-      .catch((error) => {
-        console.error('Login error during redirect check:', error);
-        toast({
-          variant: 'destructive',
-          title: 'Login Failed',
-          description: error.message || 'An unexpected error occurred.',
-        });
-        setIsMicrosoftLoading(false);
-      });
-  }, [router, toast]);
-
-  const handleMicrosoftLogin = async () => {
-    setIsMicrosoftLoading(true);
+    if (!loading && user) {
+      router.replace('/dashboard');
+    }
+  }, [user, loading, router]);
+  
+  const handleLogin = async () => {
+    setIsLoggingIn(true);
     try {
-      await setPersistence(auth, browserLocalPersistence);
-      const tenantId = process.env.NEXT_PUBLIC_MICROSOFT_TENANT_ID;
-      if (!tenantId) {
-        throw new Error(
-          'Microsoft Tenant ID is not configured. Please set NEXT_PUBLIC_MICROSOFT_TENANT_ID in your environment variables.'
-        );
-      }
-      const provider = new OAuthProvider('microsoft.com');
-      // This is the correct way to specify a tenant for Microsoft auth
-      provider.setCustomParameters({
-        tenant: tenantId,
-      });
-
-      // Try popup first, which is a better UX
-      await signInWithPopup(auth, provider);
-      // onAuthStateChanged will handle the redirect
+      await loginWithMicrosoft();
+      // On success, the onAuthStateChanged in AuthProvider will handle the redirect.
     } catch (error: any) {
-      // Fallback to redirect if popup is blocked
-      if (
-        error.code === 'auth/popup-blocked' ||
-        error.code === 'auth/cancelled-popup-request'
-      ) {
-        const tenantId = process.env.NEXT_PUBLIC_MICROSOFT_TENANT_ID;
-        if (!tenantId) {
-            // This case should be caught by the check above, but we repeat for safety
-            toast({ variant: 'destructive', title: 'Configuration Error', description: 'Microsoft Tenant ID is not configured.'});
-            setIsMicrosoftLoading(false);
-            return;
-        }
-        const provider = new OAuthProvider('microsoft.com');
-        provider.setCustomParameters({
-            tenant: tenantId,
-        });
-        await signInWithRedirect(auth, provider);
-      } else {
-        console.error('Microsoft login error:', error);
-        toast({
-          variant: 'destructive',
-          title: 'Microsoft Login Failed',
-          description:
-            error.message ||
-            'Could not sign in with Microsoft. Please try again.',
-        });
-        setIsMicrosoftLoading(false);
-      }
+       toast({
+        variant: 'destructive',
+        title: 'Login Failed',
+        description: error.message || 'An unexpected error occurred during login.',
+      });
+      setIsLoggingIn(false);
     }
   };
-  
-  if (isMicrosoftLoading) {
+
+  // While auth state is loading, or if the user is found and we are about to redirect
+  if (loading || user) {
     return (
       <div className="flex h-screen items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin" />
       </div>
-    )
+    );
   }
 
   return (
@@ -153,10 +79,10 @@ export default function LoginPage() {
           <div className="grid gap-4">
             <Button
               variant="outline"
-              onClick={handleMicrosoftLogin}
-              disabled={isMicrosoftLoading}
+              onClick={handleLogin}
+              disabled={isLoggingIn}
             >
-              {isMicrosoftLoading ? (
+              {isLoggingIn ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               ) : (
                 <MicrosoftIcon />
