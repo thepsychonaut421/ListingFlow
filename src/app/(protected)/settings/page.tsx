@@ -88,7 +88,7 @@ function SettingsClient() {
         toast({
           variant: 'destructive',
           title: 'Save Failed',
-          description: 'Could not save your credentials. Please try again.',
+          description: error instanceof Error ? error.message : String(error),
         });
     } finally {
         setIsSaving(false);
