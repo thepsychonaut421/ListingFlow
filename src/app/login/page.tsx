@@ -3,7 +3,7 @@
 
 import * as React from 'react';
 import { useAuth } from '@/contexts/auth-context';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -26,19 +26,21 @@ export default function LoginPage() {
   const [isMicrosoftLoading, setIsMicrosoftLoading] = React.useState(false);
   const { user, loginWithMicrosoft } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { toast } = useToast();
 
   React.useEffect(() => {
     if (user) {
-      router.push('/');
+      const nextUrl = searchParams.get('next') || '/';
+      router.push(nextUrl);
     }
-  }, [user, router]);
+  }, [user, router, searchParams]);
 
   const handleMicrosoftLogin = async () => {
     setIsMicrosoftLoading(true);
     try {
         await loginWithMicrosoft();
-        router.push('/');
+        // The useEffect above will handle the redirect on user state change.
     } catch(error: any) {
         toast({
             variant: 'destructive',
