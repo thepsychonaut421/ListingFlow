@@ -30,8 +30,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import type { Product } from '@/lib/types';
 import { HTMLPreview } from './html-preview';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
-import { findEbayCategoryId } from '@/ai/flows/find-ebay-category-id';
-import { findEan } from '@/ai/flows/find-ean';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Search, Copy, Trash2, PlusCircle } from 'lucide-react';
 import {CopyToClipboard} from 'react-copy-to-clipboard';
@@ -80,8 +78,16 @@ function CategoryFinder({ onSelectCategory }: { onSelectCategory: (id: string) =
     setIsLoading(true);
     setResult(null);
     try {
-      const res = await findEbayCategoryId({ productDescription: searchTerm });
-      setResult(res);
+      const res = await fetch('/api/ai/find-ebay-category-id', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ productDescription: searchTerm }),
+      });
+      if (!res.ok) {
+        throw new Error('Failed to fetch category');
+      }
+      const data = await res.json();
+      setResult(data);
     } catch (err) {
       console.error(err);
       setError('Could not find a category. Please try a different search term.');
@@ -223,7 +229,15 @@ export function ProductForm({ product, onSave, onCancel }: ProductFormProps) {
     }
     setIsFindingEan(true);
     try {
-        const result = await findEan({ productName, brand });
+        const res = await fetch('/api/ai/find-ean', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ productName, brand }),
+        });
+        if (!res.ok) {
+            throw new Error('Failed to fetch EAN');
+        }
+        const result = await res.json();
         if (result.ean) {
             form.setValue('ean', result.ean, { shouldValidate: true });
             toast({

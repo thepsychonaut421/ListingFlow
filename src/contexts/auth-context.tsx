@@ -14,6 +14,7 @@ import {
 import { auth } from '@/lib/firebase/client';
 import { usePathname, useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 type AuthContextType = {
   user: User | null;
@@ -29,9 +30,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = React.useState(true);
   const router = useRouter();
   const pathname = usePathname();
-  
-  // This ref helps prevent multiple redirects during initialization
-  const isProcessingAuth = React.useRef(false);
 
   React.useEffect(() => {
     const processAuth = async () => {
@@ -81,10 +79,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const loginWithMicrosoft = async () => {
-    await setPersistence(auth, browserLocalPersistence);
     const tenantId = process.env.NEXT_PUBLIC_MICROSOFT_TENANT_ID;
     if (!tenantId) {
-        throw new Error('Microsoft Tenant ID is not configured. Please set NEXT_PUBLIC_MICROSOFT_TENANT_ID in your environment variables.');
+      toast({
+        variant: 'destructive',
+        title: 'Configuration Error',
+        description: 'Microsoft Tenant ID is not configured.',
+      });
+      throw new Error(
+        'Microsoft Tenant ID is not configured. Please set NEXT_PUBLIC_MICROSOFT_TENANT_ID in your environment variables.'
+      );
     }
     const provider = new OAuthProvider('microsoft.com');
     provider.setCustomParameters({
