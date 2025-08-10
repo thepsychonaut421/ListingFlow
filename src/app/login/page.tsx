@@ -89,9 +89,9 @@ export default function LoginPage() {
         );
       }
       const provider = new OAuthProvider('microsoft.com');
+      // This is the correct way to specify a tenant for Microsoft auth
       provider.setCustomParameters({
         tenant: tenantId,
-        prompt: 'select_account',
       });
 
       // Try popup first, which is a better UX
@@ -113,7 +113,6 @@ export default function LoginPage() {
         const provider = new OAuthProvider('microsoft.com');
         provider.setCustomParameters({
             tenant: tenantId,
-            prompt: 'select_account',
         });
         await signInWithRedirect(auth, provider);
       } else {
