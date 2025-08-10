@@ -12,13 +12,13 @@ import {
 } from 'firebase/auth';
 import { auth } from '@/lib/firebase/client';
 import { Loader2 } from 'lucide-react';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 
 
 interface AuthContextType {
   user: User | null;
   loading: boolean;
-  logout: () => Promise<any>;
+  logout: () => Promise<void>;
   loginWithMicrosoft: () => Promise<Error | void>;
 }
 
@@ -29,6 +29,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = React.useState(true);
   const router = useRouter();
   const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const redirectedRef = React.useRef(false);
+
 
   React.useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -40,14 +43,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   React.useEffect(() => {
-    if (loading) return;
+    if (loading || redirectedRef.current) return;
 
     const isProtectedRoute = !['/login'].includes(pathname);
-
+    
     if (!user && isProtectedRoute) {
-        router.push('/login');
+        redirectedRef.current = true;
+        router.replace('/login');
+    } else if (user && pathname === '/login') {
+        redirectedRef.current = true;
+        const nextUrl = searchParams.get('next') || '/';
+        router.replace(nextUrl);
+    } else {
+        redirectedRef.current = false;
     }
-  }, [user, loading, pathname, router]);
+  }, [user, loading, pathname, router, searchParams]);
 
   const logout = () => {
     return signOut(auth);

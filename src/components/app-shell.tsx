@@ -3,19 +3,16 @@
 
 import * as React from 'react';
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import {
   File,
   Home,
   Package,
   PanelLeft,
   Settings,
-  ShoppingCart,
-  Tag,
   LogOut,
   Moon,
   Sun,
-  Loader2,
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -244,7 +241,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               </DropdownMenuContent>
             </DropdownMenu>
           </header>
-          <div className="flex-1">{children}</div>
+          {children}
         </div>
       </div>
     </TooltipProvider>

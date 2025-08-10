@@ -3,7 +3,6 @@
 
 import * as React from 'react';
 import { useAuth } from '@/contexts/auth-context';
-import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -23,18 +22,9 @@ const MicrosoftIcon = () => (
 )
 
 export default function LoginPage() {
+  const { loading, loginWithMicrosoft } = useAuth();
   const [isMicrosoftLoading, setIsMicrosoftLoading] = React.useState(false);
-  const { user, loginWithMicrosoft } = useAuth();
-  const router = useRouter();
-  const searchParams = useSearchParams();
   const { toast } = useToast();
-
-  React.useEffect(() => {
-    if (user) {
-      const nextUrl = searchParams.get('next') || '/';
-      router.push(nextUrl);
-    }
-  }, [user, router, searchParams]);
 
   const handleMicrosoftLogin = async () => {
     setIsMicrosoftLoading(true);
@@ -49,7 +39,7 @@ export default function LoginPage() {
             'Could not sign in with Microsoft. Please try again.',
         });
       }
-      // The useEffect above will handle the redirect on user state change.
+      // AuthProvider will handle the redirect
     } catch (error: any) {
       toast({
         variant: 'destructive',
@@ -76,8 +66,8 @@ export default function LoginPage() {
         </CardHeader>
         <CardContent>
           <div className="grid gap-4">
-            <Button variant="outline" onClick={handleMicrosoftLogin} disabled={isMicrosoftLoading}>
-                {isMicrosoftLoading ? (
+            <Button variant="outline" onClick={handleMicrosoftLogin} disabled={loading || isMicrosoftLoading}>
+                {loading || isMicrosoftLoading ? (
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 ) : (
                     <MicrosoftIcon />
