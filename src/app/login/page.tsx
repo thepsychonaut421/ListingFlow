@@ -93,6 +93,20 @@ export default function LoginPage() {
         prompt: 'select_account',
       });
       
+      // DEBUG:
+      // @ts-ignore
+      const __dbg = (auth as any);
+      const authDomain = __dbg?.app?.options?.authDomain;
+      const apiKey     = __dbg?.app?.options?.apiKey;
+      const projectId  = __dbg?.app?.options?.projectId;
+
+      console.log('[AUTH DBG]', {
+        location: window.location.origin,
+        authDomain,
+        projectId,
+        hasApiKey: Boolean(apiKey),
+      });
+      
       // Force redirect flow to avoid popup issues
       await signInWithRedirect(auth, provider);
 
