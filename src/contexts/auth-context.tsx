@@ -11,6 +11,7 @@ import {
   type User,
   OAuthProvider,
   signInWithPopup,
+  signInWithRedirect,
 } from 'firebase/auth';
 import { auth } from '@/lib/firebase/client';
 import { Loader2 } from 'lucide-react';
@@ -51,14 +52,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return signOut(auth);
   };
 
-  const loginWithMicrosoft = () => {
+  const loginWithMicrosoft = async () => {
     const provider = new OAuthProvider('microsoft.com');
-    // Optional: Add custom parameters
-    // provider.setCustomParameters({
-    //   // Your tenant ID
-    //   tenant: process.env.NEXT_PUBLIC_MICROSOFT_TENANT_ID,
-    // });
-    return signInWithPopup(auth, provider);
+    // enforce tenant (belt & suspenders – Azure e deja single-tenant)
+    provider.setCustomParameters({
+      tenant: process.env.NEXT_PUBLIC_MICROSOFT_TENANT_ID!,
+      prompt: 'select_account',
+    });
+
+    try {
+      await signInWithPopup(auth, provider);
+    } catch (e: any) {
+      if (e?.code === 'auth/popup-blocked' || e?.code === 'auth/cancelled-popup-request') {
+        await signInWithRedirect(auth, provider);
+        return;
+      }
+      console.error('Microsoft login error:', e);
+      throw e;
+    }
   };
   
   const value = {
