@@ -19,7 +19,7 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const handledRef = useRef(false);
 
-  // 1) După redirect din Microsoft → du-te la `next`
+  // După redirect-ul de la Microsoft
   useEffect(() => {
     getRedirectResult(auth)
       .then((cred) => {
@@ -31,7 +31,7 @@ export default function LoginPage() {
       .catch((e) => console.debug("[AUTH DBG] getRedirectResult error", e));
   }, [next, router]);
 
-  // 2) Dacă user-ul e deja logat → du-te direct la `next`
+  // Dacă user-ul e deja logat
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (user) => {
       if (user && !handledRef.current) {
@@ -42,7 +42,7 @@ export default function LoginPage() {
     return () => unsub();
   }, [next, router]);
 
-  // 3) Buton login Microsoft (redirect)
+  // Login Microsoft
   const handleMicrosoftLogin = async () => {
     setIsLoading(true);
     try {
@@ -55,8 +55,8 @@ export default function LoginPage() {
       provider.setCustomParameters({ tenant, prompt: "select_account" });
 
       await signInWithRedirect(auth, provider);
-    } catch (e) {
-      console.error("Login failed", e);
+    } catch (err) {
+      console.error("Login failed", err);
       setIsLoading(false);
     }
   };
