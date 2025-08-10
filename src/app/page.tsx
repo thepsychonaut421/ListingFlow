@@ -104,6 +104,12 @@ function DashboardClient() {
     }
   }, [products, isLoading]);
 
+  const handleSetSelectedProductIds = (ids: string[]) => {
+    setSelectedProductIds(ids);
+    localStorage.setItem('listingFlowSelectedIds', JSON.stringify(ids));
+  };
+
+
   const handleAddProduct = () => {
     setSelectedProduct(null);
     setIsSheetOpen(true);
@@ -633,7 +639,7 @@ function DashboardClient() {
           <ProductDataTable 
             columns={columns} 
             data={products} 
-            onSelectionChange={setSelectedProductIds}
+            onSelectionChange={handleSetSelectedProductIds}
             onBulkDelete={handleBulkDelete}
           />
         </CardContent>

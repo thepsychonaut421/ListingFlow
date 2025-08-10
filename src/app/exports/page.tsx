@@ -27,34 +27,50 @@ import { initialProducts } from '@/lib/data';
 
 function ExportsClient() {
   const [products, setProducts] = React.useState<Product[]>([]);
+  const [selectedIds, setSelectedIds] = React.useState<string[]>([]);
   const { toast } = useToast();
 
   React.useEffect(() => {
     try {
       const storedProducts = localStorage.getItem('listingFlowProducts');
+      const storedIds = localStorage.getItem('listingFlowSelectedIds');
+      
       if (storedProducts) {
         setProducts(JSON.parse(storedProducts));
       } else {
         setProducts(initialProducts);
       }
+
+      if (storedIds) {
+        setSelectedIds(JSON.parse(storedIds));
+      }
+
     } catch (error) {
-      console.error('Failed to parse products from localStorage', error);
+      console.error('Failed to parse data from localStorage', error);
       setProducts(initialProducts);
+      setSelectedIds([]);
     }
   }, []);
 
   const handleExport = (format: 'ebay' | 'shopify') => {
-    if (products.length === 0) {
+    let productsToExport = products;
+    
+    // For eBay, if there's a selection, use it. Otherwise, export all.
+    if (format === 'ebay' && selectedIds.length > 0) {
+      productsToExport = products.filter(p => selectedIds.includes(p.id));
+    }
+    
+    if (productsToExport.length === 0) {
       toast({
         variant: 'destructive',
         title: 'Export Failed',
-        description: 'There are no products to export.',
+        description: 'There are no products (in the current selection) to export.',
       });
       return;
     }
 
     try {
-      const csvContent = generateCsv(products, format);
+      const csvContent = generateCsv(productsToExport, format);
       const fileName = `${format}-export-${new Date().toISOString()}.csv`;
       const successMessage = `Your products have been exported to the ${format} CSV format.`;
       
@@ -70,7 +86,7 @@ function ExportsClient() {
 
       toast({
         title: 'Export Successful',
-        description: successMessage,
+        description: `${productsToExport.length} products exported successfully.`,
       });
     } catch (error) {
       console.error(`Failed to generate ${format} CSV:`, error);
@@ -82,6 +98,12 @@ function ExportsClient() {
     }
   };
 
+  const ebayExportButtonText = selectedIds.length > 0 
+    ? `Export ${selectedIds.length} Selected to eBay`
+    : 'Export All to eBay';
+  
+  const previewProducts = selectedIds.length > 0 ? products.filter(p => selectedIds.includes(p.id)) : products;
+
 
   return (
     <Card>
@@ -90,13 +112,14 @@ function ExportsClient() {
           <div>
             <CardTitle>Product Exports</CardTitle>
             <CardDescription>
-              Export your product data to different platform-specific CSV formats.
+              Export your product data to different platform-specific CSV formats. 
+              For eBay, you can export just the items you selected on the dashboard.
             </CardDescription>
           </div>
           <div className="flex gap-2">
             <Button onClick={() => handleExport('ebay')}>
               <Download className="mr-2 h-4 w-4" />
-              Export to eBay
+              {ebayExportButtonText}
             </Button>
             <Button onClick={() => handleExport('shopify')} variant="secondary">
               <Download className="mr-2 h-4 w-4" />
@@ -113,6 +136,11 @@ function ExportsClient() {
           </TabsList>
           <TabsContent value="ebay">
              <p className="text-sm text-muted-foreground my-4">
+              {selectedIds.length > 0 
+                ? `Previewing the ${selectedIds.length} selected products for eBay export.`
+                : 'Previewing all products for eBay export. Select items on the dashboard to export a specific subset.'
+              }
+              <br />
               This tool generates a CSV file based on the eBay File Exchange format for drafts. The file is tab-separated and must start with a specific header row. Ensure you are uploading this file to the "Upload Template" section in your Seller Hub Reports tab.
             </p>
             <div className="rounded-md border">
@@ -127,8 +155,8 @@ function ExportsClient() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {products.length > 0 ? (
-                    products.map((product) => (
+                  {previewProducts.length > 0 ? (
+                    previewProducts.map((product) => (
                       <TableRow key={product.id}>
                         <TableCell className="font-medium">Draft</TableCell>
                         <TableCell>{product.name}</TableCell>
@@ -150,6 +178,8 @@ function ExportsClient() {
           </TabsContent>
           <TabsContent value="shopify">
              <p className="text-sm text-muted-foreground my-4">
+              The Shopify export will always include all products.
+              <br />
               This tool generates a CSV file based on the standard Shopify product import format. Below is a preview of some of the data that will be included.
             </p>
              <div className="rounded-md border">
