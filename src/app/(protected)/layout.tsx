@@ -7,6 +7,8 @@ import { Loader2 } from 'lucide-react';
 export default function ProtectedLayout({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
 
+  // If loading, or if not loading and no user, show loading screen.
+  // The redirect logic is handled centrally in AuthProvider.
   if (loading || !user) {
     return (
       <div className="flex items-center justify-center min-h-screen">

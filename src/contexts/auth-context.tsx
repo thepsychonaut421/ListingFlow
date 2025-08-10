@@ -40,7 +40,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => unsub();
   }, []);
 
-  // Centralized redirect logic
+  // Logică de redirect centralizată
   React.useEffect(() => {
     if (loading) return;
 
@@ -49,7 +49,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!user && !isAuthPage) {
       router.replace('/login');
     } else if (user && isAuthPage) {
-      router.replace('/');
+      router.replace('/listings'); // Ruta dashboard după login
     }
   }, [loading, user, pathname, router]);
 
@@ -66,7 +66,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const logout = React.useCallback(async () => {
       await signOut(auth);
-      // Ensure redirect after logout
       router.push('/login');
   }, [router]);
 

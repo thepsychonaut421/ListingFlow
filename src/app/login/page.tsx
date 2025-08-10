@@ -2,34 +2,34 @@
 
 import * as React from 'react';
 import { useRouter } from 'next/navigation';
-import { Loader2 } from 'lucide-react';
 import {
-  OAuthProvider,
-  signInWithRedirect,
   getRedirectResult,
+  onAuthStateChanged,
   setPersistence,
   browserLocalPersistence,
+  OAuthProvider,
+  signInWithRedirect,
   signInWithPopup,
-  onAuthStateChanged,
 } from 'firebase/auth';
 import { auth } from '@/lib/firebase/client';
 import { useAuth } from '@/contexts/auth-context';
+import { Loader2 } from 'lucide-react';
 
 export default function LoginPage() {
-  const { user, loading, loginWithMicrosoft } = useAuth();
+  const { user, loading } = useAuth();
   const router = useRouter();
   const [submitting, setSubmitting] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [isCheckingRedirect, setIsCheckingRedirect] = React.useState(true);
   const redirected = React.useRef(false);
 
-  // 1) Process the result after returning from the redirect
+  // 1) Procesează rezultatul după revenirea din redirect
   React.useEffect(() => {
     getRedirectResult(auth)
       .then((result) => {
         if (result?.user && !redirected.current) {
             redirected.current = true;
-            router.replace('/'); 
+            router.replace('/listings'); 
         }
       })
       .catch((e) => {
@@ -41,15 +41,15 @@ export default function LoginPage() {
       });
   }, [router]);
 
-  // 2) If the user is already logged in (from onAuthStateChanged in context), go directly to the app
+  // 2) Dacă userul e deja logat (din onAuthStateChanged în context), mergi direct în app
   React.useEffect(() => {
     if (!loading && user && !redirected.current) {
         redirected.current = true;
-        router.replace('/');
+        router.replace('/listings');
     }
   }, [loading, user, router]);
 
-  // 3) Login button: popup -> redirect fallback
+  // 3) Buton login: popup -> fallback la redirect
   const handleMicrosoftLogin = async () => {
     setError(null);
     setSubmitting(true);
@@ -65,7 +65,7 @@ export default function LoginPage() {
       
       try {
         await signInWithPopup(auth, provider);
-        // onAuthStateChanged will handle the redirect
+        // onAuthStateChanged va gestiona redirectarea
       } catch (e: any) {
         if (e?.code === 'auth/popup-blocked' || e?.code === 'auth/cancelled-popup-request') {
           await signInWithRedirect(auth, provider);
@@ -91,7 +91,7 @@ export default function LoginPage() {
     );
   }
 
-  // Render login page only if not logged in and not loading
+  // Afișează pagina de login doar dacă nu e logat și nu se încarcă
   if (!user) {
     return (
         <div className="min-h-screen flex items-center justify-center p-6">
@@ -122,7 +122,7 @@ export default function LoginPage() {
     );
   }
 
-  // If user is loaded and we are on this page, it's a transitional state, show loading.
+  // Dacă userul e încărcat și suntem pe această pagină, e o stare tranzitorie, arătăm loading.
   return (
       <div className="min-h-screen flex items-center justify-center p-6">
         <div className="flex items-center space-x-2 text-sm text-muted-foreground">
