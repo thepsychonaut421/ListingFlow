@@ -41,7 +41,10 @@ function SettingsClient() {
 
   React.useEffect(() => {
     const fetchCredentials = async () => {
-      if (!user) return;
+      if (!user) {
+        setIsLoading(false);
+        return;
+      };
       setIsLoading(true);
       try {
         const docRef = doc(db, 'userCredentials', user.uid);
@@ -98,7 +101,7 @@ function SettingsClient() {
       title: 'Local Data Cleared',
       description: 'Your local product data has been successfully deleted from the browser.',
     });
-     setTimeout(() => window.location.href = '/', 1000);
+     setTimeout(() => window.location.href = '/dashboard', 1000);
   };
 
   return (
