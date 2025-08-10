@@ -1,16 +1,12 @@
 'use client';
-
 import * as React from 'react';
 import {
   onAuthStateChanged,
-  createUserWithEmailAndPassword,
-  signInWithEmailAndPassword,
   signOut,
-  OAuthProvider,
-  signInWithRedirect,
-  setPersistence,
-  browserLocalPersistence,
   type User,
+  OAuthProvider,
+  signInWithPopup,
+  signInWithRedirect,
 } from 'firebase/auth';
 import { auth } from '@/lib/firebase/client';
 import { usePathname, useRouter } from 'next/navigation';
@@ -18,11 +14,9 @@ import { usePathname, useRouter } from 'next/navigation';
 type AuthContextType = {
   user: User | null;
   loading: boolean;
-  login: (email: string, pass: string) => Promise<unknown>;
-  signup: (email: string, pass: string) => Promise<unknown>;
-  logout: () => Promise<unknown>;
-  loginWithMicrosoft: () => Promise<void>;
-};
+  logout: () => Promise<any>;
+  loginWithMicrosoft: () => Promise<any>;
+}
 
 const AuthContext = React.createContext<AuthContextType | undefined>(undefined);
 
@@ -30,7 +24,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = React.useState<User | null>(null);
   const [loading, setLoading] = React.useState(true);
   const router = useRouter();
-  const pathname = usePathname();
+  const pathname = (usePathname() ?? '').toLowerCase();
+  const isLogin = pathname === '/login' || pathname.startsWith('/login?');
+  const bounced = React.useRef(false);
 
   React.useEffect(() => {
     const unsub = onAuthStateChanged(auth, (u) => {
@@ -40,20 +36,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => unsub();
   }, []);
 
+<<<<<<<<< Temporary merge branch 1
   // Logică de redirect centralizată
+=========
+>>>>>>>>> Temporary merge branch 2
   React.useEffect(() => {
     if (loading) return;
 
-    const isAuthPage = pathname === '/login';
+    const isProtectedRoute = !['/login'].includes(pathname);
 
+<<<<<<<<< Temporary merge branch 1
     if (!user && !isAuthPage) {
       router.replace('/login');
     } else if (user && isAuthPage) {
       router.replace('/'); // Ruta dashboard după login
+=========
+    if (!user && isProtectedRoute) {
+        router.push('/login');
+>>>>>>>>> Temporary merge branch 2
     }
-  }, [loading, user, pathname, router]);
+  }, [user, loading, pathname, router]);
 
+  const logout = () => {
+    return signOut(auth);
+  };
 
+<<<<<<<<< Temporary merge branch 1
   const login = React.useCallback(
     (email: string, pass: string) => signInWithEmailAndPassword(auth, email, pass),
     []
@@ -65,33 +73,57 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   );
 
   const logout = React.useCallback(async () => {
-      await signOut(auth);
-      router.push('/login');
+    await signOut(auth);
+    router.push('/login');
   }, [router]);
 
   const loginWithMicrosoft = React.useCallback(async () => {
     await setPersistence(auth, browserLocalPersistence);
-    const provider = new OAuthProvider('microsoft.com');
-
-    const tenant = process.env.NEXT_PUBLIC_MICROSOFT_TENANT_ID;
-    if (!tenant || tenant === 'your-tenant-id') {
-      throw new Error('FATAL: Microsoft Tenant ID is not configured in environment variables.');
+=========
+  const loginWithMicrosoft = async () => {
+    const tenantId = process.env.NEXT_PUBLIC_MICROSOFT_TENANT_ID;
+    if (!tenantId) {
+        throw new Error('Microsoft Tenant ID is not configured. Please set NEXT_PUBLIC_MICROSOFT_TENANT_ID in your environment variables.');
     }
-
+>>>>>>>>> Temporary merge branch 2
+    const provider = new OAuthProvider('microsoft.com');
     provider.setCustomParameters({
-      tenant,
+      tenant: tenantId,
       prompt: 'select_account',
     });
 
-    await signInWithRedirect(auth, provider);
-  }, []);
+    try {
+      await signInWithPopup(auth, provider);
+    } catch (e: any) {
+      if (e?.code === 'auth/popup-blocked' || e?.code === 'auth/cancelled-popup-request') {
+        await signInWithRedirect(auth, provider);
+        return;
+      }
+      console.error('Microsoft login error:', e);
+      throw e;
+    }
+  };
+  
+  const value = {
+    user,
+    loading,
+    logout,
+    loginWithMicrosoft,
+  };
 
-  const value: AuthContextType = React.useMemo(
-    () => ({ user, loading, login, signup, logout, loginWithMicrosoft }),
-    [user, loading, login, signup, logout, loginWithMicrosoft]
+  if (loading) {
+     return (
+        <div className="flex items-center justify-center min-h-screen">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      );
+  }
+
+  return (
+    <AuthContext.Provider value={value}>
+      {children}
+    </AuthContext.Provider>
   );
-
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
 export function useAuth() {

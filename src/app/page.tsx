@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 "use client";
 
 import { useEffect } from 'react';
@@ -6,10 +7,19 @@ import { useAuth } from '@/contexts/auth-context';
 import { Loader2 } from 'lucide-react';
 
 export default function Root() {
+=======
+'use client';
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/contexts/auth-context';
+
+export default function RootPage() {
+>>>>>>> 47cc8857015bb012d574e1df3f50a346f14ad53c
   const { user, loading } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
+<<<<<<< HEAD
     // Wait until the authentication status is determined.
     if (loading) {
       return;
@@ -36,5 +46,11 @@ export default function Root() {
 
   // If the user is logged in, the protected layout will take over.
   // This component itself doesn't need to render anything in that case.
+=======
+    if (loading) return;
+    router.replace(user ? '/listings' : '/login');
+  }, [loading, user, router]);
+
+>>>>>>> 47cc8857015bb012d574e1df3f50a346f14ad53c
   return null;
 }
