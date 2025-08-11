@@ -50,7 +50,6 @@ import { findTechnicalSpecs } from '@/ai/flows/find-technical-specs';
 import { useToast } from '@/hooks/use-toast';
 import { ProductForm } from '@/components/product-form';
 import { BulkEditForm } from '@/components/bulk-edit-form';
-import { ErpDataProvider, useErpData } from '@/contexts/erp-data-context';
 import {
   importProductsFromERPNext,
   updatePricesAndStocksFromERPNext,
@@ -93,6 +92,12 @@ function DashboardClient() {
       localStorage.setItem('listingFlowProducts', JSON.stringify(products));
     }
   }, [products, isLoading]);
+  
+  // Effect to store selected products in localStorage for the exports page
+  React.useEffect(() => {
+    const selected = products.filter(p => selectedProductIds.includes(p.id));
+    localStorage.setItem('listingFlowSelectedProducts', JSON.stringify(selected));
+  }, [selectedProductIds, products]);
 
   const handleAddProduct = () => {
     setSelectedProduct(null);
@@ -301,13 +306,30 @@ function DashboardClient() {
   };
 
   const handleExportToCSV = () => {
+    const productsToExport = products.filter(p => selectedProductIds.includes(p.id));
+
+    if (productsToExport.length === 0) {
+      toast({
+        variant: 'destructive',
+        title: 'Export Failed',
+        description: 'Please select at least one product to export.',
+      });
+      return;
+    }
+
     const headers = [
       'id', 'name', 'code', 'quantity', 'price', 'description', 
-      'image', 'supplier', 'location', 'tags', 'keywords', 'category', 'ebayCategoryId', 'listingStatus'
+      'image', 'supplier', 'location', 'tags', 'keywords', 'category', 'ebayCategoryId', 'listingStatus',
+      'brand', 'productType', 'ean'
     ];
-    const rows = products.map(product => 
+    const rows = productsToExport.map(product => 
       headers.map(header => {
-        const value = product[header as keyof Product];
+        let value = product[header as keyof Product];
+        
+        if (header === 'technicalSpecs') {
+            value = JSON.stringify(product.technicalSpecs);
+        }
+
         if (Array.isArray(value)) {
           return `"${value.join(', ')}"`;
         }
@@ -331,7 +353,7 @@ function DashboardClient() {
     
     toast({
         title: 'Export Successful',
-        description: 'Your products have been exported to CSV.',
+        description: `Your ${productsToExport.length} selected products have been exported to CSV.`,
     });
   };
 
@@ -558,18 +580,18 @@ function DashboardClient() {
                         Update from ERPNext
                       </span>
                     </Button>
-                    <Button size="sm" variant="outline" className="h-8 gap-1" onClick={handleErpExport}>
+                    <Button size="sm" variant="outline" className="h-8 gap-1" onClick={handleErpExport} disabled={selectedProductIds.length === 0}>
                       <Send className="h-3.5 w-3.5" />
                       <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
-                        Export to ERPNext ({selectedProductIds.length > 0 ? selectedProductIds.length : 'selected'})
+                        Export to ERPNext ({selectedProductIds.length})
                       </span>
                     </Button>
                 </div>
             )}
-            <Button size="sm" variant="outline" className="h-8 gap-1" onClick={handleExportToCSV}>
+            <Button size="sm" variant="outline" className="h-8 gap-1" onClick={handleExportToCSV} disabled={selectedProductIds.length === 0}>
               <File className="h-3.5 w-3.5" />
               <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
-                Export CSV
+                Export CSV ({selectedProductIds.length})
               </span>
             </Button>
              <Dialog open={isBulkEditOpen} onOpenChange={setIsBulkEditOpen}>
@@ -635,9 +657,5 @@ function DashboardClient() {
 }
 
 export default function Dashboard() {
-    return (
-        <ErpDataProvider>
-            <DashboardClient />
-        </ErpDataProvider>
-    );
+    return <DashboardClient />;
 }
