@@ -2,18 +2,16 @@
 
 import React, { useCallback, useEffect, useState } from 'react';
 import {
-  OAuthProvider,
   browserLocalPersistence,
   onAuthStateChanged,
-  signOut,
-  type User,
-  OAuthProvider,
+  setPersistence,
   signInWithPopup,
   signInWithRedirect,
   signOut,
   type User,
+  OAuthProvider,
 } from 'firebase/auth';
-import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 
 import { auth } from '@/lib/firebase/client';
@@ -32,8 +30,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
   const router = useRouter();
   const pathname = usePathname();
-  const searchParams = useSearchParams();
-  const search = searchParams.toString();
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, current => {
@@ -47,10 +43,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (loading) return;
 
-    const isProtectedRoute = !['/login'].includes(pathname);
+    const isAuthPage = pathname === '/login';
 
     if (!user && !isAuthPage) {
-      const nextPath = pathname + (search ? `?${search}` : '');
+      const nextPath = pathname + (location.search || '');
       const url = nextPath ? `/login?next=${encodeURIComponent(nextPath)}` : '/login';
       router.replace(url);
     } else if (user && isAuthPage) {
@@ -58,19 +54,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [user, loading, pathname, router]);
 
-  const logout = () => {
-    return signOut(auth);
-  };
-
-  const signup = React.useCallback(
-    (email: string, pass: string) => createUserWithEmailAndPassword(auth, email, pass),
-    []
-  );
-
   const logout = React.useCallback(async () => {
-      await signOut(auth);
-      // Ensure redirect after logout
-      router.push('/login');
+    await signOut(auth);
+    // Ensure redirect after logout
+    router.push('/login');
   }, [router]);
 
   const loginWithMicrosoft = React.useCallback(async () => {
@@ -89,8 +76,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       console.error('Microsoft login error:', e);
       throw e;
     }
-  };
-  
+  }, []);
+
   const value = {
     user,
     loading,
@@ -101,6 +88,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  // Prevent rendering children if auth state is not resolved for a protected page
+  if (!user && pathname !== '/login') {
+    return (
+       <div className="flex items-center justify-center min-h-screen">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
