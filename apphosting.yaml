@@ -10,7 +10,7 @@ runConfig:
 # Replace values or reference secrets when deploying.
 env:
   - variable: NEXT_PUBLIC_ERPNEXT_URL
-    value: https://your-erp.example.com
+    value: https://erp.rembayer.info
     availability:
       - BUILD
       - RUNTIME
@@ -24,6 +24,3 @@ env:
     availability:
       - BUILD
       - RUNTIME
-
-  - variable: ERPNEXT_API_SECRET
-    secret: ERPNEXT_API_SECRET
