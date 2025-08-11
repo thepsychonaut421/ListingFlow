@@ -8,6 +8,9 @@ import {
   signOut,
   type User,
   OAuthProvider,
+  browserLocalPersistence,
+  onAuthStateChanged,
+  setPersistence,
   signInWithPopup,
   signInWithRedirect,
   signOut,
@@ -46,34 +49,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Redirect based on auth state
   useEffect(() => {
     if (loading) return;
-
-    const isProtectedRoute = !['/login'].includes(pathname);
+    const isAuthPage = pathname === '/login';
 
     if (!user && !isAuthPage) {
       const nextPath = pathname + (search ? `?${search}` : '');
       const url = nextPath ? `/login?next=${encodeURIComponent(nextPath)}` : '/login';
       router.replace(url);
     } else if (user && isAuthPage) {
-      router.replace('/');
+      const next = new URLSearchParams(search).get('next') || '/';
+      router.replace(next);
     }
-  }, [user, loading, pathname, router]);
+  }, [user, loading, pathname, search, router]);
 
-  const logout = () => {
-    return signOut(auth);
-  };
-
-  const signup = React.useCallback(
-    (email: string, pass: string) => createUserWithEmailAndPassword(auth, email, pass),
-    []
-  );
-
-  const logout = React.useCallback(async () => {
-      await signOut(auth);
-      // Ensure redirect after logout
-      router.push('/login');
-  }, [router]);
-
-  const loginWithMicrosoft = React.useCallback(async () => {
+  const loginWithMicrosoft = useCallback(async () => {
     await setPersistence(auth, browserLocalPersistence);
     const tenant = process.env.NEXT_PUBLIC_MICROSOFT_TENANT_ID;
     if (!tenant) throw new Error('NEXT_PUBLIC_MICROSOFT_TENANT_ID missing');
@@ -84,19 +72,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } catch (e: any) {
       if (e?.code === 'auth/popup-blocked' || e?.code === 'auth/cancelled-popup-request') {
         await signInWithRedirect(auth, provider);
-        return;
+      } else {
+        console.error('Microsoft login error:', e);
+        throw e;
       }
-      console.error('Microsoft login error:', e);
-      throw e;
     }
-  };
-  
-  const value = {
-    user,
-    loading,
-    logout,
-    loginWithMicrosoft,
-  };
+  }, []);
+
+  const logout = useCallback(async () => {
+    await signOut(auth);
+    router.push('/login');
+  }, [router]);
+
+  const value = { user, loading, loginWithMicrosoft, logout };
 
   if (loading) {
     return (

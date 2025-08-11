@@ -4,6 +4,7 @@ import React from 'react';
 import { Loader2 } from 'lucide-react';
 
 import AppShell from '@/components/app-shell';
+import { useAuth } from '@/contexts/auth-context';
 
 export default function ProtectedLayout({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
