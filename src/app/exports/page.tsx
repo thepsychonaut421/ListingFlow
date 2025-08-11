@@ -31,15 +31,16 @@ function ExportsClient() {
 
   React.useEffect(() => {
     try {
-      const storedProducts = localStorage.getItem('listingFlowProducts');
+      // We get the selected products from localStorage. This assumes they are saved from the main page.
+      const storedProducts = localStorage.getItem('listingFlowSelectedProducts');
       if (storedProducts) {
-        setProducts(JSON.parse(storedProducts));
-      } else {
-        setProducts(initialProducts);
+        const parsedProducts = JSON.parse(storedProducts);
+        // Ensure we always have an array, even if nothing is stored.
+        setProducts(Array.isArray(parsedProducts) ? parsedProducts : []);
       }
     } catch (error) {
-      console.error('Failed to parse products from localStorage', error);
-      setProducts(initialProducts);
+      console.error('Failed to parse selected products from localStorage', error);
+      setProducts([]); // Default to an empty array on error
     }
   }, []);
 
@@ -48,7 +49,7 @@ function ExportsClient() {
       toast({
         variant: 'destructive',
         title: 'Export Failed',
-        description: 'There are no products to export.',
+        description: 'There are no selected products to export. Please select products from the dashboard.',
       });
       return;
     }
@@ -56,7 +57,7 @@ function ExportsClient() {
     try {
       const csvContent = generateCsv(products, format);
       const fileName = `${format}-export-${new Date().toISOString()}.csv`;
-      const successMessage = `Your products have been exported to the ${format} CSV format.`;
+      const successMessage = `Your ${products.length} selected products have been exported to the ${format} CSV format.`;
       
       const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
       const link = document.createElement('a');
@@ -90,7 +91,7 @@ function ExportsClient() {
           <div>
             <CardTitle>Product Exports</CardTitle>
             <CardDescription>
-              Export your product data to different platform-specific CSV formats.
+             Export your selected product data to platform-specific CSV formats. Currently exporting {products.length} selected products.
             </CardDescription>
           </div>
           <div className="flex gap-2">
@@ -140,7 +141,7 @@ function ExportsClient() {
                   ) : (
                     <TableRow>
                       <TableCell colSpan={5} className="h-24 text-center">
-                        No products to preview.
+                        No selected products to preview. Go to the dashboard to select some.
                       </TableCell>
                     </TableRow>
                   )}
@@ -177,7 +178,7 @@ function ExportsClient() {
                   ) : (
                     <TableRow>
                       <TableCell colSpan={5} className="h-24 text-center">
-                         No products to preview.
+                         No selected products to preview. Go to the dashboard to select some.
                       </TableCell>
                     </TableRow>
                   )}
