@@ -31,7 +31,7 @@ export default function LoginPage() {
     try {
       await loginWithMicrosoft();
     } catch (err) {
-      console.error("Login failed", err);
+      console.error("[AUTH DBG] Login failed", err);
       setIsLoading(false);
     }
   };

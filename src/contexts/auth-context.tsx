@@ -2,19 +2,25 @@
 
 import React, { useCallback, useEffect, useState } from 'react';
 import {
+<<<<<<<<< Temporary merge branch 1
+=========
   OAuthProvider,
   browserLocalPersistence,
   onAuthStateChanged,
-  setPersistence,
-  signInWithPopup,
-  signInWithRedirect,
   signOut,
   type User,
+>>>>>>>>> Temporary merge branch 2
+  OAuthProvider,
+  signInWithPopup,
+  signInWithRedirect,
 } from 'firebase/auth';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 
 import { auth } from '@/lib/firebase/client';
+import { Loader2 } from 'lucide-react';
+import { usePathname, useRouter } from 'next/navigation';
+
 
 interface AuthContextType {
   user: User | null;
@@ -30,12 +36,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
   const router = useRouter();
   const pathname = usePathname();
-  const searchParams = useSearchParams();
-  const search = searchParams.toString();
 
-  useEffect(() => {
-    const unsub = onAuthStateChanged(auth, current => {
-      setUser(current);
+  React.useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      setUser(user);
       setLoading(false);
     });
     return () => unsub();
@@ -44,22 +48,38 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Redirect based on auth state
   useEffect(() => {
     if (loading) return;
-    const isAuthPage = pathname === '/login';
+
+    const isProtectedRoute = !['/login'].includes(pathname);
 
     if (!user && !isAuthPage) {
-      const nextPath = pathname + (search ? `?${search}` : '');
-      const url = nextPath ? `/login?next=${encodeURIComponent(nextPath)}` : '/login';
-      router.replace(url);
+      router.replace('/login');
     } else if (user && isAuthPage) {
-      const next = new URLSearchParams(search).get('next') || '/';
-      router.replace(next);
+      router.replace('/');
     }
-  }, [user, loading, pathname, search, router]);
+  }, [user, loading, pathname, router]);
+
+  const logout = () => {
+    return signOut(auth);
+  };
+
+  const signup = React.useCallback(
+    (email: string, pass: string) => createUserWithEmailAndPassword(auth, email, pass),
+    []
+  );
+
+  const logout = React.useCallback(async () => {
+      await signOut(auth);
+      // Ensure redirect after logout
+      router.push('/login');
+  }, [router]);
 
   const loginWithMicrosoft = useCallback(async () => {
     await setPersistence(auth, browserLocalPersistence);
     const tenant = process.env.NEXT_PUBLIC_MICROSOFT_TENANT_ID;
-    if (!tenant) throw new Error('NEXT_PUBLIC_MICROSOFT_TENANT_ID missing');
+    if (!tenant) {
+      console.error('[AUTH DBG] NEXT_PUBLIC_MICROSOFT_TENANT_ID missing');
+      throw new Error('NEXT_PUBLIC_MICROSOFT_TENANT_ID missing');
+    }
     const provider = new OAuthProvider('microsoft.com');
     provider.setCustomParameters({ tenant, prompt: 'select_account' });
     try {
@@ -89,7 +109,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     );
   }
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider value={value}>
+      {children}
+    </AuthContext.Provider>
+  );
 }
 
 export function useAuth() {

@@ -3,29 +3,23 @@ import { initializeApp, getApps, getApp, type FirebaseApp } from 'firebase/app';
 import { getAuth, type Auth } from 'firebase/auth';
 import { getFirestore, type Firestore } from 'firebase/firestore';
 
+// Hardcoded config to ensure the correct values are used at runtime
 const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+  apiKey: "AIzaSyBnLCLDNhL64QG6kagfwSAXyCOdB-H7ENA",
+  authDomain: "listingflow-sp4tf.firebaseapp.com",
+  projectId: "listingflow-sp4tf",
+  storageBucket: "listingflow-sp4tf.appspot.com",
+  messagingSenderId: "935922706940",
+  appId: "1:935922706940:web:2fc04bfc3e3240cfc82a79",
 };
 
 let app: FirebaseApp;
 let auth: Auth;
 let db: Firestore;
 
-// Only initialize Firebase if the required config is available.
-if (typeof window !== 'undefined' && firebaseConfig.apiKey) {
-  app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
-  auth = getAuth(app);
-  db = getFirestore(app);
-} else {
-  // Provide fallbacks to avoid build-time errors when env vars are missing.
-  app = {} as any;
-  auth = {} as any;
-  db = {} as any;
-}
+app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
+auth = getAuth(app);
+db = getFirestore(app);
+
 
 export { app, auth, db };
