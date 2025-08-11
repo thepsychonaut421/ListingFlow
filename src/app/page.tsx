@@ -680,9 +680,9 @@ function DashboardClient() {
           <ProductDataTable 
             columns={columns} 
             data={products} 
-            onBulkDelete={handleBulkDelete}
             rowSelection={rowSelection}
             setRowSelection={setRowSelection}
+            onBulkDelete={handleBulkDelete}
           />
         </CardContent>
       </Card>
