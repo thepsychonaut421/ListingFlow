@@ -2,19 +2,17 @@
 
 import React, { useCallback, useEffect, useState } from 'react';
 import {
-  browserLocalPersistence,
   onAuthStateChanged,
-  setPersistence,
-  signInWithPopup,
-  signInWithRedirect,
   signOut,
   type User,
   OAuthProvider,
+  signInWithPopup,
+  signInWithRedirect,
 } from 'firebase/auth';
-import { usePathname, useRouter } from 'next/navigation';
-import { Loader2 } from 'lucide-react';
-
 import { auth } from '@/lib/firebase/client';
+import { Loader2 } from 'lucide-react';
+import { usePathname, useRouter } from 'next/navigation';
+
 
 interface AuthContextType {
   user: User | null;
@@ -31,9 +29,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
 
-  useEffect(() => {
-    const unsub = onAuthStateChanged(auth, current => {
-      setUser(current);
+  React.useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      setUser(user);
       setLoading(false);
     });
     return () => unsub();
@@ -43,24 +41,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (loading) return;
 
-    const isAuthPage = pathname === '/login';
+    const isProtectedRoute = !['/login'].includes(pathname);
 
     if (!user && !isAuthPage) {
-      const nextPath = pathname + (location.search || '');
-      const url = nextPath ? `/login?next=${encodeURIComponent(nextPath)}` : '/login';
-      router.replace(url);
+      router.replace('/login');
     } else if (user && isAuthPage) {
       router.replace('/');
     }
   }, [user, loading, pathname, router]);
 
+  const logout = () => {
+    return signOut(auth);
+  };
+
+  const signup = React.useCallback(
+    (email: string, pass: string) => createUserWithEmailAndPassword(auth, email, pass),
+    []
+  );
+
   const logout = React.useCallback(async () => {
-    await signOut(auth);
-    // Ensure redirect after logout
-    router.push('/login');
+      await signOut(auth);
+      // Ensure redirect after logout
+      router.push('/login');
   }, [router]);
 
-  const loginWithMicrosoft = React.useCallback(async () => {
+  const loginWithMicrosoft = useCallback(async () => {
     await setPersistence(auth, browserLocalPersistence);
     const tenant = process.env.NEXT_PUBLIC_MICROSOFT_TENANT_ID;
     if (!tenant) throw new Error('NEXT_PUBLIC_MICROSOFT_TENANT_ID missing');
@@ -76,8 +81,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       console.error('Microsoft login error:', e);
       throw e;
     }
-  }, []);
-
+  };
+  
   const value = {
     user,
     loading,
@@ -93,16 +98,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     );
   }
 
-  // Prevent rendering children if auth state is not resolved for a protected page
-  if (!user && pathname !== '/login') {
-    return (
-       <div className="flex items-center justify-center min-h-screen">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
-  }
-
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider value={value}>
+      {children}
+    </AuthContext.Provider>
+  );
 }
 
 export function useAuth() {
