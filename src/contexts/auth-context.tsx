@@ -59,7 +59,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const loginWithMicrosoft = useCallback(async () => {
     await setPersistence(auth, browserLocalPersistence);
     const tenant = process.env.NEXT_PUBLIC_MICROSOFT_TENANT_ID;
-    if (!tenant) throw new Error('NEXT_PUBLIC_MICROSOFT_TENANT_ID missing');
+    if (!tenant) {
+      console.error('[AUTH DBG] NEXT_PUBLIC_MICROSOFT_TENANT_ID is missing');
+      throw new Error('NEXT_PUBLIC_MICROSOFT_TENANT_ID is required');
+    }
     const provider = new OAuthProvider('microsoft.com');
     provider.setCustomParameters({ tenant, prompt: 'select_account' });
     try {
@@ -68,7 +71,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (e?.code === 'auth/popup-blocked' || e?.code === 'auth/cancelled-popup-request') {
         await signInWithRedirect(auth, provider);
       } else {
-        console.error('Microsoft login error:', e);
+        console.error('[AUTH DBG] Microsoft login error', e);
         throw e;
       }
     }
