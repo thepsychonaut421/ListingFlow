@@ -57,16 +57,21 @@ function SettingsClient() {
         <CardHeader>
           <CardTitle>ERPNext Integration</CardTitle>
           <CardDescription>
-            Your ERPNext credentials should be stored securely in an <strong>.env</strong> file in the root of your project. This file is not checked into version control.
+            Your ERPNext credentials should be stored securely as secrets in your hosting environment. This avoids exposing them in your code.
             <br /><br />
             For images from ERPNext to load correctly, you must provide the full URL to your instance in a variable called `NEXT_PUBLIC_ERPNEXT_URL`.
              <pre className="mt-2 p-2 bg-muted rounded-md text-sm font-mono">
-              NEXT_PUBLIC_ERPNEXT_URL=https://your-erp.rembayer.info<br/>
-              ERPNEXT_API_KEY=your_api_key<br/>
-              ERPNEXT_API_SECRET=your_api_secret
+              # In apphosting.yaml
+              env:
+                - variable: NEXT_PUBLIC_ERPNEXT_URL
+                  value: https://your-erp.rembayer.info
+                - variable: ERPNEXT_API_KEY
+                  secret: ERPNEXT_API_KEY
+                - variable: ERPNEXT_API_SECRET
+                  secret: ERPNEXT_API_SECRET
             </pre>
              <p className="mt-4 text-sm text-muted-foreground">
-              The app will construct image URLs using the base: <strong>{erpNextUrl}</strong>
+              Current URL for images: <strong>{erpNextUrl}</strong>
             </p>
           </CardDescription>
         </CardHeader>
