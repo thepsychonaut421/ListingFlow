@@ -5,3 +5,16 @@ runConfig:
   # Increase this value if you'd like to automatically spin up
   # more instances in response to increased traffic.
   maxInstances: 1
+
+# Environment variables for ERPNext integration.
+# Replace values or reference secrets when deploying.
+env:
+  - variable: NEXT_PUBLIC_ERPNEXT_URL
+    value: https://your-erp.example.com
+    availability:
+      - BUILD
+      - RUNTIME
+  - variable: ERPNEXT_API_KEY
+    secret: ERPNEXT_API_KEY
+  - variable: ERPNEXT_API_SECRET
+    secret: ERPNEXT_API_SECRET
