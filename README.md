@@ -69,12 +69,37 @@ npm install
 
 	3.	Configure environment variables in .env
 
-ERP_API_URL=https://erp.example.com
-ERP_API_KEY=xxxxx
-ERP_API_SECRET=xxxxx
+NEXT_PUBLIC_ERPNEXT_URL=https://erp.example.com
+ERPNEXT_API_KEY=xxxxx
+ERPNEXT_API_SECRET=xxxxx
 GENKIT_API_KEY=xxxxx
 
-	4.	Start the development server
+	4.	(Optional) When deploying, configure the same variables in your hosting provider.
+		For Firebase App Hosting, set them in the Firebase console or in `apphosting.yaml`:
+
+env:
+  - variable: NEXT_PUBLIC_ERPNEXT_URL
+    value: https://erp.example.com
+    availability:
+      - BUILD
+      - RUNTIME
+  - variable: ERPNEXT_API_KEY
+    secret: ERPNEXT_API_KEY
+    availability:
+      - BUILD
+      - RUNTIME
+  - variable: ERPNEXT_API_SECRET
+    secret: ERPNEXT_API_SECRET
+    availability:
+      - BUILD
+      - RUNTIME
+
+After creating secrets, grant App Hosting access:
+
+```bash
+firebase apphosting:secrets:grantaccess ERPNEXT_API_KEY ERPNEXT_API_SECRET
+```
+	5.	Start the development server
 
 npm run dev
 
