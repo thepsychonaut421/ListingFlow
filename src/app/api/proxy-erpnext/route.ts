@@ -7,7 +7,7 @@ export async function POST(req: Request) {
   try {
     const { endpoint, method = 'GET', body } = await req.json();
 
-    const url = process.env.ERPNEXT_URL;
+    const url = process.env.NEXT_PUBLIC_ERPNEXT_URL;
     const apiKey = process.env.ERPNEXT_API_KEY;
     const apiSecret = process.env.ERPNEXT_API_SECRET;
     
@@ -72,7 +72,7 @@ export async function POST(req: Request) {
     console.error("API Proxy Error:", err);
     // Provide a more specific error message for network/fetch failures
     const errorMessage = err.cause?.code === 'ENOTFOUND'
-      ? `Could not connect to ERPNext server at ${process.env.ERPNEXT_URL}. Please check the URL and network connection.`
+      ? `Could not connect to ERPNext server at ${process.env.NEXT_PUBLIC_ERPNEXT_URL}. Please check the URL and network connection.`
       : err.message || 'An unexpected error occurred in the API proxy.';
       
     return NextResponse.json(
