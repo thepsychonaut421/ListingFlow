@@ -66,7 +66,7 @@ export async function importProductsFromERPNext(
   try {
     setLoading(true);
 
-    const itemsData = await erpNextRequest('/api/resource/Item?fields=["name","item_code","item_name","standard_rate","image","ean"]&limit=100');
+    const itemsData = await erpNextRequest('/api/resource/Item?fields=["name","item_code","item_name","standard_rate","image"]&limit=100');
     
     if (!itemsData || !itemsData.data || itemsData.data.length === 0) {
       alert('No products found in ERPNext to import.');
@@ -112,7 +112,7 @@ export async function importProductsFromERPNext(
         ebayCategoryId: '',
         listingStatus: 'draft',
         productType: '',
-        ean: item.ean || '',
+        ean: '',
         technicalSpecs: {},
       } as Product;
     }));
