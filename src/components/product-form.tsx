@@ -33,7 +33,6 @@ import { findEan } from '@/ai/flows/find-ean';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Search, Copy, Trash2, PlusCircle } from 'lucide-react';
 import {CopyToClipboard} from 'react-copy-to-clipboard';
-import { useErpData } from '@/contexts/erp-data-context';
 import { searchInERPNext } from '@/lib/erpnext';
 import { HTMLPreview } from './html-preview';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
@@ -64,21 +63,6 @@ interface ProductFormProps {
   product: Product | null;
   onSave: (data: Product) => void;
   onCancel: () => void;
-}
-
-async function callGenkitAPI(action: string, payload: any) {
-  const res = await fetch('/api/genkit-proxy', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ action, payload }),
-  });
-
-  if (!res.ok) {
-    const err = await res.json();
-    throw new Error(err.error || 'Genkit API call failed');
-  }
-
-  return res.json();
 }
 
 function CategoryFinder({ onSelectCategory }: { onSelectCategory: (id: string) => void }) {
@@ -194,7 +178,6 @@ export function ProductForm({ product, onSave, onCancel }: ProductFormProps) {
   const [isCategoryFinderOpen, setIsCategoryFinderOpen] = React.useState(false);
   const [isFindingEan, setIsFindingEan] = React.useState(false);
   const { toast } = useToast();
-  const { erpData, setErpData } = useErpData();
 
   const form = useForm<ProductFormValues>({
     resolver: zodResolver(productSchema),
@@ -293,7 +276,7 @@ export function ProductForm({ product, onSave, onCancel }: ProductFormProps) {
     const results = await searchInERPNext(
       'Item',
       filters,
-      ['name', 'item_name', 'item_group', 'ean'] // Removed 'brand'
+      ['name', 'item_name', 'item_group', 'ean']
     );
 
     if (results.length > 0) {
