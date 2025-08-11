@@ -1,7 +1,7 @@
 'use client';
 
 import type { ColumnDef } from '@tanstack/react-table';
-import { MoreHorizontal, ArrowUpDown, Sparkles, Loader2, Edit, Trash2, Search, Copy, PackageSearch, Send } from 'lucide-react';
+import { MoreHorizontal, ArrowUpDown, Sparkles, Loader2, Edit, Trash2, Search, Copy, PackageSearch, Send, ImageIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -29,6 +29,7 @@ type GetColumnsProps = {
   onUpdate: (id: string, data: Partial<Product>) => void;
   onCopyDescription: (product: Product, source: 'otto' | 'ebay') => void;
   onExtractTechSpecs: (product: Product) => void;
+  onGenerateImage: (product: Product) => void;
   onSendToEbay: (product: Product) => void;
   generatingProductId: string | null;
 };
@@ -40,7 +41,7 @@ const formatCurrency = (amount: number) => {
     }).format(amount);
 }
 
-export const getColumns = ({ onEdit, onDelete, onGenerate, onCopyDescription, onExtractTechSpecs, onSendToEbay, generatingProductId }: GetColumnsProps): ColumnDef<Product>[] => [
+export const getColumns = ({ onEdit, onDelete, onGenerate, onCopyDescription, onExtractTechSpecs, onGenerateImage, onSendToEbay, generatingProductId }: GetColumnsProps): ColumnDef<Product>[] => [
   {
     id: 'select',
     header: ({ table }) => (
@@ -167,6 +168,10 @@ export const getColumns = ({ onEdit, onDelete, onGenerate, onCopyDescription, on
                          <DropdownMenuItem onClick={() => onExtractTechSpecs(product)}>
                             <PackageSearch className="mr-2 h-4 w-4" />
                             <span>Extract Tech Specs</span>
+                        </DropdownMenuItem>
+                         <DropdownMenuItem onClick={() => onGenerateImage(product)}>
+                            <ImageIcon className="mr-2 h-4 w-4" />
+                            <span>Generate Image</span>
                         </DropdownMenuItem>
                         <DropdownMenuSub>
                             <DropdownMenuSubTrigger>

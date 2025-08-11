@@ -12,7 +12,8 @@ import {
   Download,
   RefreshCw,
   Send,
-  Loader2
+  Loader2,
+  ImageIcon
 } from 'lucide-react';
 import Papa from 'papaparse';
 
@@ -47,6 +48,7 @@ import { getColumns } from '@/components/product-columns';
 import { generateProductDescription } from '@/ai/flows/generate-product-description';
 import { findProductDescription } from '@/ai/flows/find-product-description';
 import { findTechnicalSpecs } from '@/ai/flows/find-technical-specs';
+import { generateProductImage } from '@/ai/flows/generate-product-image';
 import { useToast } from '@/hooks/use-toast';
 import { ProductForm } from '@/components/product-form';
 import { BulkEditForm } from '@/components/bulk-edit-form';
@@ -275,6 +277,34 @@ function DashboardClient() {
         });
     } finally {
         setGeneratingProductId(null);
+    }
+  };
+  
+    const handleGenerateImage = async (product: Product) => {
+    setGeneratingProductId(product.id);
+    try {
+      const { imageUrl } = await generateProductImage({
+        productName: product.name,
+      });
+
+      if (imageUrl) {
+        handleUpdateProduct(product.id, { image: imageUrl });
+        toast({
+          title: 'AI Image Generated!',
+          description: `A new image for "${product.name}" has been generated.`,
+        });
+      } else {
+        throw new Error('Image generation returned an empty URL.');
+      }
+    } catch (error) {
+      console.error('Failed to generate image:', error);
+      toast({
+        variant: 'destructive',
+        title: 'AI Image Failed',
+        description: 'Could not generate a new image. Please try again.',
+      });
+    } finally {
+      setGeneratingProductId(null);
     }
   };
 
@@ -533,6 +563,7 @@ function DashboardClient() {
       onUpdate: handleUpdateProduct,
       onCopyDescription: handleCopyDescription,
       onExtractTechSpecs: handleExtractTechSpecs,
+      onGenerateImage: handleGenerateImage,
       onSendToEbay: handleSendToEbayDraft,
       generatingProductId,
   }), [generatingProductId, products]);
