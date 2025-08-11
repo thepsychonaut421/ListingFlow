@@ -85,6 +85,20 @@ env:
       - RUNTIME
   - variable: ERPNEXT_API_KEY
     secret: ERPNEXT_API_KEY
+    availability:
+      - BUILD
+      - RUNTIME
+  - variable: ERPNEXT_API_SECRET
+    secret: ERPNEXT_API_SECRET
+    availability:
+      - BUILD
+      - RUNTIME
+
+After creating secrets, grant App Hosting access:
+
+```bash
+firebase apphosting:secrets:grantaccess ERPNEXT_API_KEY ERPNEXT_API_SECRET
+```
   - variable: ERPNEXT_API_SECRET
     secret: ERPNEXT_API_SECRET
 

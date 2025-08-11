@@ -16,5 +16,14 @@ env:
       - RUNTIME
   - variable: ERPNEXT_API_KEY
     secret: ERPNEXT_API_KEY
+    availability:
+      - BUILD
+      - RUNTIME
+  - variable: ERPNEXT_API_SECRET
+    secret: ERPNEXT_API_SECRET
+    availability:
+      - BUILD
+      - RUNTIME
+
   - variable: ERPNEXT_API_SECRET
     secret: ERPNEXT_API_SECRET
