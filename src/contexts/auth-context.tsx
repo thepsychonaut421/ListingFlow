@@ -5,11 +5,6 @@ import {
   OAuthProvider,
   browserLocalPersistence,
   onAuthStateChanged,
-  signOut,
-  type User,
-  OAuthProvider,
-  browserLocalPersistence,
-  onAuthStateChanged,
   setPersistence,
   signInWithPopup,
   signInWithRedirect,
@@ -17,7 +12,6 @@ import {
   type User,
 } from 'firebase/auth';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { Loader2 } from 'lucide-react';
 
 import { auth } from '@/lib/firebase/client';
 
@@ -64,7 +58,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const loginWithMicrosoft = useCallback(async () => {
     await setPersistence(auth, browserLocalPersistence);
     const tenant = process.env.NEXT_PUBLIC_MICROSOFT_TENANT_ID;
-    if (!tenant) throw new Error('NEXT_PUBLIC_MICROSOFT_TENANT_ID missing');
+    if (!tenant) {
+      console.error('[AUTH DBG] NEXT_PUBLIC_MICROSOFT_TENANT_ID missing');
+      throw new Error('NEXT_PUBLIC_MICROSOFT_TENANT_ID missing');
+    }
     const provider = new OAuthProvider('microsoft.com');
     provider.setCustomParameters({ tenant, prompt: 'select_account' });
     try {
@@ -73,7 +70,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (e?.code === 'auth/popup-blocked' || e?.code === 'auth/cancelled-popup-request') {
         await signInWithRedirect(auth, provider);
       } else {
-        console.error('Microsoft login error:', e);
+        console.error('[AUTH DBG] Microsoft login error', e);
         throw e;
       }
     }
@@ -85,14 +82,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [router]);
 
   const value = { user, loading, loginWithMicrosoft, logout };
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
-  }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
