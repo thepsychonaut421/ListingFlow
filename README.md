@@ -69,9 +69,9 @@ npm install
 
 	3.	Configure environment variables in .env
 
-ERP_API_URL=https://erp.example.com
-ERP_API_KEY=xxxxx
-ERP_API_SECRET=xxxxx
+NEXT_PUBLIC_ERPNEXT_URL=https://erp.example.com
+ERPNEXT_API_KEY=xxxxx
+ERPNEXT_API_SECRET=xxxxx
 GENKIT_API_KEY=xxxxx
 
 	4.	Start the development server
