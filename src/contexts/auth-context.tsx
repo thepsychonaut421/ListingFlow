@@ -31,6 +31,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const search = React.useMemo(() => searchParams.toString(), [searchParams]);
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, current => {
@@ -46,14 +47,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const isAuthPage = pathname === '/login';
 
     if (!user && !isAuthPage) {
-      const nextPath = pathname + (searchParams.toString() ? `?${searchParams.toString()}` : '');
+      const nextPath = pathname + (search ? `?${search}` : '');
       const url = nextPath ? `/login?next=${encodeURIComponent(nextPath)}` : '/login';
       router.replace(url);
     } else if (user && isAuthPage) {
-      const next = searchParams.get('next') || '/';
+      const next = new URLSearchParams(search).get('next') || '/';
       router.replace(next);
     }
-  }, [user, loading, pathname, searchParams, router]);
+  }, [user, loading, pathname, search, router]);
 
   const loginWithMicrosoft = useCallback(async () => {
     await setPersistence(auth, browserLocalPersistence);
