@@ -288,6 +288,7 @@ function DashboardClient() {
     try {
       const { imageUrl } = await generateProductImage({
         productName: product.name,
+        sourceImageUrl: product.image,
       });
 
       if (imageUrl) {
