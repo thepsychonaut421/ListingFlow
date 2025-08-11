@@ -94,9 +94,19 @@ function DashboardClient() {
 
   React.useEffect(() => {
     if (!isLoading) {
-      localStorage.setItem('listingFlowProducts', JSON.stringify(products));
+      try {
+        localStorage.setItem('listingFlowProducts', JSON.stringify(products));
+      } catch (error) {
+        console.error('Failed to save products to localStorage', error);
+        toast({
+          variant: 'destructive',
+          title: 'Save Failed',
+          description:
+            'Could not save products. Local storage might be full. Please clear some data or images.',
+        });
+      }
     }
-  }, [products, isLoading]);
+  }, [products, isLoading, toast]);
   
   // Effect to store selected product IDs in localStorage for the exports page
   React.useEffect(() => {
