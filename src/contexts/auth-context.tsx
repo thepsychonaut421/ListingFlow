@@ -31,7 +31,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const search = React.useMemo(() => searchParams.toString(), [searchParams]);
+  const search = searchParams.toString();
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, current => {
