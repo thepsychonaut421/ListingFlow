@@ -25,3 +25,5 @@ env:
       - BUILD
       - RUNTIME
 
+  - variable: ERPNEXT_API_SECRET
+    secret: ERPNEXT_API_SECRET
