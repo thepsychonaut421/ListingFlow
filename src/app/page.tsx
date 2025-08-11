@@ -95,11 +95,10 @@ function DashboardClient() {
     }
   }, [products, isLoading]);
   
-  // Effect to store selected products in localStorage for the exports page
+  // Effect to store selected product IDs in localStorage for the exports page
   React.useEffect(() => {
-    const selected = products.filter(p => selectedProductIds.includes(p.id));
-    localStorage.setItem('listingFlowSelectedProducts', JSON.stringify(selected));
-  }, [selectedProductIds, products]);
+    localStorage.setItem('listingFlowSelectedProductIds', JSON.stringify(selectedProductIds));
+  }, [selectedProductIds]);
 
   const handleAddProduct = () => {
     setSelectedProduct(null);

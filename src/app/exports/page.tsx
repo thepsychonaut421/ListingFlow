@@ -31,12 +31,20 @@ function ExportsClient() {
 
   React.useEffect(() => {
     try {
-      // We get the selected products from localStorage. This assumes they are saved from the main page.
-      const storedProducts = localStorage.getItem('listingFlowSelectedProducts');
-      if (storedProducts) {
-        const parsedProducts = JSON.parse(storedProducts);
-        // Ensure we always have an array, even if nothing is stored.
-        setProducts(Array.isArray(parsedProducts) ? parsedProducts : []);
+      // Get all products from local storage
+      const allProductsJSON = localStorage.getItem('listingFlowProducts');
+      const allProducts: Product[] = allProductsJSON ? JSON.parse(allProductsJSON) : [];
+      
+      // Get the IDs of selected products
+      const selectedProductIdsJSON = localStorage.getItem('listingFlowSelectedProductIds');
+      const selectedProductIds: string[] = selectedProductIdsJSON ? JSON.parse(selectedProductIdsJSON) : [];
+      
+      // Filter the full product list to get the selected products
+      if (allProducts.length > 0 && selectedProductIds.length > 0) {
+        const selected = allProducts.filter(p => selectedProductIds.includes(p.id));
+        setProducts(selected);
+      } else {
+        setProducts([]);
       }
     } catch (error) {
       console.error('Failed to parse selected products from localStorage', error);
