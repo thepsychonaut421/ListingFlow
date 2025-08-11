@@ -20,7 +20,7 @@ export type FindProductDescriptionInput = z.infer<typeof FindProductDescriptionI
 
 const FindProductDescriptionOutputSchema = z.object({
   description: z.string().describe('The product description found on the specified source. If not found, return an empty string. This should be in German.'),
-  technicalSpecs: z.record(z.string()).describe('A key-value object of technical specifications found on the page. For example, {"Leistung": "600 W", "Maße": "30x20x10 cm"}. If none are found, return an empty object. The keys and values should be in German.'),
+  technicalSpecs: z.any().describe('A key-value object of technical specifications found on the page. For example, {"Leistung": "600 W", "Maße": "30x20x10 cm"}. If none are found, return an empty object. The keys and values should be in German.'),
 });
 export type FindProductDescriptionOutput = z.infer<typeof FindProductDescriptionOutputSchema>;
 
