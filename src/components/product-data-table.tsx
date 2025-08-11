@@ -29,41 +29,39 @@ import { Trash2 } from 'lucide-react';
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
-  onSelectionChange: (selectedIds: string[]) => void;
   onBulkDelete: (selectedIds: string[]) => void;
+  rowSelection: RowSelectionState;
+  setRowSelection: (selection: RowSelectionState) => void;
 }
 
 export function ProductDataTable<TData extends { id: string }, TValue>({
   columns,
   data,
-  onSelectionChange,
   onBulkDelete,
+  rowSelection,
+  setRowSelection,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
-  const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
 
   const table = useReactTable({
     data,
     columns,
-    getCoreRowModel: getCoreRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
-    onSortingChange: setSorting,
-    getSortedRowModel: getSortedRowModel(),
-    onColumnFiltersChange: setColumnFilters,
-    getFilteredRowModel: getFilteredRowModel(),
-    onRowSelectionChange: setRowSelection,
     state: {
       sorting,
       columnFilters,
       rowSelection,
     },
+    enableRowSelection: true, // Enable row selection
+    getRowId: (row) => row.id, // Use product ID for stable row identification
+    onRowSelectionChange: setRowSelection,
+    onSortingChange: setSorting,
+    onColumnFiltersChange: setColumnFilters,
+    getCoreRowModel: getCoreRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
+    getSortedRowModel: getSortedRowModel(),
   });
-
-  React.useEffect(() => {
-    const selectedIds = table.getFilteredSelectedRowModel().rows.map(row => row.original.id);
-    onSelectionChange(selectedIds);
-  }, [rowSelection, onSelectionChange, table]);
 
   const handleDeleteSelected = () => {
     const selectedIds = table.getFilteredSelectedRowModel().rows.map(row => row.original.id);

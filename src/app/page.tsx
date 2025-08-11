@@ -16,6 +16,7 @@ import {
   ImageIcon
 } from 'lucide-react';
 import Papa from 'papaparse';
+import type { RowSelectionState } from '@tanstack/react-table';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -64,7 +65,7 @@ function DashboardClient() {
   const [isSheetOpen, setIsSheetOpen] = React.useState(false);
   const [isBulkEditOpen, setIsBulkEditOpen] = React.useState(false);
   const [selectedProduct, setSelectedProduct] = React.useState<Product | null>(null);
-  const [selectedProductIds, setSelectedProductIds] = React.useState<string[]>([]);
+  const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
   const [isLoading, setIsLoading] = React.useState(true);
   const [isErpLoading, setIsErpLoading] = React.useState(false);
   const [generatingProductId, setGeneratingProductId] = React.useState<string | null>(null);
@@ -72,6 +73,8 @@ function DashboardClient() {
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const erpFileInputRef = React.useRef<HTMLInputElement>(null);
   const priceFileInputRef = React.useRef<HTMLInputElement>(null);
+
+  const selectedProductIds = React.useMemo(() => Object.keys(rowSelection), [rowSelection]);
   
 
   React.useEffect(() => {
@@ -116,6 +119,7 @@ function DashboardClient() {
   
   const handleBulkDelete = (ids: string[]) => {
     setProducts(products.filter((p) => !ids.includes(p.id)));
+    setRowSelection({}); // Clear selection after deletion
     toast({
         title: 'Products Deleted',
         description: `${ids.length} products have been deleted successfully.`,
@@ -157,7 +161,7 @@ function DashboardClient() {
         description: `${selectedProductIds.length} products have been updated.`,
     });
     setIsBulkEditOpen(false);
-    setSelectedProductIds([]);
+    setRowSelection({}); // Clear selection
   };
   
   const handleGenerateDescription = async (product: Product) => {
@@ -575,8 +579,6 @@ function DashboardClient() {
     );
   }
 
-  const selectedData = products.filter(p => selectedProductIds.includes(p.id));
-
   return (
     <main className="grid flex-1 items-start gap-4 p-4 sm:px-6 sm:py-0 md:gap-8">
       <Card>
@@ -677,8 +679,9 @@ function DashboardClient() {
           <ProductDataTable 
             columns={columns} 
             data={products} 
-            onSelectionChange={setSelectedProductIds}
             onBulkDelete={handleBulkDelete}
+            rowSelection={rowSelection}
+            setRowSelection={setRowSelection}
           />
         </CardContent>
       </Card>
