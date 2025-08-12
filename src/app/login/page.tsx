@@ -34,25 +34,21 @@ function AuthForm() {
     const password = formData.get('password') as string;
 
     let result;
-    try {
-        if (mode === 'signin') {
-            result = await signInWithEmailAndPassword(email, password);
-        } else if (mode === 'signup') {
-            result = await signUpWithEmailAndPassword(email, password);
-        } else {
-            result = await sendSignInLink(email);
-            if (!result?.error) {
-                 window.localStorage.setItem('emailForSignIn', email);
-                 toast({
-                    title: 'Check your email',
-                    description: 'A sign-in link has been sent to your email address.',
-                });
-            }
-        }
-    } catch (err: any) {
-        result = { error: err.message || 'An unexpected error occurred.' };
-    }
 
+    if (mode === 'signin') {
+        result = await signInWithEmailAndPassword(email, password);
+    } else if (mode === 'signup') {
+        result = await signUpWithEmailAndPassword(email, password);
+    } else {
+        result = await sendSignInLink(email);
+        if (!result?.error) {
+             window.localStorage.setItem('emailForSignIn', email);
+             toast({
+                title: 'Check your email',
+                description: 'A sign-in link has been sent to your email address.',
+            });
+        }
+    }
 
     setIsSubmitting(false);
 
@@ -63,7 +59,7 @@ function AuthForm() {
         description: result.error,
       });
     } else if (mode !== 'link') {
-        // Successful sign-in or sign-up redirects via page reload.
+        // Successful sign-in or sign-up redirects to the main page.
         router.push('/');
     }
   };

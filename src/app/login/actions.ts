@@ -25,8 +25,14 @@ export async function signUpWithEmailAndPassword(email: string, password: string
     // This provides a smoother user experience than asking them to log in again.
     const customToken = await auth.createCustomToken(userRecord.uid);
     
-    // Exchange custom token for an ID token
-    const idTokenResponse = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:signInWithCustomToken?key=${process.env.NEXT_PUBLIC_FIREBASE_API_KEY}`, {
+    // Exchange custom token for an ID token on the client side via REST API
+    const apiKey = process.env.NEXT_PUBLIC_FIREBASE_API_KEY;
+    if (!apiKey) {
+      // This should not happen if the environment is set up correctly
+      throw new Error('Firebase API Key is not configured.');
+    }
+    
+    const idTokenResponse = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:signInWithCustomToken?key=${apiKey}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ token: customToken, returnSecureToken: true }),
