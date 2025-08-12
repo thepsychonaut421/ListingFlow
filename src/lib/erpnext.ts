@@ -60,30 +60,47 @@ async function erpNextRequest(
 // 2. Import produse din ERPNext
 export async function importProductsFromERPNext(
   setLoading: (b: boolean) => void,
-  setProducts: (products: Product[]) => void,
+  setProducts: (fn: (products: Product[]) => Product[]) => void,
   currentProducts: Product[]
 ) {
   try {
     setLoading(true);
 
-    const itemsData = await erpNextRequest('/api/resource/Item?fields=["name","item_code","item_name","standard_rate","image"]&limit=100');
-    
-    if (!itemsData || !itemsData.data || itemsData.data.length === 0) {
+    let allItems: any[] = [];
+    const pageSize = 100; // Fetch in batches of 100
+    let start = 0;
+    let hasMore = true;
+
+    while (hasMore) {
+      const endpoint = `/api/resource/Item?fields=["name","item_code","item_name","standard_rate","image"]&limit_start=${start}&limit_page_length=${pageSize}`;
+      const itemsData = await erpNextRequest(endpoint);
+      
+      if (itemsData && itemsData.data && itemsData.data.length > 0) {
+        allItems = allItems.concat(itemsData.data);
+        start += pageSize;
+      } else {
+        hasMore = false;
+      }
+    }
+
+    if (allItems.length === 0) {
       alert('No products found in ERPNext to import.');
+      setLoading(false);
       return;
     }
 
     // Create a map of existing product SKUs for quick lookup
     const existingSkuMap = new Set(currentProducts.map(p => p.code));
     
-    const newItems = itemsData.data.filter((item: any) => !existingSkuMap.has(item.name));
+    const newItems = allItems.filter((item: any) => !existingSkuMap.has(item.name));
 
     if (newItems.length === 0) {
         alert('All ERPNext products are already in ListingFlow. Use "Update from ERPNext" to sync data.');
+        setLoading(false);
         return;
     }
 
-    const importedProducts = await Promise.all(newItems.map(async (item: any) => {
+    const importedProductsPromises = newItems.map(async (item: any) => {
       let qty = 0;
       try {
         const binData = await erpNextRequest(`/api/resource/Bin?filters=[["item_code","=","${item.name}"]]&fields=["actual_qty"]`);
@@ -94,7 +111,6 @@ export async function importProductsFromERPNext(
       
       const erpNextUrl = process.env.NEXT_PUBLIC_ERPNEXT_URL || '';
       const imageUrl = item.image ? (erpNextUrl.replace(/\/$/, '') + item.image) : '';
-
 
       return {
         id: item.name, // Use ERPNext's unique name as the ID
@@ -111,13 +127,16 @@ export async function importProductsFromERPNext(
         category: '',
         ebayCategoryId: '',
         listingStatus: 'draft',
+        brand: '',
         productType: '',
         ean: '',
         technicalSpecs: {},
       } as Product;
-    }));
+    });
 
-    setProducts([...importedProducts, ...currentProducts]);
+    const importedProducts = await Promise.all(importedProductsPromises);
+
+    setProducts(prevProducts => [...importedProducts, ...prevProducts]);
     alert(`Successfully imported ${importedProducts.length} new products from ERPNext.`);
   } catch (err: any) {
     console.error(err);
