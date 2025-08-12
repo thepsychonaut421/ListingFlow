@@ -11,6 +11,7 @@
 import {ai} from '@/ai/genkit';
 import {z} from 'zod';
 import { findEan } from './find-ean';
+import { getShopifyCategorySuggestion } from '@/lib/category-mapper';
 
 const GenerateProductDescriptionInputSchema = z.object({
   productName: z.string().describe('The name of the product.'),
@@ -100,6 +101,14 @@ const generateProductDescriptionFlow = ai.defineFlow(
     if (!details) {
       throw new Error('Failed to generate product details.');
     }
+    
+    // Validate and potentially correct the Shopify category
+    const suggestedCategory = getShopifyCategorySuggestion(
+      details.category,
+      input.productName
+    );
+    details.category = suggestedCategory;
+
 
     return {
       ...details,
