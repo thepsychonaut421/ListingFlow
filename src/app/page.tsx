@@ -187,7 +187,7 @@ function DashboardClient() {
       const result = await generateProductDescription({
         productName: product.name,
         category: product.category,
-        listingStatus: product.listingStatus as 'new' | 'used' | 'refurbished',
+        listingStatus: product.listingStatus,
         brand: product.brand,
       });
       
@@ -205,7 +205,7 @@ function DashboardClient() {
 
       toast({
         title: 'AI Magic Successful!',
-        description: `Description for "${product.name}" has been generated.`,
+        description: `All fields for "${product.name}" have been generated.`,
       });
 
     } catch (error) {
@@ -213,7 +213,7 @@ function DashboardClient() {
       toast({
         variant: 'destructive',
         title: 'AI Magic Failed',
-        description: 'Could not generate a new description. Please try again.',
+        description: 'Could not generate data. Please try again.',
       });
     } finally {
       setGeneratingProductId(null);
