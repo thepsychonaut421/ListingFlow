@@ -16,18 +16,21 @@ import { Package, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { sendSignInLink, signInWithEmailAndPassword, signUpWithEmailAndPassword } from './actions';
 import { useRouter } from 'next/navigation';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 type AuthMode = 'signin' | 'signup' | 'link';
 
 function AuthForm() {
   const [mode, setMode] = React.useState<AuthMode>('signin');
   const [isSubmitting, setIsSubmitting] = React.useState(false);
+  const [error, setError] = React.useState<string | null>(null);
   const { toast } = useToast();
   const router = useRouter();
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setIsSubmitting(true);
+    setError(null);
 
     const formData = new FormData(event.currentTarget);
     const email = formData.get('email') as string;
@@ -35,32 +38,34 @@ function AuthForm() {
 
     let result;
 
-    if (mode === 'signin') {
-        result = await signInWithEmailAndPassword(email, password);
-    } else if (mode === 'signup') {
-        result = await signUpWithEmailAndPassword(email, password);
-    } else {
-        result = await sendSignInLink(email);
-        if (!result?.error) {
-             window.localStorage.setItem('emailForSignIn', email);
-             toast({
-                title: 'Check your email',
-                description: 'A sign-in link has been sent to your email address.',
-            });
+    try {
+        if (mode === 'signin') {
+            result = await signInWithEmailAndPassword(email, password);
+        } else if (mode === 'signup') {
+            result = await signUpWithEmailAndPassword(email, password);
+        } else { // mode === 'link'
+            result = await sendSignInLink(email);
+            if (!result.error) {
+                 window.localStorage.setItem('emailForSignIn', email);
+                 toast({
+                    title: 'Check your email',
+                    description: 'A sign-in link has been sent to your email address.',
+                });
+            }
         }
-    }
 
-    setIsSubmitting(false);
+        if (result.error) {
+            throw new Error(result.error);
+        }
 
-    if (result?.error) {
-      toast({
-        variant: 'destructive',
-        title: `${mode.charAt(0).toUpperCase() + mode.slice(1)} Failed`,
-        description: result.error,
-      });
-    } else if (mode !== 'link') {
-        // Successful sign-in or sign-up redirects to the main page.
-        router.push('/');
+        // On success (except for email link), redirect to dashboard
+        if (mode !== 'link') {
+            router.push('/');
+        }
+    } catch (err: any) {
+        setError(err.message);
+    } finally {
+        setIsSubmitting(false);
     }
   };
 
@@ -82,6 +87,11 @@ function AuthForm() {
       </CardHeader>
       <form onSubmit={handleSubmit}>
         <CardContent className="space-y-4">
+           {error && (
+            <Alert variant="destructive">
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
           <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
             <Input
