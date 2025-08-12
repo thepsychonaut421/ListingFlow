@@ -63,6 +63,9 @@ function AuthForm() {
           case 'auth/weak-password':
             friendlyMessage = 'The password is too weak. It must be at least 6 characters long.';
             break;
+          case 'auth/api-key-not-valid':
+            friendlyMessage = 'The Firebase API Key is not valid. Please check your .env configuration.';
+            break;
           default:
             friendlyMessage = err.message;
         }
@@ -101,7 +104,13 @@ function AuthForm() {
         });
       } catch (err: any) {
         console.error('Send Link Error:', err);
-        setError(err.message);
+         let friendlyMessage = 'An unknown error occurred. Please try again.';
+          if (err.code === 'auth/api-key-not-valid') {
+            friendlyMessage = 'The Firebase API Key is not valid. Please check your .env configuration.';
+          } else if (err.message) {
+            friendlyMessage = err.message;
+          }
+        setError(friendlyMessage);
       } finally {
         setIsLinkSubmitting(false);
       }
