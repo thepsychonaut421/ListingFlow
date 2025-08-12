@@ -4,7 +4,6 @@ import * as React from 'react';
 import { useRouter } from 'next/navigation';
 import { getAuth, isSignInWithEmailLink, signInWithEmailLink } from 'firebase/auth';
 import { app } from '@/lib/firebase';
-import { createSession } from '@/app/login/actions';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 
@@ -40,16 +39,8 @@ export default function AuthActionPage() {
 
       try {
         setStatus('Confirming email...');
-        const result = await signInWithEmailLink(auth, email, emailLink);
-        const idToken = await result.user.getIdToken();
-        
-        setStatus('Creating your secure session...');
-        const sessionResult = await createSession(idToken);
-
-        if (sessionResult.error) {
-          throw new Error(sessionResult.error);
-        }
-        
+        await signInWithEmailLink(auth, email, emailLink);
+                
         // Clean up the stored email
         window.localStorage.removeItem('emailForSignIn');
         
