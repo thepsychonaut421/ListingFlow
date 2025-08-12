@@ -3,7 +3,6 @@
 import { auth } from '@/lib/firebase-admin';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
-import { getAuth } from 'firebase-admin/auth';
 
 async function createSessionCookie(idToken: string) {
     const expiresIn = 60 * 60 * 24 * 5 * 1000; // 5 days
@@ -22,15 +21,25 @@ export async function signUpWithEmailAndPassword(email: string, password: string
       email,
       password,
     });
-    // We need to create a custom token to then get an ID token for the new user
+    // After creating the user, we sign them in immediately to create a session.
+    // This provides a smoother user experience than asking them to log in again.
     const customToken = await auth.createCustomToken(userRecord.uid);
     
-    // To get an ID token, we need to sign in with the custom token on the client side.
-    // However, for a server-action based flow, we'll just create the user and ask them to log in.
-    // A more complex flow could pass the custom token to the client.
-    
-    // For now, just creating the user is enough. They can log in immediately after.
+    // Exchange custom token for an ID token
+    const idTokenResponse = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:signInWithCustomToken?key=${process.env.NEXT_PUBLIC_FIREBASE_API_KEY}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: customToken, returnSecureToken: true }),
+    });
+
+    const idTokenResult = await idTokenResponse.json();
+    if (!idTokenResponse.ok) {
+        throw new Error(idTokenResult.error?.message || 'Could not exchange custom token for ID token.');
+    }
+
+    await createSessionCookie(idTokenResult.idToken);
     return { success: true, userId: userRecord.uid };
+    
   } catch (error: any) {
     console.error('Error signing up:', error);
     return { error: error.message || 'Could not sign up.' };
@@ -38,9 +47,12 @@ export async function signUpWithEmailAndPassword(email: string, password: string
 }
 
 export async function signInWithEmailAndPassword(email: string, password: string) {
-   // This is a workaround since we can't use the client-side SDK directly in server actions.
+   // This is the correct way to sign in with password in a server action.
    // We use the Firebase Auth REST API to verify the password.
   const apiKey = process.env.NEXT_PUBLIC_FIREBASE_API_KEY; 
+  if (!apiKey) {
+    return { error: 'Firebase API Key is not configured.' };
+  }
   const restApiUrl = `https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${apiKey}`;
 
   try {
@@ -53,7 +65,7 @@ export async function signInWithEmailAndPassword(email: string, password: string
     const result = await response.json();
 
     if (!response.ok) {
-      throw new Error(result.error?.message || 'Authentication failed.');
+      throw new Error(result.error?.message || 'Authentication failed. Please check your credentials.');
     }
 
     await createSessionCookie(result.idToken);
@@ -72,7 +84,9 @@ export async function sendSignInLink(email: string) {
   }
   
   const actionCodeSettings = {
-    url: `${process.env.NEXT_PUBLIC_BASE_URL}/auth/action`,
+    // URL must be absolute and have a proper domain.
+    // NEXT_PUBLIC_BASE_URL should be set in your environment variables.
+    url: `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:9002'}/auth/action`,
     handleCodeInApp: true,
   };
 
