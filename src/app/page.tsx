@@ -13,7 +13,8 @@ import {
   RefreshCw,
   Send,
   Loader2,
-  ImageIcon
+  ImageIcon,
+  MoreVertical
 } from 'lucide-react';
 import Papa from 'papaparse';
 import type { RowSelectionState } from '@tanstack/react-table';
@@ -42,6 +43,12 @@ import {
   DialogDescription,
   DialogTrigger,
 } from '@/components/ui/dialog';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import type { Product } from '@/lib/types';
 import { initialProducts } from '@/lib/data';
 import { ProductDataTable } from '@/components/product-data-table';
@@ -594,7 +601,7 @@ function DashboardClient() {
     <main className="grid flex-1 items-start gap-4 p-4 sm:px-6 sm:py-0 md:gap-8">
       <Card>
         <CardHeader className="flex flex-row items-center">
-          <div>
+          <div className="flex-1">
             <CardTitle>Products</CardTitle>
              <CardDescription>
               Manage your products. Use the buttons to sync with ERPNext.
@@ -602,66 +609,58 @@ function DashboardClient() {
           </div>
           <div className="ml-auto flex items-center gap-2">
             
-            {isErpLoading ? (
-               <Button size="sm" variant="outline" className="h-8 gap-1" disabled>
-                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                  <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
-                    Syncing...
-                  </span>
+             {/* Desktop Buttons */}
+            <div className="hidden md:flex items-center gap-2">
+                 {isErpLoading ? (
+                   <Button size="sm" variant="outline" className="h-8 gap-1" disabled>
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      <span>Syncing...</span>
+                    </Button>
+                ) : (
+                    <div className="flex items-center gap-2">
+                       <Button size="sm" variant="outline" className="h-8 gap-1" onClick={handleErpImport}>
+                          <Download className="h-3.5 w-3.5" />
+                          <span>Import from ERPNext</span>
+                        </Button>
+                        <Button size="sm" variant="outline" className="h-8 gap-1" onClick={handleErpUpdate}>
+                          <RefreshCw className="h-3.5 w-3.5" />
+                          <span>Update from ERPNext</span>
+                        </Button>
+                        <Button size="sm" variant="outline" className="h-8 gap-1" onClick={handleErpExport} disabled={selectedProductIds.length === 0}>
+                          <Send className="h-3.5 w-3.5" />
+                          <span>Export to ERPNext ({selectedProductIds.length})</span>
+                        </Button>
+                    </div>
+                )}
+                 <Button size="sm" variant="outline" className="h-8 gap-1" onClick={handleExportToCSV} disabled={selectedProductIds.length === 0}>
+                  <File className="h-3.5 w-3.5" />
+                  <span>Export CSV ({selectedProductIds.length})</span>
                 </Button>
-            ) : (
-                <div className="flex items-center gap-2">
-                   <Button size="sm" variant="outline" className="h-8 gap-1" onClick={handleErpImport}>
-                      <Download className="h-3.5 w-3.5" />
-                      <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
-                        Import from ERPNext
-                      </span>
-                    </Button>
-                    <Button size="sm" variant="outline" className="h-8 gap-1" onClick={handleErpUpdate}>
-                      <RefreshCw className="h-3.5 w-3.5" />
-                      <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
-                        Update from ERPNext
-                      </span>
-                    </Button>
-                    <Button size="sm" variant="outline" className="h-8 gap-1" onClick={handleErpExport} disabled={selectedProductIds.length === 0}>
-                      <Send className="h-3.5 w-3.5" />
-                      <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
-                        Export to ERPNext ({selectedProductIds.length})
-                      </span>
-                    </Button>
-                </div>
-            )}
-            <Button size="sm" variant="outline" className="h-8 gap-1" onClick={handleExportToCSV} disabled={selectedProductIds.length === 0}>
-              <File className="h-3.5 w-3.5" />
-              <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
-                Export CSV ({selectedProductIds.length})
-              </span>
-            </Button>
-             <Dialog open={isBulkEditOpen} onOpenChange={setIsBulkEditOpen}>
-              <DialogTrigger asChild>
-                  <Button size="sm" variant="outline" className="h-8 gap-1" disabled={selectedProductIds.length === 0}>
-                    <FilePenLine className="h-3.5 w-3.5" />
-                    <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
-                        Bulk Edit ({selectedProductIds.length})
-                    </span>
-                  </Button>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-md">
-                <DialogHeader>
-                    <DialogTitle>Bulk Edit Products</DialogTitle>
-                    <DialogDescription>
-                        Modify the fields below to update all {selectedProductIds.length} selected products at once.
-                    </DialogDescription>
-                </DialogHeader>
-                <BulkEditForm 
-                    onSave={handleSaveBulkEdit} 
-                    onCancel={() => setIsBulkEditOpen(false)}
-                />
-              </DialogContent>
-            </Dialog>
+                 <Dialog open={isBulkEditOpen} onOpenChange={setIsBulkEditOpen}>
+                  <DialogTrigger asChild>
+                      <Button size="sm" variant="outline" className="h-8 gap-1" disabled={selectedProductIds.length === 0}>
+                        <FilePenLine className="h-3.5 w-3.5" />
+                        <span>Bulk Edit ({selectedProductIds.length})</span>
+                      </Button>
+                  </DialogTrigger>
+                  <DialogContent className="sm:max-w-md">
+                    <DialogHeader>
+                        <DialogTitle>Bulk Edit Products</DialogTitle>
+                        <DialogDescription>
+                            Modify the fields below to update all {selectedProductIds.length} selected products at once.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <BulkEditForm 
+                        onSave={handleSaveBulkEdit} 
+                        onCancel={() => setIsBulkEditOpen(false)}
+                    />
+                  </DialogContent>
+                </Dialog>
+            </div>
+           
             <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
               <SheetTrigger asChild>
-                  <Button size="sm" className="h-8 gap-1" onClick={handleAddProduct}>
+                  <Button size="sm" className="h-8 gap-1">
                   <PlusCircle className="h-3.5 w-3.5" />
                   <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
                     Add Product
@@ -684,6 +683,49 @@ function DashboardClient() {
                 />
               </SheetContent>
             </Sheet>
+
+            {/* Mobile Dropdown */}
+            <div className="md:hidden">
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <Button size="icon" variant="outline" className="h-8 w-8">
+                            <MoreVertical className="h-4 w-4" />
+                            <span className="sr-only">More actions</span>
+                        </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                         {isErpLoading ? (
+                            <DropdownMenuItem disabled>
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                <span>Syncing...</span>
+                            </DropdownMenuItem>
+                        ) : (
+                            <>
+                                <DropdownMenuItem onClick={handleErpImport}>
+                                    <Download className="mr-2 h-4 w-4" />
+                                    <span>Import from ERPNext</span>
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={handleErpUpdate}>
+                                    <RefreshCw className="mr-2 h-4 w-4" />
+                                    <span>Update from ERPNext</span>
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={handleErpExport} disabled={selectedProductIds.length === 0}>
+                                    <Send className="mr-2 h-4 w-4" />
+                                    <span>Export to ERPNext ({selectedProductIds.length})</span>
+                                </DropdownMenuItem>
+                            </>
+                        )}
+                        <DropdownMenuItem onClick={handleExportToCSV} disabled={selectedProductIds.length === 0}>
+                            <File className="mr-2 h-4 w-4" />
+                            <span>Export CSV ({selectedProductIds.length})</span>
+                        </DropdownMenuItem>
+                         <DropdownMenuItem onSelect={() => setIsBulkEditOpen(true)} disabled={selectedProductIds.length === 0}>
+                           <FilePenLine className="mr-2 h-4 w-4" />
+                            <span>Bulk Edit ({selectedProductIds.length})</span>
+                        </DropdownMenuItem>
+                    </DropdownMenuContent>
+                </DropdownMenu>
+            </div>
           </div>
         </CardHeader>
         <CardContent>
