@@ -87,13 +87,6 @@ function DashboardClient() {
   const selectedProductIds = React.useMemo(() => Object.keys(rowSelection), [rowSelection]);
   
   React.useEffect(() => {
-    // Check for login status
-    const isLoggedIn = localStorage.getItem('isLoggedIn');
-    if (isLoggedIn !== 'true') {
-      router.push('/login');
-      return; // Stop further execution if not logged in
-    }
-
     try {
       const storedProducts = localStorage.getItem('listingFlowProducts');
       if (storedProducts) {

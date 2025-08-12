@@ -2,7 +2,8 @@
 'use client';
 
 import * as React from 'react';
-import { useRouter } from 'next/navigation';
+import { useFormState, useFormStatus } from 'react-dom';
+import { login } from './actions';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -12,46 +13,71 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { Package } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Package, Loader2 } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+
+function LoginButton() {
+  const { pending } = useFormStatus();
+
+  return (
+    <Button type="submit" className="w-full" aria-disabled={pending}>
+      {pending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+      Sign In
+    </Button>
+  );
+}
 
 export default function LoginPage() {
-  const router = useRouter();
+  const [state, formAction] = useFormState(login, null);
+  const { toast } = useToast();
 
-  const handleLogin = () => {
-    // In a real app, you would handle authentication here.
-    // For this local app, we'll just set a flag in localStorage.
-    try {
-      localStorage.setItem('isLoggedIn', 'true');
-      router.push('/');
-    } catch (error) {
-      console.error('Failed to set login status in localStorage', error);
-      alert('Could not log in. Please ensure your browser allows localStorage.');
+  React.useEffect(() => {
+    if (state?.error) {
+      toast({
+        variant: 'destructive',
+        title: 'Login Failed',
+        description: state.error,
+      });
     }
-  };
+  }, [state, toast]);
+
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-muted/40">
       <Card className="w-full max-w-sm">
         <CardHeader className="text-center">
-           <div className="flex justify-center items-center mb-4">
-              <div className="group flex h-12 w-12 shrink-0 items-center justify-center gap-2 rounded-full bg-primary text-lg font-semibold text-primary-foreground md:text-base">
-                  <Package className="h-6 w-6 transition-all group-hover:scale-110" />
-                  <span className="sr-only">ListingFlow</span>
-              </div>
+          <div className="flex justify-center items-center mb-4">
+            <div className="group flex h-12 w-12 shrink-0 items-center justify-center gap-2 rounded-full bg-primary text-lg font-semibold text-primary-foreground md:text-base">
+              <Package className="h-6 w-6 transition-all group-hover:scale-110" />
+              <span className="sr-only">ListingFlow</span>
+            </div>
           </div>
           <CardTitle className="text-2xl">Welcome to ListingFlow</CardTitle>
           <CardDescription>
-            Click the button below to access your local dashboard.
+            Enter the application password to access the dashboard.
           </CardDescription>
         </CardHeader>
-        <CardContent>
-          {/* Form can be extended with username/password if needed later */}
-        </CardContent>
-        <CardFooter>
-          <Button className="w-full" onClick={handleLogin}>
-            Sign In
-          </Button>
-        </CardFooter>
+        <form action={formAction}>
+            <CardContent className="space-y-4">
+                <div className="space-y-2">
+                    <Label htmlFor="password">Password</Label>
+                    <Input
+                    id="password"
+                    name="password"
+                    type="password"
+                    required
+                    />
+                </div>
+                 {state?.error && (
+                    <p className="text-sm text-destructive">{state.error}</p>
+                )}
+            </CardContent>
+            <CardFooter>
+                <LoginButton />
+            </CardFooter>
+        </form>
       </Card>
     </div>
   );
