@@ -56,6 +56,7 @@ const generateDetailsPrompt = ai.definePrompt({
         .describe(
           'The listing status of the product (e.g., new, used, refurbished).'
         ),
+       brand: z.string().optional().describe('The brand of the product, if known.'),
     })
   },
   output: {schema: z.object({
@@ -64,23 +65,27 @@ const generateDetailsPrompt = ai.definePrompt({
     keywords: z.array(z.string()).describe('Suggested keywords for SEO as an array of strings, in German.'),
     category: z.string().describe('Suggested category for the product. This MUST follow the official Shopify Product Taxonomy format (e.g., "Home & Garden > Kitchen & Dining > Kitchen Appliances > Food Mixers & Blenders").'),
     ebayCategoryId: z.string().describe('A valid numerical eBay category ID for the product. Refer to eBay\'s official category list. This must be a number as a string, not a category name. It must be a "leaf" category, meaning it cannot have any sub-categories.'),
-    brand: z.string().describe('The brand name of the product ("Marke"). If unknown, use "Unbranded" or "Markenlos".'),
+    brand: z.string().describe('The brand name of the product ("Marke"). If unknown, use "Markenlos".'),
     productType: z.string().describe('The specific, custom type of the product ("Produktart"). This should be a simple category in German (e.g., Küchenmaschine, Wallet).'),
   })},
-  prompt: `You are an expert e-commerce product description writer and eBay/Shopify specialist. Your output must be entirely in German. Based on the product name, category, and listing status, create an engaging product description.
+  prompt: `You are an expert e-commerce product description writer and eBay/Shopify specialist. Your output must be entirely in German. Based on the product name, brand, category, and listing status, create an engaging product description.
   
-Also, provide the following details, all in German:
-- Suggest tags (Schlagwörter) and keywords (Keywords) for SEO.
-- Suggest a product category. This must follow the official Shopify Product Taxonomy format (e.g., "Apparel & Accessories > Clothing > Shirts & Tops").
-- Suggest the product's brand ("Marke"). If unknown, use "Markenlos".
-- Suggest the product type ("Produktart"). This should be a simple, custom category in German (e.g., Küchenmaschine, Geldbörse).
-- Provide a valid, specific, numerical eBay Category ID. This must be a "leaf" category, which is a category that has no further sub-categories.
+STRICT RULES:
+1. Product Category (for Shopify): MUST be the exact path from Shopify's official product taxonomy, using " > " as a separator.
+   - Example: "Home & Garden > Kitchen & Dining > Kitchen Appliances > Food Mixers & Blenders"
+   - DO NOT invent categories. If unsure, choose the closest parent from the taxonomy.
+2. eBay Category ID: Must be a valid, specific, numerical "leaf" category ID from eBay's official list.
+3. Language: All text fields (description, tags, keywords, productType) MUST be in German.
+4. Brand (Marke): Identify the brand from the input. If unknown, use "Markenlos".
+5. Product Type (Produktart): Provide a simple, common German product type (e.g., "Küchenmaschine", "Geldbörse").
 
+Inputs:
 Product Name: {{{productName}}}
+Brand: {{{brand}}}
 Current Category: {{{category}}}
 Listing Status: {{{listingStatus}}}
 
-Return all fields as a single JSON object. Ensure all string values in the output are in German where applicable (description, tags, keywords, productType).
+Return all fields as a single JSON object. Ensure all string values in the output are in German where applicable.
 `,
 });
 
@@ -106,7 +111,7 @@ const generateProductDescriptionFlow = ai.defineFlow(
 
     return {
       ...details,
-      ean: ean,
+      ean: ean || '',
     };
   }
 );
