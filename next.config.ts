@@ -1,3 +1,4 @@
+
 import type { NextConfig } from 'next';
 import { config as loadEnv } from 'dotenv';
 
@@ -52,6 +53,9 @@ const nextConfig: NextConfig = {
     ],
   },
   webpack: (config, { isServer }) => {
+    // Enable experimental support for WebAssembly
+    config.experiments = { ...config.experiments, asyncWebAssembly: true };
+
     // These are necessary to avoid errors with some of Genkit's dependencies.
     config.resolve.alias['@opentelemetry/exporter-jaeger'] = false;
     config.resolve.alias['@opentelemetry/winston-transport'] = false;
