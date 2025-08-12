@@ -12,17 +12,12 @@ if (!admin.apps.length) {
   }
 
   try {
-    // The service account from env vars might have escaped newlines.
-    // We need to parse it correctly.
     const serviceAccountJson = JSON.parse(serviceAccountString);
-    
-    // The private key specifically needs its escaped newlines replaced with actual newlines.
-    const privateKey = serviceAccountJson.private_key.replace(/\\n/g, '\n');
 
     admin.initializeApp({
       credential: admin.credential.cert({
         ...serviceAccountJson,
-        private_key: privateKey,
+        private_key: serviceAccountJson.private_key.replace(/\\n/g, '\n'),
       }),
     });
   } catch (e: any) {
