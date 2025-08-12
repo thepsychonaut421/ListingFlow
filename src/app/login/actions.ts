@@ -15,22 +15,23 @@ async function createSessionCookie(idToken: string) {
     });
 }
 
+// Helper to get the Firebase Auth REST API key, ensuring it's set.
+function getFirebaseApiKey(): string {
+  const apiKey = process.env.NEXT_PUBLIC_FIREBASE_API_KEY;
+  if (!apiKey) {
+    throw new Error('Firebase API Key (NEXT_PUBLIC_FIREBASE_API_KEY) is not configured in environment variables.');
+  }
+  return apiKey;
+}
+
 export async function signUpWithEmailAndPassword(email: string, password: string) {
   try {
-    const userRecord = await auth.createUser({
-      email,
-      password,
-    });
-    // After creating the user, we sign them in immediately to create a session.
-    // This provides a smoother user experience than asking them to log in again.
-    const customToken = await auth.createCustomToken(userRecord.uid);
+    // 1. Create the user using the Admin SDK
+    const userRecord = await auth.createUser({ email, password });
     
-    // Exchange custom token for an ID token on the client side via REST API
-    const apiKey = process.env.NEXT_PUBLIC_FIREBASE_API_KEY;
-    if (!apiKey) {
-      // This should not happen if the environment is set up correctly
-      throw new Error('Firebase API Key is not configured.');
-    }
+    // 2. Immediately sign in the user by creating a custom token and exchanging it for an ID token
+    const customToken = await auth.createCustomToken(userRecord.uid);
+    const apiKey = getFirebaseApiKey();
     
     const idTokenResponse = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:signInWithCustomToken?key=${apiKey}`, {
         method: 'POST',
@@ -40,28 +41,27 @@ export async function signUpWithEmailAndPassword(email: string, password: string
 
     const idTokenResult = await idTokenResponse.json();
     if (!idTokenResponse.ok) {
+        // If the exchange fails, delete the created user to allow them to try again.
+        await auth.deleteUser(userRecord.uid);
         throw new Error(idTokenResult.error?.message || 'Could not exchange custom token for ID token.');
     }
 
+    // 3. Create the session cookie
     await createSessionCookie(idTokenResult.idToken);
-    return { success: true, userId: userRecord.uid };
+    return { success: true };
     
   } catch (error: any) {
     console.error('Error signing up:', error);
-    return { error: error.message || 'Could not sign up.' };
+    // Return a more user-friendly error message
+    return { error: error.code?.includes('email-already-exists') ? 'This email is already in use.' : (error.message || 'Could not sign up.') };
   }
 }
 
 export async function signInWithEmailAndPassword(email: string, password: string) {
-   // This is the correct way to sign in with password in a server action.
-   // We use the Firebase Auth REST API to verify the password.
-  const apiKey = process.env.NEXT_PUBLIC_FIREBASE_API_KEY; 
-  if (!apiKey) {
-    return { error: 'Firebase API Key is not configured.' };
-  }
-  const restApiUrl = `https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${apiKey}`;
-
   try {
+    const apiKey = getFirebaseApiKey();
+    const restApiUrl = `https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${apiKey}`;
+
     const response = await fetch(restApiUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -69,13 +69,15 @@ export async function signInWithEmailAndPassword(email: string, password: string
     });
 
     const result = await response.json();
-
     if (!response.ok) {
-      throw new Error(result.error?.message || 'Authentication failed. Please check your credentials.');
+      // Provide a clearer error message for common authentication failures
+      if (result.error?.message === 'INVALID_LOGIN_CREDENTIALS') {
+        throw new Error('Invalid email or password. Please try again.');
+      }
+      throw new Error(result.error?.message || 'Authentication failed.');
     }
 
     await createSessionCookie(result.idToken);
-
     return { success: true };
   } catch (error: any) {
     console.error('Error signing in:', error);
@@ -90,8 +92,6 @@ export async function sendSignInLink(email: string) {
   }
   
   const actionCodeSettings = {
-    // URL must be absolute and have a proper domain.
-    // NEXT_PUBLIC_BASE_URL should be set in your environment variables.
     url: `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:9002'}/auth/action`,
     handleCodeInApp: true,
   };
