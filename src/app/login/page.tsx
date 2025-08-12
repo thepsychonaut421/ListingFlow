@@ -2,7 +2,8 @@
 'use client';
 
 import * as React from 'react';
-import { useFormState, useFormStatus } from 'react-dom';
+import { useFormStatus } from 'react-dom';
+import { useActionState } from 'react';
 import { login } from './actions';
 import { Button } from '@/components/ui/button';
 import {
@@ -30,7 +31,7 @@ function LoginButton() {
 }
 
 export default function LoginPage() {
-  const [state, formAction] = useFormState(login, null);
+  const [state, formAction] = useActionState(login, null);
   const { toast } = useToast();
 
   React.useEffect(() => {
