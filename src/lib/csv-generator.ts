@@ -7,6 +7,8 @@ type Platform = 'ebay' | 'shopify';
 // --- Constants ---
 const EOL = '\n'; // Use LF for internal generation, will be converted to CRLF for final output.
 const UTF8_BOM = '\uFEFF'; // UTF-8 Byte Order Mark for Excel compatibility
+const SHOPIFY_PLACEHOLDER_IMAGE = 'https://placehold.co/600x600.png';
+
 
 // --- Helper Functions ---
 
@@ -139,9 +141,10 @@ const generateShopifyCsvContent = (products: Product[]): string => {
     .map(product => {
       const handle = product.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
       
-      // Shopify does not support data: URIs for images. It must be a public URL.
-      // We check if the image is a valid, public URL.
-      const hasValidImage = product.image && product.image.startsWith('http');
+      // Shopify requires a public URL. If the image is a data URI or missing,
+      // use a placeholder to pass validation.
+      const isPublicUrl = product.image && product.image.startsWith('http');
+      const imageUrl = isPublicUrl ? product.image : SHOPIFY_PLACEHOLDER_IMAGE;
 
       const rowData: Record<string, any> = {
         'Handle': handle, 'Title': product.name, 'Body (HTML)': product.description,
@@ -152,9 +155,9 @@ const generateShopifyCsvContent = (products: Product[]): string => {
         'Variant Inventory Policy': 'deny', 'Variant Fulfillment Service': 'manual',
         'Variant Price': product.price.toFixed(2), 'Variant Requires Shipping': 'true',
         'Variant Taxable': 'true', 'Variant Barcode': product.ean, 
-        'Image Src': hasValidImage ? product.image : '',
-        'Image Position': hasValidImage ? '1' : '',
-        'Image Alt Text': hasValidImage ? product.name : '',
+        'Image Src': imageUrl,
+        'Image Position': '1',
+        'Image Alt Text': product.name,
         'Gift Card': 'false',
         'SEO Title': `${product.name} - ${product.brand || ''}`,
         'SEO Description': product.description ? product.description.substring(0, 320) : '',
