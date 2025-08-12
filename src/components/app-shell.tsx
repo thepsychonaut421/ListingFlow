@@ -4,7 +4,7 @@
 
 import * as React from 'react';
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import {
   File,
   Home,
@@ -42,7 +42,8 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
-import { useToast } from '@/hooks/use-toast';
+import { logout } from '@/app/login/actions';
+
 
 export function AppShell({
   children,
@@ -50,9 +51,6 @@ export function AppShell({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
-  const router = useRouter();
-  const { toast } = useToast();
-  
   const [theme, setTheme] = React.useState('system');
 
   React.useEffect(() => {
@@ -74,18 +72,10 @@ export function AppShell({
 
 
   const handleLogout = () => {
-    // Clear all relevant local storage data
+    // Clear local storage data on logout
     localStorage.removeItem('listingFlowProducts');
-    localStorage.removeItem('isLoggedIn');
     localStorage.removeItem('listingFlowSelectedProductIds');
-
-    toast({
-      title: 'Logged Out',
-      description: 'You have been successfully logged out.',
-    });
-    
-    // Redirect to login page
-    router.push('/login');
+    logout(); // Call the server action to clear the session cookie
   };
   
   const navItems = [
@@ -254,10 +244,10 @@ export function AppShell({
                     <span>Support</span>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handleLogout}>
+                 <DropdownMenuItem onSelect={handleLogout}>
                     <LogOut />
                     <span>Logout</span>
-                </DropdownMenuItem>
+                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </header>
