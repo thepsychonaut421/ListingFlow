@@ -93,14 +93,14 @@ function DashboardClient() {
       if (storedProducts) {
         setProducts(JSON.parse(storedProducts));
       } else {
-        setProducts(initialProducts);
+        setProducts([]);
       }
     } catch (error) {
       console.error('Failed to parse products from localStorage', error);
-      setProducts(initialProducts);
+      setProducts([]);
     }
     setIsLoading(false);
-  }, [router]);
+  }, []);
 
 
   React.useEffect(() => {
