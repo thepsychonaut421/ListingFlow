@@ -15,8 +15,10 @@ if (!admin.apps.length) {
       });
       auth = admin.auth();
       db = admin.firestore();
-    } catch (e) {
-      console.error('Failed to parse or initialize Firebase Admin SDK from FIREBASE_SERVICE_ACCOUNT:', e);
+    } catch (e: any) {
+      console.error('Failed to parse or initialize Firebase Admin SDK from FIREBASE_SERVICE_ACCOUNT:', e.message);
+      // Throw an error or handle it gracefully, so `auth` and `db` are not used when uninitialized.
+      // For this case, we'll let them be undefined and the caller should handle it.
     }
   } else {
     console.warn('FIREBASE_SERVICE_ACCOUNT environment variable is not set. Firebase Admin SDK could not be initialized. Some server-side functionality will not work.');
@@ -26,5 +28,5 @@ if (!admin.apps.length) {
     db = admin.firestore();
 }
 
-// @ts-ignore
+// @ts-ignore - We are exporting potentially uninitialized variables, callers must handle this.
 export { auth, db };
