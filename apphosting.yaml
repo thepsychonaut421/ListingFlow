@@ -24,3 +24,8 @@ env:
     availability:
       - BUILD
       - RUNTIME
+  - variable: APP_PASSWORD
+    secret: APP_PASSWORD
+    availability:
+      - BUILD
+      - RUNTIME
