@@ -16,18 +16,19 @@ import { Package, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { sendSignInLink, signInWithEmailAndPassword, signUpWithEmailAndPassword } from './actions';
 import { useRouter } from 'next/navigation';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
-type AuthMode = 'signin' | 'signup' | 'link';
+type AuthMode = 'signin' | 'signup';
 
 function AuthForm() {
   const [mode, setMode] = React.useState<AuthMode>('signin');
   const [isSubmitting, setIsSubmitting] = React.useState(false);
+  const [isLinkSubmitting, setIsLinkSubmitting] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const { toast } = useToast();
   const router = useRouter();
 
-  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+  const handlePasswordSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setIsSubmitting(true);
     setError(null);
@@ -36,38 +37,46 @@ function AuthForm() {
     const email = formData.get('email') as string;
     const password = formData.get('password') as string;
 
-    let result;
+    const action = mode === 'signin' ? signInWithEmailAndPassword : signUpWithEmailAndPassword;
+    const result = await action(email, password);
 
-    try {
-        if (mode === 'signin') {
-            result = await signInWithEmailAndPassword(email, password);
-        } else if (mode === 'signup') {
-            result = await signUpWithEmailAndPassword(email, password);
-        } else { // mode === 'link'
-            result = await sendSignInLink(email);
-            if (!result.error) {
-                 window.localStorage.setItem('emailForSignIn', email);
-                 toast({
-                    title: 'Check your email',
-                    description: 'A sign-in link has been sent to your email address.',
-                });
-            }
-        }
-
-        if (result.error) {
-            throw new Error(result.error);
-        }
-
-        // On success (except for email link), redirect to dashboard
-        if (mode !== 'link') {
-            router.push('/');
-        }
-    } catch (err: any) {
-        setError(err.message);
-    } finally {
-        setIsSubmitting(false);
+    if (result.error) {
+        setError(result.error);
+    } else {
+        router.push('/');
     }
+    
+    setIsSubmitting(false);
   };
+  
+  const handleLinkSubmit = async (event: React.MouseEvent<HTMLButtonElement>) => {
+      event.preventDefault();
+      setIsLinkSubmitting(true);
+      setError(null);
+      
+      const emailInput = document.getElementById('email') as HTMLInputElement;
+      const email = emailInput?.value;
+      
+      if(!email) {
+          setError('Please enter your email address to receive a link.');
+          setIsLinkSubmitting(false);
+          return;
+      }
+      
+      const result = await sendSignInLink(email);
+      
+      if(result.error) {
+          setError(result.error);
+      } else {
+          window.localStorage.setItem('emailForSignIn', email);
+          toast({
+            title: 'Check your email',
+            description: 'A sign-in link has been sent to your email address.',
+          });
+      }
+      
+      setIsLinkSubmitting(false);
+  }
 
   return (
     <Card className="w-full max-w-sm">
@@ -78,14 +87,14 @@ function AuthForm() {
             <span className="sr-only">ListingFlow</span>
           </div>
         </div>
-        <CardTitle className="text-2xl">Welcome to ListingFlow</CardTitle>
+        <CardTitle className="text-2xl">
+          {mode === 'signin' ? 'Welcome Back' : 'Create an Account'}
+        </CardTitle>
         <CardDescription>
-          {mode === 'signin' && 'Enter your credentials to access your account.'}
-          {mode === 'signup' && 'Create a new account to get started.'}
-          {mode === 'link' && 'Enter your email below to receive a sign-in link.'}
+          {mode === 'signin' ? 'Enter your credentials to access your dashboard.' : 'Fill in the details below to get started.'}
         </CardDescription>
       </CardHeader>
-      <form onSubmit={handleSubmit}>
+      <form onSubmit={handlePasswordSubmit}>
         <CardContent className="space-y-4">
            {error && (
             <Alert variant="destructive">
@@ -100,37 +109,44 @@ function AuthForm() {
               type="email"
               placeholder="me@example.com"
               required
-              disabled={isSubmitting}
+              disabled={isSubmitting || isLinkSubmitting}
             />
           </div>
-          {mode !== 'link' && (
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
-                name="password"
-                type="password"
-                required
-                disabled={isSubmitting}
-              />
-            </div>
-          )}
+          <div className="space-y-2">
+            <Label htmlFor="password">Password</Label>
+            <Input
+              id="password"
+              name="password"
+              type="password"
+              required
+              disabled={isSubmitting || isLinkSubmitting}
+            />
+          </div>
         </CardContent>
         <CardFooter className="flex-col gap-4">
-          <Button type="submit" className="w-full" aria-disabled={isSubmitting} disabled={isSubmitting}>
+          <Button type="submit" className="w-full" aria-disabled={isSubmitting} disabled={isSubmitting || isLinkSubmitting}>
             {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {mode === 'signin' && 'Sign In'}
-            {mode === 'signup' && 'Sign Up'}
-            {mode === 'link' && 'Send Sign-in Link'}
+            {mode === 'signin' ? 'Sign In' : 'Sign Up'}
           </Button>
-          <div className='flex justify-between w-full'>
-             <Button variant="link" type="button" onClick={() => setMode(mode === 'link' ? 'signin' : 'link')} disabled={isSubmitting}>
-                {mode === 'link' ? 'Sign in with password' : 'Sign in with email link'}
-            </Button>
-             <Button variant="link" type="button" onClick={() => setMode(mode === 'signin' ? 'signup' : 'signin')} disabled={isSubmitting}>
-                {mode === 'signin' ? 'Create an account' : 'Already have an account?'}
-            </Button>
+          
+          <div className="relative w-full flex items-center justify-center">
+              <div className="absolute inset-0 flex items-center">
+                  <span className="w-full border-t" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-background px-2 text-muted-foreground">Or continue with</span>
+              </div>
           </div>
+          
+           <Button variant="outline" className="w-full" onClick={handleLinkSubmit} disabled={isSubmitting || isLinkSubmitting}>
+               {isLinkSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+               Sign in with Email Link
+          </Button>
+          
+          <Button variant="link" type="button" onClick={() => { setMode(mode === 'signin' ? 'signup' : 'signin'); setError(null); }} disabled={isSubmitting || isLinkSubmitting}>
+            {mode === 'signin' ? 'Don\'t have an account? Sign Up' : 'Already have an account? Sign In'}
+          </Button>
+
         </CardFooter>
       </form>
     </Card>
@@ -140,7 +156,7 @@ function AuthForm() {
 
 export default function LoginPage() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-muted/40">
+    <div className="flex min-h-screen items-center justify-center bg-muted/40 p-4">
         <AuthForm />
     </div>
   );
