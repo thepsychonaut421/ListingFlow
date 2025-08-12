@@ -1,32 +1,30 @@
 import admin from 'firebase-admin';
-import 'firebase/auth'; // Required for auth related operations on admin
 
 let auth: admin.auth.Auth;
-let db: admin.firestore.Firestore;
 
+// Check if the app is already initialized to prevent errors
 if (!admin.apps.length) {
   const serviceAccountString = process.env.FIREBASE_SERVICE_ACCOUNT;
   
-  if (serviceAccountString) {
-    try {
-      const serviceAccount = JSON.parse(serviceAccountString);
-      admin.initializeApp({
-        credential: admin.credential.cert(serviceAccount),
-      });
-      auth = admin.auth();
-      db = admin.firestore();
-    } catch (e: any) {
-      console.error('Failed to parse or initialize Firebase Admin SDK from FIREBASE_SERVICE_ACCOUNT:', e.message);
-      // Throw an error or handle it gracefully, so `auth` and `db` are not used when uninitialized.
-      // For this case, we'll let them be undefined and the caller should handle it.
-    }
-  } else {
-    console.warn('FIREBASE_SERVICE_ACCOUNT environment variable is not set. Firebase Admin SDK could not be initialized. Some server-side functionality will not work.');
+  if (!serviceAccountString) {
+    throw new Error('Firebase service account is not configured. Please set the FIREBASE_SERVICE_ACCOUNT environment variable.');
   }
-} else {
-    auth = admin.auth();
-    db = admin.firestore();
+
+  try {
+    // The service account can be a single-line JSON string.
+    const serviceAccount = JSON.parse(serviceAccountString);
+    
+    admin.initializeApp({
+      credential: admin.credential.cert(serviceAccount),
+    });
+
+  } catch (e: any) {
+    console.error('Failed to parse or initialize Firebase Admin SDK. Make sure the FIREBASE_SERVICE_ACCOUNT is a valid JSON string.', e);
+    // Throw an error to stop the application from running with a misconfiguration.
+    throw new Error('Firebase Admin SDK initialization failed.');
+  }
 }
 
-// @ts-ignore - We are exporting potentially uninitialized variables, callers must handle this.
-export { auth, db };
+auth = admin.auth();
+
+export { auth };

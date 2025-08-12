@@ -2,7 +2,15 @@
 
 import { auth } from '@/lib/firebase-admin';
 import { cookies } from 'next/headers';
-import { redirect } from 'next/navigation';
+
+// Helper to get the Firebase Auth REST API key, ensuring it's set.
+function getFirebaseApiKey(): string {
+  const apiKey = process.env.NEXT_PUBLIC_FIREBASE_API_KEY;
+  if (!apiKey || apiKey === 'your_api_key_here') {
+    throw new Error('Firebase API Key (NEXT_PUBLIC_FIREBASE_API_KEY) is not configured in environment variables. Please check your .env.local file.');
+  }
+  return apiKey;
+}
 
 async function createSessionCookie(idToken: string) {
     const expiresIn = 60 * 60 * 24 * 5 * 1000; // 5 days
@@ -15,14 +23,6 @@ async function createSessionCookie(idToken: string) {
     });
 }
 
-// Helper to get the Firebase Auth REST API key, ensuring it's set.
-function getFirebaseApiKey(): string {
-  const apiKey = process.env.NEXT_PUBLIC_FIREBASE_API_KEY;
-  if (!apiKey) {
-    throw new Error('Firebase API Key (NEXT_PUBLIC_FIREBASE_API_KEY) is not configured in environment variables.');
-  }
-  return apiKey;
-}
 
 export async function signUpWithEmailAndPassword(email: string, password: string) {
   try {
@@ -52,8 +52,11 @@ export async function signUpWithEmailAndPassword(email: string, password: string
     
   } catch (error: any) {
     console.error('Error signing up:', error);
-    // Return a more user-friendly error message
-    return { error: error.code?.includes('email-already-exists') ? 'This email is already in use.' : (error.message || 'Could not sign up.') };
+    let errorMessage = error.message || 'Could not sign up.';
+    if (error.code === 'auth/email-already-exists') {
+        errorMessage = 'This email is already in use. Please try signing in or use a different email.';
+    }
+    return { error: errorMessage };
   }
 }
 
@@ -70,7 +73,6 @@ export async function signInWithEmailAndPassword(email: string, password: string
 
     const result = await response.json();
     if (!response.ok) {
-      // Provide a clearer error message for common authentication failures
       if (result.error?.message === 'INVALID_LOGIN_CREDENTIALS') {
         throw new Error('Invalid email or password. Please try again.');
       }
@@ -92,11 +94,14 @@ export async function sendSignInLink(email: string) {
   }
   
   const actionCodeSettings = {
+    // The URL must be whitelisted in the Firebase Console.
     url: `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:9002'}/auth/action`,
     handleCodeInApp: true,
   };
 
   try {
+    // This generates the link and triggers Firebase to send the email.
+    // It uses the Admin SDK, so it's secure on the server.
     await auth.generateSignInWithEmailLink(email, actionCodeSettings);
     return { success: true };
   } catch (error: any) {
@@ -109,13 +114,12 @@ export async function createSession(idToken: string) {
     try {
         await createSessionCookie(idToken);
         return { success: true };
-    } catch (error) {
+    } catch (error: any) {
         console.error('Error creating session cookie', error);
-        return { error: 'Could not create session.' };
+        return { error: 'Could not create session: ' + error.message };
     }
 }
 
 export async function logout() {
   cookies().delete('session');
-  redirect('/login');
 }
