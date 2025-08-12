@@ -3,10 +3,10 @@ import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 
 const firebaseConfig = {
-  apiKey: "AIzaSyBnLCLDNhL64QG6kagfwSAXyCOdB-H7ENA",
+  apiKey: "AIzaSyBnLCLDNhL64QG6kagfwSAXyCOdB-H7ENA", // THIS IS A PUBLIC KEY
   authDomain: "listingflow-sp4tf.firebaseapp.com",
   projectId: "listingflow-sp4tf",
-  storageBucket: "listingflow-sp4tf.firebasestorage.app",
+  storageBucket: "listingflow-sp4tf.appspot.com",
   messagingSenderId: "935922706940",
   appId: "1:935922706940:web:2fc04bfc3e3240cfc82a79",
   measurementId: "G-J79SJF5H3B"
