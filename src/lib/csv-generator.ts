@@ -138,6 +138,11 @@ const generateShopifyCsvContent = (products: Product[]): string => {
     .filter(product => product.code)
     .map(product => {
       const handle = product.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+      
+      // Shopify does not support data: URIs for images. It must be a public URL.
+      // We check if the image is a data URI and exclude it if so.
+      const imageUrl = product.image && !product.image.startsWith('data:') ? product.image : '';
+
       const rowData: Record<string, any> = {
         'Handle': handle, 'Title': product.name, 'Body (HTML)': product.description,
         'Vendor': product.brand, 'Product Category': product.category, 'Type': product.productType,
@@ -146,10 +151,10 @@ const generateShopifyCsvContent = (products: Product[]): string => {
         'Variant Inventory Tracker': 'shopify', 'Variant Inventory Qty': product.quantity,
         'Variant Inventory Policy': 'deny', 'Variant Fulfillment Service': 'manual',
         'Variant Price': product.price.toFixed(2), 'Variant Requires Shipping': 'true',
-        'Variant Taxable': 'true', 'Variant Barcode': product.ean, 'Image Src': product.image,
+        'Variant Taxable': 'true', 'Variant Barcode': product.ean, 'Image Src': imageUrl,
         'Image Position': '1', 'Image Alt Text': product.name, 'Gift Card': 'false',
         'SEO Title': `${product.name} - ${product.brand || ''}`,
-        'SEO Description': product.description ? product.description.substring(0, 320) : '', // Corrected this line
+        'SEO Description': product.description ? product.description.substring(0, 320) : '',
         'Google Shopping / Google Product Category': product.category,
         'Google Shopping / Condition': getShopifyCondition(product.listingStatus),
         'Status': 'active'
