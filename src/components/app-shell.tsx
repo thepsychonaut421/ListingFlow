@@ -15,6 +15,8 @@ import {
   LogOut,
   Moon,
   Sun,
+  User,
+  LifeBuoy,
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -28,7 +30,8 @@ import {
   DropdownMenuSub,
   DropdownMenuSubTrigger,
   DropdownMenuSubContent,
-  DropdownMenuPortal
+  DropdownMenuPortal,
+  DropdownMenuGroup,
 } from '@/components/ui/dropdown-menu';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetTrigger } from '@/components/ui/sheet';
 import {
@@ -201,43 +204,52 @@ export function AppShell({
               <DropdownMenuContent align="end">
                 <DropdownMenuLabel>My Account</DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                 <DropdownMenuSub>
-                    <DropdownMenuSubTrigger>
-                       {theme === 'light' && <Sun className="mr-2 h-4 w-4" />}
-                       {theme === 'dark' && <Moon className="mr-2 h-4 w-4" />}
-                       {theme === 'system' && <Settings className="mr-2 h-4 w-4" />}
-                       <span>Theme</span>
-                    </DropdownMenuSubTrigger>
-                    <DropdownMenuPortal>
-                       <DropdownMenuSubContent>
-                          <DropdownMenuItem onClick={() => setTheme('light')}>
-                             <Sun className="mr-2 h-4 w-4" />
-                             <span>Light</span>
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => setTheme('dark')}>
-                             <Moon className="mr-2 h-4 w-4" />
-                             <span>Dark</span>
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => setTheme('system')}>
-                             <Settings className="mr-2 h-4 w-4" />
-                             <span>System</span>
-                          </DropdownMenuItem>
-                       </DropdownMenuSubContent>
-                    </DropdownMenuPortal>
-                 </DropdownMenuSub>
-                <DropdownMenuItem asChild>
-                    <Link href="/settings">
-                        <Settings className="mr-2 h-4 w-4" />
-                        <span>Settings</span>
-                    </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem disabled>
-                    <Settings className="mr-2 h-4 w-4" />
+                <DropdownMenuGroup>
+                    <DropdownMenuItem asChild>
+                        <Link href="/settings">
+                            <User />
+                            <span>Profile</span>
+                        </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                        <Link href="/settings">
+                            <Settings />
+                            <span>Settings</span>
+                        </Link>
+                    </DropdownMenuItem>
+                     <DropdownMenuSub>
+                        <DropdownMenuSubTrigger>
+                           {theme === 'light' && <Sun />}
+                           {theme === 'dark' && <Moon />}
+                           {theme === 'system' && <Settings />}
+                           <span>Theme</span>
+                        </DropdownMenuSubTrigger>
+                        <DropdownMenuPortal>
+                           <DropdownMenuSubContent>
+                              <DropdownMenuItem onClick={() => setTheme('light')}>
+                                 <Sun />
+                                 <span>Light</span>
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => setTheme('dark')}>
+                                 <Moon />
+                                 <span>Dark</span>
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => setTheme('system')}>
+                                 <Settings />
+                                 <span>System</span>
+                              </DropdownMenuItem>
+                           </DropdownMenuSubContent>
+                        </DropdownMenuPortal>
+                     </DropdownMenuSub>
+                </DropdownMenuGroup>
+                <DropdownMenuSeparator />
+                 <DropdownMenuItem disabled>
+                    <LifeBuoy />
                     <span>Support</span>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleLogout}>
-                    <LogOut className="mr-2 h-4 w-4" />
+                    <LogOut />
                     <span>Logout</span>
                 </DropdownMenuItem>
               </DropdownMenuContent>
