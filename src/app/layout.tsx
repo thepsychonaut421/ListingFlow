@@ -12,7 +12,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   const pathname = usePathname();
-  // Don't show the AppShell on login and auth action pages
+  // We will now handle the auth pages visibility inside the AppShell itself
   const isAuthPage = pathname.startsWith('/login') || pathname.startsWith('/auth');
   
   return (
