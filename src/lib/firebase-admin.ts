@@ -1,4 +1,5 @@
 import admin from 'firebase-admin';
+import 'firebase/auth'; // Required for auth related operations on admin
 
 if (!admin.apps.length) {
   const serviceAccount = process.env.FIREBASE_SERVICE_ACCOUNT
