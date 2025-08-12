@@ -117,6 +117,21 @@ const getShopifyCondition = (status: Product['listingStatus']): string => {
   }
 };
 
+/**
+ * Ensures the image URL is a valid, public URL.
+ * If not, it returns a placeholder to satisfy Shopify's requirements.
+ * @param url The image URL to check.
+ * @returns A valid public URL or a placeholder.
+ */
+const ensureValidImageSrc = (url?: string): string => {
+    if (url && (url.startsWith('http://') || url.startsWith('https://'))) {
+        return url;
+    }
+    // If the URL is a data URI or empty, use a placeholder.
+    return SHOPIFY_PLACEHOLDER_IMAGE;
+};
+
+
 const generateShopifyCsvContent = (products: Product[]): string => {
   // Standard Shopify product import headers.
   const headers = [
@@ -141,10 +156,7 @@ const generateShopifyCsvContent = (products: Product[]): string => {
     .map(product => {
       const handle = product.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
       
-      // Shopify requires a public URL. If the image is a data URI or missing,
-      // use a placeholder to pass validation.
-      const isPublicUrl = product.image && product.image.startsWith('http');
-      const imageUrl = isPublicUrl ? product.image : SHOPIFY_PLACEHOLDER_IMAGE;
+      const imageUrl = ensureValidImageSrc(product.image);
 
       const rowData: Record<string, any> = {
         'Handle': handle, 'Title': product.name, 'Body (HTML)': product.description,
@@ -153,7 +165,7 @@ const generateShopifyCsvContent = (products: Product[]): string => {
         'Option1 Value': 'Default Title', 'Variant SKU': product.code, 'Variant Grams': '0',
         'Variant Inventory Tracker': 'shopify', 'Variant Inventory Qty': product.quantity,
         'Variant Inventory Policy': 'deny', 'Variant Fulfillment Service': 'manual',
-        'Variant Price': product.price.toFixed(2), 'Variant Requires Shipping': 'true',
+        'Variant Price': product.price ? product.price.toFixed(2) : '0.00', 'Variant Requires Shipping': 'true',
         'Variant Taxable': 'true', 'Variant Barcode': product.ean, 
         'Image Src': imageUrl,
         'Image Position': '1',
