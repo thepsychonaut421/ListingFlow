@@ -36,6 +36,7 @@ import {CopyToClipboard} from 'react-copy-to-clipboard';
 import { searchInERPNext } from '@/lib/erpnext';
 import { HTMLPreview } from './html-preview';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
+import { CategoryCombobox } from '@/components/category-combobox';
 
 
 const productSchema = z.object({
@@ -349,11 +350,14 @@ export function ProductForm({ product, onSave, onCancel }: ProductFormProps) {
                     control={form.control}
                     name="category"
                     render={({ field }) => (
-                    <FormItem>
-                        <FormLabel>Category Name</FormLabel>
-                        <FormControl>
-                        <Input placeholder="e.g. Men's Accessories" {...field} />
-                        </FormControl>
+                    <FormItem className="flex flex-col">
+                        <FormLabel>Shopify Category</FormLabel>
+                          <CategoryCombobox 
+                            value={field.value || ''}
+                            onChange={(value) => {
+                                field.onChange(value);
+                            }}
+                          />
                         <FormMessage />
                     </FormItem>
                     )}
