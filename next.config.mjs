@@ -1,7 +1,13 @@
-import type {NextConfig} from 'next';
 
-const nextConfig: NextConfig = {
-  /* config options here */
+import { createRequire } from 'module';
+const require = createRequire(import.meta.url);
+
+// Load environment variables from .env file
+require('dotenv').config({ path: './.env' });
+
+
+/** @type {import('next').NextConfig} */
+const nextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
@@ -35,6 +41,11 @@ const nextConfig: NextConfig = {
         hostname: 'shop.retoura.de',
         pathname: '/**',
       },
+       {
+        protocol: 'https',
+        hostname: 'erp.rembayer.info',
+        pathname: '/**',
+      },
       {
         protocol: 'https',
         hostname: 'www.lidl.de',
@@ -43,6 +54,9 @@ const nextConfig: NextConfig = {
     ],
   },
   webpack: (config, { isServer }) => {
+    // Enable experimental support for WebAssembly
+    config.experiments = { ...config.experiments, asyncWebAssembly: true };
+
     // These are necessary to avoid errors with some of Genkit's dependencies.
     config.resolve.alias['@opentelemetry/exporter-jaeger'] = false;
     config.resolve.alias['@opentelemetry/winston-transport'] = false;
