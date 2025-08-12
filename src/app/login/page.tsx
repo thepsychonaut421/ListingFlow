@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -16,12 +17,7 @@ import { Package, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { 
-  getAuth,
-  createUserWithEmailAndPassword,
-  signInWithEmailAndPassword,
-  sendSignInWithEmailLink,
-} from 'firebase/auth';
+import * as fbAuth from 'firebase/auth';
 import { app } from '@/lib/firebase';
 
 type AuthMode = 'signin' | 'signup';
@@ -33,7 +29,7 @@ function AuthForm() {
   const [error, setError] = React.useState<string | null>(null);
   const { toast } = useToast();
   const router = useRouter();
-  const auth = getAuth(app);
+  const auth = fbAuth.getAuth(app);
 
   const handlePasswordSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -46,9 +42,9 @@ function AuthForm() {
 
     try {
       if (mode === 'signin') {
-        await signInWithEmailAndPassword(auth, email, password);
+        await fbAuth.signInWithEmailAndPassword(auth, email, password);
       } else {
-        await createUserWithEmailAndPassword(auth, email, password);
+        await fbAuth.createUserWithEmailAndPassword(auth, email, password);
       }
       router.push('/');
     } catch (err: any) {
@@ -97,7 +93,7 @@ function AuthForm() {
       };
       
       try {
-        await sendSignInWithEmailLink(auth, email, actionCodeSettings);
+        await fbAuth.sendSignInWithEmailLink(auth, email, actionCodeSettings);
         window.localStorage.setItem('emailForSignIn', email);
         toast({
           title: 'Check your email',
