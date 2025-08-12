@@ -33,4 +33,3 @@ env:
     value: '' # Will be populated by App Hosting
     availability:
       - RUNTIME
-
