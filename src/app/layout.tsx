@@ -3,7 +3,6 @@
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
 import * as React from 'react';
-import { usePathname } from 'next/navigation';
 import { AppShell } from '@/components/app-shell';
 
 export default function RootLayout({
@@ -11,9 +10,6 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const pathname = usePathname();
-  // We will now handle the auth pages visibility inside the AppShell itself
-  const isAuthPage = pathname.startsWith('/login') || pathname.startsWith('/auth');
   
   return (
     <html lang="en" suppressHydrationWarning>
@@ -28,13 +24,9 @@ export default function RootLayout({
         ></link>
       </head>
       <body className="font-body antialiased">
-        {isAuthPage ? (
-          children
-        ) : (
-          <AppShell>
-            {children}
-          </AppShell>
-        )}
+        <AppShell>
+          {children}
+        </AppShell>
         <Toaster />
       </body>
     </html>
