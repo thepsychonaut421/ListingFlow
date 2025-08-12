@@ -24,8 +24,13 @@ env:
     availability:
       - BUILD
       - RUNTIME
-  - variable: APP_PASSWORD
-    secret: APP_PASSWORD
+  - variable: FIREBASE_SERVICE_ACCOUNT
+    secret: FIREBASE_SERVICE_ACCOUNT
     availability:
       - BUILD
       - RUNTIME
+  - variable: NEXT_PUBLIC_BASE_URL
+    value: '' # Will be populated by App Hosting
+    availability:
+      - RUNTIME
+

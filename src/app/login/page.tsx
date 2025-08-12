@@ -1,10 +1,8 @@
-
 'use client';
 
 import * as React from 'react';
-import { useFormStatus } from 'react-dom';
 import { useActionState } from 'react';
-import { login } from './actions';
+import { sendSignInLink } from './actions';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -19,31 +17,46 @@ import { Label } from '@/components/ui/label';
 import { Package, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
-function LoginButton() {
-  const { pending } = useFormStatus();
-
+function LoginButton({ isSubmitting }: { isSubmitting: boolean }) {
   return (
-    <Button type="submit" className="w-full" aria-disabled={pending}>
-      {pending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-      Sign In
+    <Button type="submit" className="w-full" aria-disabled={isSubmitting}>
+      {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+      Send Sign-in Link
     </Button>
   );
 }
 
 export default function LoginPage() {
-  const [state, formAction] = useActionState(login, null);
+  const [isSubmitting, setIsSubmitting] = React.useState(false);
   const { toast } = useToast();
 
-  React.useEffect(() => {
-    if (state?.error) {
+  // We handle form submission manually to control the submitting state
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setIsSubmitting(true);
+
+    const formData = new FormData(event.currentTarget);
+    const email = formData.get('email') as string;
+
+    const result = await sendSignInLink(email);
+
+    setIsSubmitting(false);
+
+    if (result?.error) {
       toast({
         variant: 'destructive',
         title: 'Login Failed',
-        description: state.error,
+        description: result.error,
+      });
+    } else {
+      // Store email in localStorage to use it after the link is clicked
+      window.localStorage.setItem('emailForSignIn', email);
+      toast({
+        title: 'Check your email',
+        description: 'A sign-in link has been sent to your email address.',
       });
     }
-  }, [state, toast]);
-
+  };
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-muted/40">
@@ -57,27 +70,26 @@ export default function LoginPage() {
           </div>
           <CardTitle className="text-2xl">Welcome to ListingFlow</CardTitle>
           <CardDescription>
-            Enter the application password to access the dashboard.
+            Enter your email below to receive a sign-in link.
           </CardDescription>
         </CardHeader>
-        <form action={formAction}>
-            <CardContent className="space-y-4">
-                <div className="space-y-2">
-                    <Label htmlFor="password">Password</Label>
-                    <Input
-                    id="password"
-                    name="password"
-                    type="password"
-                    required
-                    />
-                </div>
-                 {state?.error && (
-                    <p className="text-sm text-destructive">{state.error}</p>
-                )}
-            </CardContent>
-            <CardFooter>
-                <LoginButton />
-            </CardFooter>
+        <form onSubmit={handleSubmit}>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                name="email"
+                type="email"
+                placeholder="me@example.com"
+                required
+                disabled={isSubmitting}
+              />
+            </div>
+          </CardContent>
+          <CardFooter>
+            <LoginButton isSubmitting={isSubmitting} />
+          </CardFooter>
         </form>
       </Card>
     </div>

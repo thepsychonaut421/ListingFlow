@@ -13,7 +13,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   const pathname = usePathname();
-  const isLoginPage = pathname === '/login';
+  const isAuthPage = pathname.startsWith('/login') || pathname.startsWith('/auth');
 
   return (
     <html lang="en" suppressHydrationWarning>
@@ -28,7 +28,7 @@ export default function RootLayout({
         ></link>
       </head>
       <body className="font-body antialiased">
-        {isLoginPage ? (
+        {isAuthPage ? (
           children
         ) : (
           <AppShell>
