@@ -19,6 +19,7 @@ import {
   Sun,
   User,
   LifeBuoy,
+  Loader2,
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -43,7 +44,8 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
-import { logout } from '@/app/login/actions';
+import { getAuth, onAuthStateChanged, signOut } from 'firebase/auth';
+import { app } from '@/lib/firebase';
 
 
 export function AppShell({
@@ -54,6 +56,27 @@ export function AppShell({
   const pathname = usePathname();
   const router = useRouter();
   const [theme, setTheme] = React.useState('system');
+  const [user, setUser] = React.useState<import('firebase/auth').User | null>(null);
+  const [loading, setLoading] = React.useState(true);
+  const auth = getAuth(app);
+
+
+  React.useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      setUser(user);
+      setLoading(false);
+      if (!user) {
+        // If user is not logged in and not on a public page, redirect to login
+        const isAuthPage = pathname.startsWith('/login') || pathname.startsWith('/auth');
+        if (!isAuthPage) {
+            router.push('/login');
+        }
+      }
+    });
+
+    return () => unsubscribe();
+  }, [auth, router, pathname]);
+
 
   React.useEffect(() => {
     const storedTheme = localStorage.getItem('listingFlowTheme') || 'system';
@@ -74,17 +97,40 @@ export function AppShell({
 
 
   const handleLogout = async () => {
-    await logout();
-    // Clear local storage data on logout
-    localStorage.removeItem('listingFlowProducts');
-    localStorage.removeItem('listingFlowSelectedProductIds');
-    router.push('/login');
+    try {
+        await signOut(auth);
+        // Clear local storage data on logout
+        localStorage.removeItem('listingFlowProducts');
+        localStorage.removeItem('listingFlowSelectedProductIds');
+        router.push('/login');
+    } catch (error) {
+        console.error('Logout failed:', error);
+    }
   };
   
   const navItems = [
     { href: '/', icon: Home, label: 'Dashboard' },
     { href: '/exports', icon: File, label: 'Exports' },
   ];
+  
+  // Don't show the AppShell on login and auth action pages
+  const isAuthPage = pathname.startsWith('/login') || pathname.startsWith('/auth');
+
+  if (loading || (isAuthPage && !user)) {
+    return (
+        <div className="flex min-h-screen w-full items-center justify-center">
+            <Loader2 className="h-10 w-10 animate-spin" />
+        </div>
+    );
+  }
+
+  if (!user && !isAuthPage) {
+     return (
+        <div className="flex min-h-screen w-full items-center justify-center">
+            <Loader2 className="h-10 w-10 animate-spin" />
+        </div>
+    );
+  }
 
   return (
     <TooltipProvider>

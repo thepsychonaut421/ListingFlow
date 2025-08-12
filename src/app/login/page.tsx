@@ -14,9 +14,15 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Package, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { sendSignInLink, signInWithEmailAndPassword, signUpWithEmailAndPassword } from './actions';
 import { useRouter } from 'next/navigation';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { 
+  getAuth,
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  sendSignInWithEmailLink,
+} from 'firebase/auth';
+import { app } from '@/lib/firebase';
 
 type AuthMode = 'signin' | 'signup';
 
@@ -27,6 +33,7 @@ function AuthForm() {
   const [error, setError] = React.useState<string | null>(null);
   const { toast } = useToast();
   const router = useRouter();
+  const auth = getAuth(app);
 
   const handlePasswordSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -37,16 +44,37 @@ function AuthForm() {
     const email = formData.get('email') as string;
     const password = formData.get('password') as string;
 
-    const action = mode === 'signin' ? signInWithEmailAndPassword : signUpWithEmailAndPassword;
-    const result = await action(email, password);
-
-    if (result.error) {
-        setError(result.error);
-    } else {
-        router.push('/');
+    try {
+      if (mode === 'signin') {
+        await signInWithEmailAndPassword(auth, email, password);
+      } else {
+        await createUserWithEmailAndPassword(auth, email, password);
+      }
+      router.push('/');
+    } catch (err: any) {
+      console.error('Firebase Auth Error:', err);
+      let friendlyMessage = 'An unknown error occurred. Please try again.';
+      if (err.code) {
+        switch (err.code) {
+          case 'auth/user-not-found':
+          case 'auth/wrong-password':
+          case 'auth/invalid-credential':
+            friendlyMessage = 'Invalid email or password. Please try again.';
+            break;
+          case 'auth/email-already-in-use':
+            friendlyMessage = 'This email is already in use. Please sign in or use a different email.';
+            break;
+          case 'auth/weak-password':
+            friendlyMessage = 'The password is too weak. It must be at least 6 characters long.';
+            break;
+          default:
+            friendlyMessage = err.message;
+        }
+      }
+      setError(friendlyMessage);
+    } finally {
+      setIsSubmitting(false);
     }
-    
-    setIsSubmitting(false);
   };
   
   const handleLinkSubmit = async (event: React.MouseEvent<HTMLButtonElement>) => {
@@ -62,20 +90,25 @@ function AuthForm() {
           setIsLinkSubmitting(false);
           return;
       }
+
+      const actionCodeSettings = {
+        url: `${window.location.origin}/auth/action`,
+        handleCodeInApp: true,
+      };
       
-      const result = await sendSignInLink(email);
-      
-      if(result.error) {
-          setError(result.error);
-      } else {
-          window.localStorage.setItem('emailForSignIn', email);
-          toast({
-            title: 'Check your email',
-            description: 'A sign-in link has been sent to your email address.',
-          });
+      try {
+        await sendSignInWithEmailLink(auth, email, actionCodeSettings);
+        window.localStorage.setItem('emailForSignIn', email);
+        toast({
+          title: 'Check your email',
+          description: 'A sign-in link has been sent to your email address.',
+        });
+      } catch (err: any) {
+        console.error('Send Link Error:', err);
+        setError(err.message);
+      } finally {
+        setIsLinkSubmitting(false);
       }
-      
-      setIsLinkSubmitting(false);
   }
 
   return (
