@@ -26,10 +26,6 @@ env:
     secret: ERPNEXT_API_SECRET
     availability:
       - RUNTIME
-  - variable: FIREBASE_SERVICE_ACCOUNT
-    secret: FIREBASE_SERVICE_ACCOUNT
-    availability:
-      - RUNTIME
   - variable: NEXT_PUBLIC_ENV
     value: 'prod'
     availability:
