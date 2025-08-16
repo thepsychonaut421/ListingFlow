@@ -50,7 +50,12 @@ export async function POST(req: Request) {
             } else {
                  // Try to parse it as JSON, as expected from the API
                 const errorBody = JSON.parse(errorText);
-                errorDetails = errorBody.message || errorBody.exception || errorBody.error || JSON.stringify(errorBody);
+                if (errorBody._server_messages) {
+                     const serverMessage = JSON.parse(errorBody._server_messages)[0];
+                     errorMessage = JSON.parse(serverMessage).message || serverMessage;
+                } else {
+                    errorMessage = errorBody.message || errorBody.exception || errorBody.error || JSON.stringify(errorBody);
+                }
             }
         } catch {
             // If any parsing fails, fallback to the status text
