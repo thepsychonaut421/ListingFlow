@@ -1,47 +1,55 @@
 
-import { NextResponse } from 'next/server';
+import { NextResponse } from "next/server";
+import data from "@/data/ebay-categories.json";
 
-// JSON local; înlocuiește cu Firestore dacă vrei
-import categories from '@/data/ebay-categories.json';
-import eanMap from '@/data/ean-to-category.json';
+type Cat = { id: string; name?: string; path: string, keywords?: string[] };
 
-type Cat = { id: string; path: string; keywords: string[] };
+function calculateScore(cat: Cat, query: string) {
+    const q = query.toLowerCase().trim();
+    if (!q) return 0;
 
-function normalize(s?: string) {
-  return (s ?? '').toLowerCase().normalize('NFKD').replace(/\p{Diacritic}/gu, '');
+    let score = 0;
+    const path = (cat.path || "").toLowerCase();
+    const name = (cat.name || "").toLowerCase();
+    const keywords = (cat.keywords || []).map(k => k.toLowerCase());
+
+    const queryWords = q.split(/\s+/).filter(w => w.length > 2);
+
+    // High score for matching keywords
+    for (const keyword of keywords) {
+        if (q.includes(keyword)) {
+            score += 10;
+        }
+    }
+    
+    // Score for words from query appearing in path
+    for (const word of queryWords) {
+        if (path.includes(word)) {
+            score += 2;
+        }
+    }
+
+    // Bonus for exact name match in path
+    if (name && path.includes(name)) {
+        score += 5;
+    }
+    
+    return score;
 }
 
-export async function POST(req: Request) {
-  const { productName, ean } = await req.json();
+export async function GET(req: Request) {
+  const { searchParams } = new URL(req.url);
+  const q = (searchParams.get("q") || "").trim();
+  if (!q) return NextResponse.json({ suggestions: [] });
 
-  // 1) Regula EAN directă (dacă avem mapare explicită)
-  if (ean && (ean as string) in eanMap) {
-    const cat = (categories as Cat[]).find(c => c.id === (eanMap as Record<string, string>)[ean]);
-    if (cat) return NextResponse.json({ categoryId: cat.id, categoryPath: cat.path });
-  }
+  const cats: Cat[] = (data as any) ?? [];
+  
+  const ranked = cats
+    .map(c => ({ ...c, _score: calculateScore(c, q) }))
+    .filter(c => c._score > 0)
+    .sort((a, b) => b._score - a._score)
+    .slice(0, 6)
+    .map(({ _score, ...c }) => c);
 
-  // 2) Scor pe cuvinte-cheie (din baza internă)
-  const q = normalize(productName);
-  if (!q) return NextResponse.json({ error: 'missing_query' }, { status: 400 });
-
-  // Scor simplu: apariții și lungimea expresiei
-  let best: { cat: Cat; score: number } | null = null;
-  for (const cat of categories as Cat[]) {
-    let score = 0;
-    for (const kw of cat.keywords) {
-      const k = normalize(kw);
-      if (!k) continue;
-      if (q.includes(k)) {
-        // bonus pentru match mai lung și pentru match la început de cuvânt
-        const exact = new RegExp(`\\b${k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i');
-        score += exact.test(q) ? 5 + Math.min(k.length, 10) : 2 + Math.min(k.length, 5);
-      }
-    }
-    if (!best || score > best.score) best = { cat, score };
-  }
-
-  if (best && best.score > 0) {
-    return NextResponse.json({ categoryId: best.cat.id, categoryPath: best.cat.path });
-  }
-  return NextResponse.json({ error: 'no_match' }, { status: 404 });
+  return NextResponse.json({ suggestions: ranked });
 }

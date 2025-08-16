@@ -19,5 +19,25 @@
     "id": "293",
     "path": "Computers/Tablets & Networking > Laptops & Netbooks > PC Laptops & Netbooks",
     "keywords": ["laptop", "notebook", "netbook", "ultrabook", "pc", "computer"]
+  },
+  {
+    "id": "353",
+    "path": "Antiques > Other Antiques",
+    "keywords": ["antiquitäten", "antiques", "kunst"]
+  },
+  {
+    "id": "25771",
+    "path": "Cameras & Photo > Binoculars & Telescopes > Telescopes",
+    "keywords": ["telescope", "teleskop", "astronomie", "astronomy"]
+  },
+  {
+    "id": "64142",
+    "path": "Home & Garden > Kitchen, Dining & Bar > Cookware > Pots & Pans",
+    "keywords": ["töpfe", "pfannen", "pots", "pans", "kochgeschirr", "cookware"]
+  },
+   {
+    "id": "177",
+    "path": "Pottery & Glass > Pottery & China > Art Pottery",
+    "keywords": ["keramik", "pottery", "porzellan", "china"]
   }
 ]
