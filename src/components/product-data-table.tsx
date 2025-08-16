@@ -11,7 +11,6 @@ import {
   getPaginationRowModel,
   getSortedRowModel,
   useReactTable,
-  RowSelectionState,
 } from '@tanstack/react-table';
 
 import {
@@ -25,24 +24,32 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Trash2 } from 'lucide-react';
+import { useSelectionStore } from '@/stores/selection-store';
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
   onBulkDelete: (selectedIds: string[]) => void;
-  rowSelection: RowSelectionState;
-  setRowSelection: (selection: RowSelectionState) => void;
 }
 
 export function ProductDataTable<TData extends { id: string }, TValue>({
   columns,
   data,
   onBulkDelete,
-  rowSelection,
-  setRowSelection,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
+
+  const selectedIds = useSelectionStore((state) => state.selectedIds);
+  const setMany = useSelectionStore((state) => state.setMany);
+
+  const rowSelection = React.useMemo(() => {
+    const selection: { [key: string]: boolean } = {};
+    selectedIds.forEach(id => {
+      selection[id] = true;
+    });
+    return selection;
+  }, [selectedIds]);
 
   const table = useReactTable({
     data,
@@ -52,9 +59,29 @@ export function ProductDataTable<TData extends { id: string }, TValue>({
       columnFilters,
       rowSelection,
     },
-    enableRowSelection: true, // Enable row selection
-    getRowId: (row) => row.id, // Use product ID for stable row identification
-    onRowSelectionChange: setRowSelection,
+    enableRowSelection: true,
+    getRowId: (row) => row.id,
+    onRowSelectionChange: (updater) => {
+      const newSelection = typeof updater === 'function' ? updater(rowSelection) : updater;
+      const allIds = data.map(d => d.id);
+      const newSelectedIds = allIds.filter(id => newSelection[id]);
+
+      // This logic is simplified. A more robust solution would compare
+      // the new selection with the old one to only update changed rows.
+      // For now, we sync the entire dataset's selection state.
+      const currentIdsInTable = new Set(data.map(p => p.id));
+      const oldSelectedIdsInTable = Array.from(selectedIds).filter(id => currentIdsInTable.has(id));
+      
+      const toUnselect = oldSelectedIdsInTable.filter(id => !newSelection[id]);
+      const toSelect = Object.keys(newSelection).filter(id => !oldSelectedIdsInTable.includes(id));
+
+      if (toUnselect.length > 0) {
+        setMany(toUnselect, false);
+      }
+      if (toSelect.length > 0) {
+        setMany(toSelect, true);
+      }
+    },
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
     getCoreRowModel: getCoreRowModel(),
@@ -64,10 +91,9 @@ export function ProductDataTable<TData extends { id: string }, TValue>({
   });
 
   const handleDeleteSelected = () => {
-    const selectedIds = table.getFilteredSelectedRowModel().rows.map(row => row.original.id);
-    if(selectedIds.length > 0) {
-      onBulkDelete(selectedIds);
-      table.resetRowSelection();
+    const selectedIdsArray = Array.from(selectedIds);
+    if(selectedIdsArray.length > 0) {
+      onBulkDelete(selectedIdsArray);
     }
   }
 
@@ -147,7 +173,7 @@ export function ProductDataTable<TData extends { id: string }, TValue>({
       <div className="flex items-center justify-end space-x-2 py-4">
         <div className="flex-1 text-sm text-muted-foreground">
           {table.getFilteredSelectedRowModel().rows.length} of{' '}
-          {table.getFilteredRowModel().rows.length} row(s) selected.
+          {table.getFilteredRowModel().rows.length} row(s) selected on this page. Total selected: {selectedIds.size}
         </div>
         <Button
           variant="outline"

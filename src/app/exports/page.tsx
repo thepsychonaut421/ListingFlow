@@ -23,11 +23,13 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useToast } from '@/hooks/use-toast';
 import { generateCsv } from '@/lib/csv-generator';
-import { initialProducts } from '@/lib/data';
+import { useSelectionStore } from '@/stores/selection-store';
 
 function ExportsClient() {
   const [products, setProducts] = React.useState<Product[]>([]);
   const { toast } = useToast();
+  const selectedIds = useSelectionStore(state => state.selectedIds);
+
 
   React.useEffect(() => {
     try {
@@ -35,13 +37,9 @@ function ExportsClient() {
       const allProductsJSON = localStorage.getItem('listingFlowProducts');
       const allProducts: Product[] = allProductsJSON ? JSON.parse(allProductsJSON) : [];
       
-      // Get the IDs of selected products
-      const selectedProductIdsJSON = localStorage.getItem('listingFlowSelectedProductIds');
-      const selectedProductIds: string[] = selectedProductIdsJSON ? JSON.parse(selectedProductIdsJSON) : [];
-      
       // Filter the full product list to get the selected products
-      if (allProducts.length > 0 && selectedProductIds.length > 0) {
-        const selected = allProducts.filter(p => selectedProductIds.includes(p.id));
+      if (allProducts.length > 0 && selectedIds.size > 0) {
+        const selected = allProducts.filter(p => selectedIds.has(p.id));
         setProducts(selected);
       } else {
         setProducts([]);
@@ -50,7 +48,7 @@ function ExportsClient() {
       console.error('Failed to parse selected products from localStorage', error);
       setProducts([]); // Default to an empty array on error
     }
-  }, []);
+  }, [selectedIds]);
 
   const handleExport = (format: 'ebay' | 'shopify') => {
     if (products.length === 0) {

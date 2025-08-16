@@ -56,6 +56,19 @@ async function erpNextRequest(
   return response.json();
 }
 
+const ERPNEXT_ITEM_FIELDS = [
+  'name', 'item_code', 'item_name', 'standard_rate', 'image', 'description', 'web_long_description', 'modified'
+];
+
+function pickDescription(item: any): string {
+    return item.web_long_description?.trim() || item.description?.trim() || '';
+}
+
+function shouldOverwrite(erpModified: string, localProduct?: Product): boolean {
+  if (!localProduct?.description) return true; // Always write if local description is empty
+  if (!localProduct?.sourceModified) return true; // Always write if we don't have a source timestamp
+  return new Date(erpModified).getTime() > new Date(localProduct.sourceModified).getTime();
+}
 
 // 2. Import produse din ERPNext
 export async function importProductsFromERPNext(
@@ -72,7 +85,7 @@ export async function importProductsFromERPNext(
     let hasMore = true;
 
     while (hasMore) {
-      const endpoint = `/api/resource/Item?fields=["name","item_code","item_name","standard_rate","image"]&limit_start=${start}&limit_page_length=${pageSize}`;
+      const endpoint = `/api/resource/Item?fields=${JSON.stringify(ERPNEXT_ITEM_FIELDS)}&limit_start=${start}&limit_page_length=${pageSize}`;
       const itemsData = await erpNextRequest(endpoint);
       
       if (itemsData && itemsData.data && itemsData.data.length > 0) {
@@ -89,55 +102,61 @@ export async function importProductsFromERPNext(
       return;
     }
 
-    // Create a map of existing product SKUs for quick lookup
-    const existingSkuMap = new Set(currentProducts.map(p => p.code));
-    
-    const newItems = allItems.filter((item: any) => !existingSkuMap.has(item.name));
+    // Create a map of existing products for quick lookup
+    const productMap = new Map(currentProducts.map(p => [p.code, p]));
+    let newCount = 0;
+    let updatedCount = 0;
 
-    if (newItems.length === 0) {
-        alert('All ERPNext products are already in ListingFlow. Use "Update from ERPNext" to sync data.');
-        setLoading(false);
-        return;
-    }
+    const upsertedProducts = await Promise.all(allItems.map(async (item: any) => {
+        const existingProduct = productMap.get(item.name);
+        const erpNextUrl = process.env.NEXT_PUBLIC_ERPNEXT_URL || '';
+        const imageUrl = item.image ? (erpNextUrl.replace(/\/$/, '') + item.image) : '';
+        let qty = existingProduct?.quantity || 0;
 
-    const importedProductsPromises = newItems.map(async (item: any) => {
-      let qty = 0;
-      try {
-        const binData = await erpNextRequest(`/api/resource/Bin?filters=[["item_code","=","${item.name}"]]&fields=["actual_qty"]`);
-        qty = binData.data.reduce((acc: number, curr: any) => acc + curr.actual_qty, 0);
-      } catch (err) {
-        console.warn(`No Bin data for item ${item.name}`, err);
-      }
-      
-      const erpNextUrl = process.env.NEXT_PUBLIC_ERPNEXT_URL || '';
-      const imageUrl = item.image ? (erpNextUrl.replace(/\/$/, '') + item.image) : '';
+        try {
+            const binData = await erpNextRequest(`/api/resource/Bin?filters=[["item_code","=","${item.name}"]]&fields=["actual_qty"]`);
+            qty = binData.data.reduce((acc: number, curr: any) => acc + curr.actual_qty, 0);
+        } catch (err) {
+            console.warn(`No Bin data for item ${item.name}`, err);
+        }
 
-      return {
-        id: item.name, // Use ERPNext's unique name as the ID
-        name: item.item_name || item.name,
-        code: item.name,
-        price: item.standard_rate || 0,
-        quantity: qty,
-        description: '',
-        image: imageUrl,
-        supplier: '',
-        location: '',
-        tags: [],
-        keywords: [],
-        category: '',
-        ebayCategoryId: '',
-        listingStatus: 'draft',
-        brand: '',
-        productType: '',
-        ean: '',
-        technicalSpecs: {},
-      } as Product;
-    });
+        if (existingProduct) {
+             // UPDATE logic
+            if (shouldOverwrite(item.modified, existingProduct)) {
+                updatedCount++;
+                return {
+                    ...existingProduct,
+                    name: item.item_name || item.name,
+                    price: item.standard_rate || 0,
+                    image: imageUrl,
+                    description: pickDescription(item),
+                    sourceModified: item.modified,
+                    quantity: qty,
+                };
+            }
+            return existingProduct;
+        } else {
+            // CREATE logic
+            newCount++;
+            return {
+                id: item.name,
+                name: item.item_name || item.name,
+                code: item.name,
+                price: item.standard_rate || 0,
+                quantity: qty,
+                description: pickDescription(item),
+                image: imageUrl,
+                sourceModified: item.modified,
+                supplier: '', location: '', tags: [], keywords: [], category: '',
+                ebayCategoryId: '', listingStatus: 'draft', brand: '', productType: '', ean: '',
+                technicalSpecs: {},
+            } as Product;
+        }
+    }));
 
-    const importedProducts = await Promise.all(importedProductsPromises);
 
-    setProducts(prevProducts => [...importedProducts, ...prevProducts]);
-    alert(`Successfully imported ${importedProducts.length} new products from ERPNext.`);
+    setProducts(() => upsertedProducts);
+    alert(`Import complete. ${newCount} new products added, ${updatedCount} products updated from ERPNext.`);
   } catch (err: any) {
     console.error(err);
     alert(`Import failed: ${err.message}`);
@@ -162,44 +181,46 @@ export async function updatePricesAndStocksFromERPNext(
 
     let updatedCount = 0;
     const updatedProductsPromises = currentProducts.map(async (p: Product) => {
-      let price = p.price;
-      let qty = p.quantity;
-      let image = p.image;
       let hasUpdate = false;
       
-      const erpNextUrl = process.env.NEXT_PUBLIC_ERPNEXT_URL || '';
-
       try {
-        const details = await erpNextRequest(`/api/resource/Item/${p.code}?fields=["standard_rate","image"]`);
-        const newPrice = details.data.standard_rate;
-        if (newPrice !== undefined && newPrice !== price) {
-          price = newPrice;
+        const details = await erpNextRequest(`/api/resource/Item/${p.code}?fields=${JSON.stringify(ERPNEXT_ITEM_FIELDS)}`);
+        const itemData = details.data;
+        const newProductData = { ...p };
+
+        const newPrice = itemData.standard_rate;
+        if (newPrice !== undefined && newPrice !== p.price) {
+          newProductData.price = newPrice;
           hasUpdate = true;
         }
-
-        const newImage = details.data.image ? (erpNextUrl.replace(/\/$/, '') + details.data.image) : '';
-        if (newImage && newImage !== image) {
-            image = newImage;
+        
+        const erpNextUrl = process.env.NEXT_PUBLIC_ERPNEXT_URL || '';
+        const newImage = itemData.image ? (erpNextUrl.replace(/\/$/, '') + itemData.image) : '';
+        if (newImage && newImage !== p.image) {
+            newProductData.image = newImage;
+            hasUpdate = true;
+        }
+        
+        if (shouldOverwrite(itemData.modified, p)) {
+            newProductData.description = pickDescription(itemData);
+            newProductData.sourceModified = itemData.modified;
             hasUpdate = true;
         }
 
-      } catch (err) {
-        console.warn(`Could not update details for ${p.code}`, err);
-      }
-
-      try {
         const binData = await erpNextRequest(`/api/resource/Bin?filters=[["item_code","=","${p.code}"]]&fields=["actual_qty"]`);
         const newQty = binData.data.reduce((acc: number, curr: any) => acc + curr.actual_qty, 0);
-        if (newQty !== qty) {
-          qty = newQty;
+        if (newQty !== p.quantity) {
+          newProductData.quantity = newQty;
           hasUpdate = true;
         }
+        
+        if(hasUpdate) updatedCount++;
+        return newProductData;
+
       } catch (err) {
-        console.warn(`Could not update stock for ${p.code}`, err);
+        console.warn(`Could not update details for ${p.code}`, err);
+        return p; // Return original product on error
       }
-      
-      if(hasUpdate) updatedCount++;
-      return { ...p, price, quantity: qty, image };
     });
     
     const updatedProducts = await Promise.all(updatedProductsPromises);
@@ -276,18 +297,16 @@ export async function exportProductsToERPNext(
             item_name: p.name,
             standard_rate: p.price,
             description: fullDescription,
+            web_long_description: fullDescription,
             ean: p.ean,
-            // We don't export the image back, as it's managed in ERPNext
         };
 
-        // Only add 'productType' to the payload if it's not empty,
-        // to avoid validation errors for a potentially non-existent "Marke"
-        if(p.productType) {
-            itemPayload.marke = p.productType;
+        if(p.brand) {
+            itemPayload.brand = p.brand;
         }
 
         try {
-            await erpNextRequest(`/api/resource/Item/${p.code}`, 'PUT', itemPayload);
+            await erpNextRequest(`/api/resource/Item/${p.code}`, 'PUT', { data: itemPayload });
             successCount++;
         } catch (error: any) {
              const message = `Failed to export product ${p.code}: ${error.message}`;
