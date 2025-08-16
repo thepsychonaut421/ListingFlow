@@ -47,7 +47,6 @@ const productSchema = z.object({
   listingStatus: z.enum(['draft', 'listed', 'error', 'new', 'used', 'refurbished']),
   brand: z.string().optional(),
   productType: z.string().optional(),
-  ean: z.string().optional(),
   technicalSpecs: z.array(z.object({
     key: z.string().min(1, 'Key cannot be empty'),
     value: z.string().min(1, 'Value cannot be empty'),
@@ -90,7 +89,6 @@ const toProductFormValues = (product: Product | null): ProductFormValues => {
         listingStatus: product?.listingStatus || 'draft',
         brand: product?.brand || '',
         productType: product?.productType || '',
-        ean: product?.ean || '',
         technicalSpecs: technicalSpecs,
         model: product?.model || '',
         mpn: product?.mpn || '',
@@ -104,7 +102,6 @@ const toProductFormValues = (product: Product | null): ProductFormValues => {
 
 
 export function ProductForm({ product, onSave, onCancel }: ProductFormProps) {
-  const [isFindingEan, setIsFindingEan] = React.useState(false);
   const [isFindingCategory, setIsFindingCategory] = React.useState(false);
   const [categorySuggestions, setCategorySuggestions] = React.useState<{id: string; path: string}[]>([]);
   const { toast } = useToast();
@@ -128,16 +125,9 @@ export function ProductForm({ product, onSave, onCancel }: ProductFormProps) {
     name: 'description',
   });
   
-  const productNameValue = useWatch({
-    control: form.control,
-    name: 'name',
-  });
+  // Get live values from the form for API calls
+  const liveProductName = useWatch({ control: form.control, name: 'name' });
   
-  const eanValue = useWatch({
-    control: form.control,
-    name: 'ean',
-  });
-
   const onSubmit = (data: ProductFormValues) => {
     const finalData: Product = {
       ...(product || {
@@ -159,13 +149,11 @@ export function ProductForm({ product, onSave, onCancel }: ProductFormProps) {
   };
   
  const handleFindCategory = async () => {
-    const productName = form.watch("name");
-    
-    if (!productName.trim()) {
+    if (!liveProductName || !liveProductName.trim()) {
       toast({
         variant: 'destructive',
-        title: 'Missing Product Info',
-        description: 'Please enter a product name or other details to find a category.',
+        title: 'Missing Product Name',
+        description: 'Please enter a product name to find a category.',
       });
       return;
     }
@@ -176,7 +164,7 @@ export function ProductForm({ product, onSave, onCancel }: ProductFormProps) {
       const res = await fetch(`/api/ebay/category/suggest`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ productTitle: form.watch("name"), ean: form.watch("ean") }),
+          body: JSON.stringify({ productTitle: liveProductName }),
       });
       const data = await res.json();
       if (res.ok && data.categoryId) {
@@ -238,15 +226,15 @@ export function ProductForm({ product, onSave, onCancel }: ProductFormProps) {
         className="flex h-full flex-col"
       >
         <div className="flex-1 overflow-y-auto px-1 py-4">
-          <div className="grid gap-6 px-6">
+          <div className="grid grid-cols-12 gap-x-6 gap-y-4 px-6">
             
             {/* Row 1: Product Name & Status */}
-            <div className="grid grid-cols-3 gap-6">
+            <div className="col-span-12 md:col-span-9">
               <FormField
                 control={form.control}
                 name="name"
                 render={({ field }) => (
-                  <FormItem className="col-span-2">
+                  <FormItem>
                     <FormLabel>Product Name</FormLabel>
                     <FormControl>
                       <Input placeholder="e.g. Vintage Leather Wallet" {...field} />
@@ -255,6 +243,8 @@ export function ProductForm({ product, onSave, onCancel }: ProductFormProps) {
                   </FormItem>
                 )}
               />
+            </div>
+            <div className="col-span-12 md:col-span-3">
               <FormField
                 control={form.control}
                 name="listingStatus"
@@ -286,7 +276,7 @@ export function ProductForm({ product, onSave, onCancel }: ProductFormProps) {
             </div>
             
             {/* Row 2: Categories */}
-            <div className="grid grid-cols-2 gap-6">
+            <div className="col-span-12 lg:col-span-7">
                 <FormField
                     control={form.control}
                     name="category"
@@ -301,13 +291,15 @@ export function ProductForm({ product, onSave, onCancel }: ProductFormProps) {
                     </FormItem>
                     )}
                 />
+            </div>
+            <div className="col-span-12 lg:col-span-5">
                  <FormField
                     control={form.control}
                     name="ebayCategoryId"
                     render={({ field }) => (
                     <FormItem>
                         <FormLabel>eBay Category ID</FormLabel>
-                         <div className="relative">
+                         <div className="flex items-center gap-2">
                             <FormControl>
                                 <Input placeholder="e.g. 9355" {...field} />
                             </FormControl>
@@ -315,7 +307,7 @@ export function ProductForm({ product, onSave, onCancel }: ProductFormProps) {
                                 type="button"
                                 size="icon"
                                 variant="outline"
-                                className="absolute right-1 top-1/2 h-8 w-8 -translate-y-1/2"
+                                className="h-10 w-10 shrink-0"
                                 onClick={handleFindCategory}
                                 disabled={isFindingCategory}
                                 aria-label="Find eBay category"
@@ -330,7 +322,7 @@ export function ProductForm({ product, onSave, onCancel }: ProductFormProps) {
             </div>
             
             {/* Row 3: Brand, Type, SKU */}
-             <div className="grid grid-cols-3 gap-6">
+             <div className="col-span-12 md:col-span-4">
                <FormField
                 control={form.control}
                 name="brand"
@@ -344,6 +336,8 @@ export function ProductForm({ product, onSave, onCancel }: ProductFormProps) {
                   </FormItem>
                 )}
               />
+            </div>
+            <div className="col-span-12 md:col-span-4">
               <FormField
                 control={form.control}
                 name="productType"
@@ -357,6 +351,8 @@ export function ProductForm({ product, onSave, onCancel }: ProductFormProps) {
                   </FormItem>
                 )}
               />
+            </div>
+            <div className="col-span-12 md:col-span-4">
               <FormField
                 control={form.control}
                 name="code"
@@ -380,7 +376,7 @@ export function ProductForm({ product, onSave, onCancel }: ProductFormProps) {
             </div>
             
             {/* Row 4: Quantity, Price, Image */}
-             <div className="grid grid-cols-3 gap-6">
+             <div className="col-span-6 md:col-span-3">
               <FormField
                 control={form.control}
                 name="quantity"
@@ -394,6 +390,8 @@ export function ProductForm({ product, onSave, onCancel }: ProductFormProps) {
                   </FormItem>
                 )}
               />
+            </div>
+             <div className="col-span-6 md:col-span-3">
               <FormField
                 control={form.control}
                 name="price"
@@ -407,6 +405,8 @@ export function ProductForm({ product, onSave, onCancel }: ProductFormProps) {
                   </FormItem>
                 )}
               />
+            </div>
+            <div className="col-span-12 md:col-span-6">
               <FormField
                 control={form.control}
                 name="image"
@@ -422,7 +422,8 @@ export function ProductForm({ product, onSave, onCancel }: ProductFormProps) {
               />
             </div>
 
-            {/* Row 5: Description */}
+            {/* Row 5: Description & Preview */}
+            <div className="col-span-12">
             <FormField
                 control={form.control}
                 name="description"
@@ -440,9 +441,8 @@ export function ProductForm({ product, onSave, onCancel }: ProductFormProps) {
                 </FormItem>
                 )}
             />
-            
-            {/* Row 6: Preview */}
-            <div>
+            </div>
+            <div className="col-span-12">
                 <FormLabel>Description Preview</FormLabel>
                 <Card className="mt-2 h-[224px] overflow-hidden border border-input">
                     <CardContent className="p-0 h-full">
@@ -451,7 +451,8 @@ export function ProductForm({ product, onSave, onCancel }: ProductFormProps) {
                 </Card>
             </div>
 
-            {/* Row 7: Technical Specs */}
+            {/* Row 6: Technical Specs */}
+             <div className="col-span-12">
             <Card>
               <CardHeader>
                 <CardTitle className="text-lg flex justify-between items-center">
@@ -499,10 +500,10 @@ export function ProductForm({ product, onSave, onCancel }: ProductFormProps) {
                 ))}
               </CardContent>
             </Card>
-
+            </div>
           </div>
         </div>
-        <SheetFooter className="sticky bottom-0 bg-background px-6 py-4 border-t">
+        <SheetFooter className="sticky bottom-0 bg-background/95 backdrop-blur px-6 py-4 border-t">
           <SheetClose asChild>
             <Button type="button" variant="outline" onClick={onCancel}>
               Cancel
