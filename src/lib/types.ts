@@ -21,6 +21,7 @@ export type Product = {
   // Additional technical specs for better export
   model?: string;
   mpn?: string; // Manufacturer Part Number
+  ean?: string;
   color?: string;
   material?: string;
   size?: string;

@@ -104,22 +104,24 @@ export const getColumns = ({ onEdit, onDelete, onGenerate, onCopyDescription, on
       const { toast } = useToast();
 
       const handleDetect = async () => {
-        try {
-            const res = await fetch('/api/ebay/category/suggest', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ productName: product.name, ean: product.ean }),
+         const productName = product.name?.trim();
+         if (!productName) {
+            toast({
+                variant: 'destructive',
+                title: 'Detection Failed',
+                description: 'Product name is required to find a category.',
             });
-            if (!res.ok) {
-                 const err = await res.json();
-                 throw new Error(err.error || 'No match found');
-            }
-            const data = await res.json();
-            if (data.categoryId) {
-                onUpdateProduct(product.id, { ebayCategoryId: data.categoryId });
+            return;
+         }
+
+        try {
+            const result = await findEbayCategoryId({ productTitle: productName, ean: product.ean });
+
+            if (result.categoryId) {
+                onUpdateProduct(product.id, { ebayCategoryId: result.categoryId });
                 toast({
                     title: 'Category Detected!',
-                    description: `Suggested category: ${data.categoryPath} (${data.categoryId})`,
+                    description: `Suggested category: ${result.categoryPath} (${result.categoryId})`,
                 });
             } else {
                  throw new Error('No match found');
@@ -142,7 +144,12 @@ export const getColumns = ({ onEdit, onDelete, onGenerate, onCopyDescription, on
           ) : (
              <span className="text-muted-foreground text-xs italic">Not set</span>
           )}
-          <EbayCategoryButton onDetect={handleDetect} onPick={handlePick} lastUsed={categoryId} />
+          <EbayCategoryButton 
+            onDetect={handleDetect} 
+            onPick={handlePick} 
+            lastUsed={categoryId}
+            canDetect={!!product.name?.trim()}
+          />
         </div>
       );
     }
@@ -279,7 +286,7 @@ export const getColumns = ({ onEdit, onDelete, onGenerate, onCopyDescription, on
 ];
 
 
-function EbayCategoryButton({ onDetect, onPick, lastUsed }: { onDetect: () => void; onPick: () => void; lastUsed?: string }) {
+function EbayCategoryButton({ onDetect, onPick, lastUsed, canDetect }: { onDetect: () => void; onPick: () => void; lastUsed?: string, canDetect: boolean }) {
   const [isLoading, setIsLoading] = React.useState(false);
 
   const handleDetectClick = async () => {
@@ -293,7 +300,14 @@ function EbayCategoryButton({ onDetect, onPick, lastUsed }: { onDetect: () => vo
 
   return (
     <div className="inline-flex items-stretch rounded-md shadow-sm">
-      <Button type="button" onClick={handleDetectClick} size="sm" className="rounded-r-none h-8" disabled={isLoading}>
+      <Button 
+        type="button" 
+        onClick={handleDetectClick} 
+        size="sm" 
+        className="rounded-r-none h-8" 
+        disabled={isLoading || !canDetect}
+        title={!canDetect ? 'Product name is required' : 'Detect eBay Category'}
+       >
         {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
       </Button>
       <DropdownMenu>
