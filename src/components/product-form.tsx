@@ -28,7 +28,6 @@ import {
 } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import type { Product } from '@/lib/types';
-import { findEan } from '@/ai/flows/find-ean';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Search, Trash2, PlusCircle } from 'lucide-react';
 import { searchInERPNext } from '@/lib/erpnext';
@@ -177,7 +176,7 @@ export function ProductForm({ product, onSave, onCancel }: ProductFormProps) {
       const res = await fetch(`/api/ebay/category/suggest`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ productName: form.watch("name"), ean: form.watch("ean") }),
+          body: JSON.stringify({ productTitle: form.watch("name"), ean: form.watch("ean") }),
       });
       const data = await res.json();
       if (res.ok && data.categoryId) {
@@ -185,7 +184,7 @@ export function ProductForm({ product, onSave, onCancel }: ProductFormProps) {
          form.setValue("ebayCategoryId", String(data.categoryId));
         toast({
             title: 'Category Found',
-            description: `Set to: ${data.categoryPath}`,
+            description: `Set to: ${data.categoryPath} (${data.reason})`,
         });
       } else {
          toast({
@@ -206,51 +205,12 @@ export function ProductForm({ product, onSave, onCancel }: ProductFormProps) {
   };
 
 
-  const handleFindEan = async () => {
-    const productName = form.getValues('name');
-    const brand = form.getValues('brand');
-    if (!productName) {
-        toast({
-            variant: 'destructive',
-            title: 'Missing Information',
-            description: 'Please enter a product name before finding the EAN.',
-        });
-        return;
-    }
-    setIsFindingEan(true);
-    try {
-        const result = await findEan({ productName, brand });
-        if (result.ean) {
-            form.setValue('ean', result.ean, { shouldValidate: true });
-            toast({
-                title: 'EAN Found!',
-                description: `The EAN ${result.ean} has been filled in.`,
-            });
-        } else {
-            toast({
-                variant: 'destructive',
-                title: 'EAN Not Found',
-                description: 'Could not find an EAN for this product.',
-            });
-        }
-    } catch (error) {
-        console.error('Failed to find EAN:', error);
-        toast({
-            variant: 'destructive',
-            title: 'EAN Search Failed',
-            description: 'An error occurred while searching for the EAN.',
-        });
-    } finally {
-        setIsFindingEan(false);
-    }
-  };
-
   const handleAutocomplete = async (code: string) => {
     if (!code) return;
 
     const filters = [
         ['Item', 'name', 'like', `%${code}%`],
-        ['Item', 'ean', 'like', `%${code}%`],
+        ['Item', 'item_code', 'like', `%${code}%`],
     ];
   
     const results = await searchInERPNext(
@@ -264,10 +224,9 @@ export function ProductForm({ product, onSave, onCancel }: ProductFormProps) {
       form.setValue('name', found.item_name || found.name, { shouldValidate: true });
       form.setValue('category', found.item_group || '', { shouldValidate: true });
       form.setValue('code', found.name, { shouldValidate: true });
-      form.setValue('ean', found.ean || '', { shouldValidate: true });
       toast({
         title: 'Autocomplete Success',
-        description: `Fields populated based on SKU/EAN: ${code}.`,
+        description: `Fields populated based on SKU: ${code}.`,
       });
     }
   }
@@ -280,12 +239,14 @@ export function ProductForm({ product, onSave, onCancel }: ProductFormProps) {
       >
         <div className="flex-1 overflow-y-auto px-1 py-4">
           <div className="grid gap-6 px-6">
-            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+            
+            {/* Row 1: Product Name & Status */}
+            <div className="grid grid-cols-3 gap-6">
               <FormField
                 control={form.control}
                 name="name"
                 render={({ field }) => (
-                  <FormItem>
+                  <FormItem className="col-span-2">
                     <FormLabel>Product Name</FormLabel>
                     <FormControl>
                       <Input placeholder="e.g. Vintage Leather Wallet" {...field} />
@@ -324,7 +285,8 @@ export function ProductForm({ product, onSave, onCancel }: ProductFormProps) {
               />
             </div>
             
-            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+            {/* Row 2: Categories */}
+            <div className="grid grid-cols-2 gap-6">
                 <FormField
                     control={form.control}
                     name="category"
@@ -333,9 +295,7 @@ export function ProductForm({ product, onSave, onCancel }: ProductFormProps) {
                         <FormLabel>Shopify Category</FormLabel>
                           <CategoryCombobox 
                             value={field.value || ''}
-                            onChange={(value) => {
-                                field.onChange(value);
-                            }}
+                            onChange={(value) => field.onChange(value)}
                           />
                         <FormMessage />
                     </FormItem>
@@ -368,36 +328,17 @@ export function ProductForm({ product, onSave, onCancel }: ProductFormProps) {
                     )}
                 />
             </div>
-            { !isFindingCategory && categorySuggestions.length > 0 && (
-                <div className="md:col-span-2 space-y-2">
-                    <FormLabel>Category Suggestions</FormLabel>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                    {categorySuggestions.map(s => (
-                    <button
-                        key={s.id}
-                        type="button"
-                        className="text-left w-full rounded border p-2 text-sm hover:bg-muted"
-                        onClick={() => {
-                            form.setValue("ebayCategoryId", String(s.id));
-                            setCategorySuggestions([]);
-                        }}
-                    >
-                        {s.path} — <span className="font-mono bg-gray-200 dark:bg-gray-700 px-1 rounded">{s.id}</span>
-                    </button>
-                    ))}
-                    </div>
-                </div>
-            )}
-
-            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-              <FormField
+            
+            {/* Row 3: Brand, Type, SKU */}
+             <div className="grid grid-cols-3 gap-6">
+               <FormField
                 control={form.control}
                 name="brand"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Brand (Marke)</FormLabel>
                     <FormControl>
-                      <Input placeholder="e.g. Silvercrest, Unbranded" {...field} />
+                      <Input placeholder="e.g. Silvercrest" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -410,17 +351,13 @@ export function ProductForm({ product, onSave, onCancel }: ProductFormProps) {
                   <FormItem>
                     <FormLabel>Product Type (Produktart)</FormLabel>
                     <FormControl>
-                      <Input placeholder="e.g. Küchenmaschine, Wallet" {...field} />
+                      <Input placeholder="e.g. Küchenmaschine" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-            </div>
-
-
-            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-               <FormField
+              <FormField
                 control={form.control}
                 name="code"
                 render={({ field }) => (
@@ -440,34 +377,10 @@ export function ProductForm({ product, onSave, onCancel }: ProductFormProps) {
                   </FormItem>
                 )}
               />
-              <FormField
-                control={form.control}
-                name="ean"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>EAN / UPC</FormLabel>
-                    <div className="flex items-center space-x-2">
-                      <FormControl>
-                        <Input 
-                          placeholder="e.g. 4056233833446" 
-                          {...field} 
-                           onChange={(e) => {
-                            field.onChange(e);
-                            handleAutocomplete(e.target.value);
-                          }}
-                        />
-                      </FormControl>
-                      <Button type="button" variant="outline" onClick={handleFindEan} disabled={isFindingEan}>
-                        {isFindingEan ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Search className="mr-2 h-4 w-4" />}
-                        Find EAN
-                      </Button>
-                    </div>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
             </div>
-             <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+            
+            {/* Row 4: Quantity, Price, Image */}
+             <div className="grid grid-cols-3 gap-6">
               <FormField
                 control={form.control}
                 name="quantity"
@@ -494,52 +407,51 @@ export function ProductForm({ product, onSave, onCancel }: ProductFormProps) {
                   </FormItem>
                 )}
               />
+              <FormField
+                control={form.control}
+                name="image"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Image URL</FormLabel>
+                    <FormControl>
+                      <Input placeholder="https://..." {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
             </div>
 
+            {/* Row 5: Description */}
             <FormField
-              control={form.control}
-              name="image"
-              render={({ field }) => (
+                control={form.control}
+                name="description"
+                render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Image URL</FormLabel>
-                  <FormControl>
-                    <Input placeholder="https://..." {...field} />
-                  </FormControl>
-                  <FormMessage />
+                    <FormLabel>Description</FormLabel>
+                    <FormControl>
+                    <Textarea
+                        placeholder="Provide a detailed product description..."
+                        className="min-h-[200px]"
+                        {...field}
+                    />
+                    </FormControl>
+                    <FormMessage />
                 </FormItem>
-              )}
+                )}
             />
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <FormField
-                    control={form.control}
-                    name="description"
-                    render={({ field }) => (
-                    <FormItem className="md:col-span-2">
-                        <FormLabel>Description</FormLabel>
-                        <FormControl>
-                        <Textarea
-                            placeholder="Provide a detailed product description..."
-                            className="min-h-[200px]"
-                            {...field}
-                        />
-                        </FormControl>
-                        <FormMessage />
-                    </FormItem>
-                    )}
-                />
-            </div>
             
-            <div className="md:col-span-2">
+            {/* Row 6: Preview */}
+            <div>
                 <FormLabel>Description Preview</FormLabel>
-                <Card className="mt-2 h-[224px] overflow-hidden">
+                <Card className="mt-2 h-[224px] overflow-hidden border border-input">
                     <CardContent className="p-0 h-full">
                         <HTMLPreview htmlContent={descriptionValue || '<p class="text-muted-foreground p-4">Start typing a description to see a preview.</p>'} />
                     </CardContent>
                 </Card>
             </div>
 
-
+            {/* Row 7: Technical Specs */}
             <Card>
               <CardHeader>
                 <CardTitle className="text-lg flex justify-between items-center">
