@@ -42,17 +42,21 @@ export function ProductDataTable<TData extends { id: string }, TValue>({
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
 
   // Zustand store integration
-  const selectedIds = useSelectionStore((state) => state.selectedIds);
-  const setMany = useSelectionStore((state) => state.setMany);
+  const { selectedIds, setMany, clear } = useSelectionStore();
+
 
   // Memoize row selection object from Zustand store
   const rowSelection: RowSelectionState = React.useMemo(() => {
     const selection: { [key: string]: boolean } = {};
     selectedIds.forEach((id) => {
-      selection[id] = true;
+      // Find the index of the row in the data array
+      const rowIndex = data.findIndex(row => row.id === id);
+      if (rowIndex > -1) {
+        selection[rowIndex] = true;
+      }
     });
     return selection;
-  }, [selectedIds]);
+  }, [selectedIds, data]);
 
   const table = useReactTable({
     data,
@@ -63,41 +67,22 @@ export function ProductDataTable<TData extends { id: string }, TValue>({
       rowSelection,
     },
     enableRowSelection: true,
-    getRowId: (row) => row.id,
+    // getRowId is not needed if we manage selection by index
     onRowSelectionChange: (updater) => {
-        // This logic correctly handles individual and bulk selections
-        // by diffing the incoming patch with the current state from the store.
-        const currentSelection = rowSelection;
-        const selectionPatch = typeof updater === 'function' ? updater(currentSelection) : updater;
-
-        const idsToSelect: string[] = [];
-        const idsToDeselect: string[] = [];
-
-        for (const id in selectionPatch) {
-            if (selectionPatch[id] && !currentSelection[id]) {
-                idsToSelect.push(id);
-            } else if (!selectionPatch[id] && currentSelection[id]) {
-                idsToDeselect.push(id);
-            }
-        }
+        const newSelectionState = typeof updater === 'function' ? updater(rowSelection) : updater;
+        const newSelectedIds = new Set<string>();
         
-        // Handle "Select All" case where updater provides a complete object
-        if (Object.keys(selectionPatch).length === data.length) {
-             data.forEach(row => {
-                if (selectionPatch[row.id] && !currentSelection[row.id]) {
-                    if (!idsToSelect.includes(row.id)) idsToSelect.push(row.id);
-                } else if (!selectionPatch[row.id] && currentSelection[row.id]) {
-                    if (!idsToDeselect.includes(row.id)) idsToDeselect.push(row.id);
-                }
-             });
-        }
+        Object.keys(newSelectionState).forEach(rowIndexStr => {
+             const rowIndex = parseInt(rowIndexStr, 10);
+             if (newSelectionState[rowIndex] && data[rowIndex]) {
+                newSelectedIds.add(data[rowIndex].id);
+             }
+        });
 
-
-        if (idsToSelect.length > 0) {
-            setMany(idsToSelect, true);
-        }
-        if (idsToDeselect.length > 0) {
-            setMany(idsToDeselect, false);
+        // This is a more direct way to sync with Zustand
+        clear(); // Clear existing selection
+        if (newSelectedIds.size > 0) {
+            setMany(Array.from(newSelectedIds), true); // Set the new selection
         }
     },
     onSortingChange: setSorting,
