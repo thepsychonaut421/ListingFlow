@@ -33,6 +33,7 @@ import { Loader2, Search, Trash2, PlusCircle } from 'lucide-react';
 import { searchInERPNext } from '@/lib/erpnext';
 import { HTMLPreview } from './html-preview';
 import { CategoryCombobox } from './category-combobox';
+import { findEbayCategoryId } from '@/ai/flows/find-ebay-category-id';
 
 
 const productSchema = z.object({
@@ -53,6 +54,7 @@ const productSchema = z.object({
   })),
   model: z.string().optional(),
   mpn: z.string().optional(),
+  ean: z.string().optional(),
   color: z.string().optional(),
   material: z.string().optional(),
   size: z.string().optional(),
@@ -89,6 +91,7 @@ const toProductFormValues = (product: Product | null): ProductFormValues => {
         listingStatus: product?.listingStatus || 'draft',
         brand: product?.brand || '',
         productType: product?.productType || '',
+        ean: product?.ean || '',
         technicalSpecs: technicalSpecs,
         model: product?.model || '',
         mpn: product?.mpn || '',
@@ -103,7 +106,6 @@ const toProductFormValues = (product: Product | null): ProductFormValues => {
 
 export function ProductForm({ product, onSave, onCancel }: ProductFormProps) {
   const [isFindingCategory, setIsFindingCategory] = React.useState(false);
-  const [categorySuggestions, setCategorySuggestions] = React.useState<{id: string; path: string}[]>([]);
   const { toast } = useToast();
 
   const form = useForm<ProductFormValues>({
@@ -127,6 +129,7 @@ export function ProductForm({ product, onSave, onCancel }: ProductFormProps) {
   
   // Get live values from the form for API calls
   const liveProductName = useWatch({ control: form.control, name: 'name' });
+  const liveEan = useWatch({ control: form.control, name: 'ean' });
   
   const onSubmit = (data: ProductFormValues) => {
     const finalData: Product = {
@@ -149,7 +152,8 @@ export function ProductForm({ product, onSave, onCancel }: ProductFormProps) {
   };
   
  const handleFindCategory = async () => {
-    if (!liveProductName || !liveProductName.trim()) {
+    const productName = liveProductName?.trim();
+    if (!productName) {
       toast({
         variant: 'destructive',
         title: 'Missing Product Name',
@@ -159,26 +163,20 @@ export function ProductForm({ product, onSave, onCancel }: ProductFormProps) {
     }
     
     setIsFindingCategory(true);
-    setCategorySuggestions([]);
     try {
-      const res = await fetch(`/api/ebay/category/suggest`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ productTitle: liveProductName }),
-      });
-      const data = await res.json();
-      if (res.ok && data.categoryId) {
-        setCategorySuggestions([{ id: data.categoryId, path: data.categoryPath }]);
-         form.setValue("ebayCategoryId", String(data.categoryId));
+      const result = await findEbayCategoryId({ productTitle: productName, ean: liveEan });
+
+      if (result.categoryId) {
+        form.setValue("ebayCategoryId", result.categoryId);
         toast({
             title: 'Category Found',
-            description: `Set to: ${data.categoryPath} (${data.reason})`,
+            description: `Set to: ${result.categoryPath} (${result.reason})`,
         });
       } else {
          toast({
             variant: 'destructive',
             title: 'No Suggestions Found',
-            description: data.error || 'Could not find a matching category.',
+            description: 'Could not find a matching category.',
         });
       }
     } catch (err: any) {
@@ -309,8 +307,9 @@ export function ProductForm({ product, onSave, onCancel }: ProductFormProps) {
                                 variant="outline"
                                 className="h-10 w-10 shrink-0"
                                 onClick={handleFindCategory}
-                                disabled={isFindingCategory}
+                                disabled={isFindingCategory || !liveProductName?.trim()}
                                 aria-label="Find eBay category"
+                                title={!liveProductName?.trim() ? 'Please enter a product name first' : 'Find eBay category'}
                             >
                                 {isFindingCategory ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
                             </Button>
@@ -322,7 +321,7 @@ export function ProductForm({ product, onSave, onCancel }: ProductFormProps) {
             </div>
             
             {/* Row 3: Brand, Type, SKU */}
-             <div className="col-span-12 md:col-span-4">
+             <div className="col-span-12 md:col-span-3">
                <FormField
                 control={form.control}
                 name="brand"
@@ -337,7 +336,7 @@ export function ProductForm({ product, onSave, onCancel }: ProductFormProps) {
                 )}
               />
             </div>
-            <div className="col-span-12 md:col-span-4">
+            <div className="col-span-12 md:col-span-3">
               <FormField
                 control={form.control}
                 name="productType"
@@ -352,7 +351,7 @@ export function ProductForm({ product, onSave, onCancel }: ProductFormProps) {
                 )}
               />
             </div>
-            <div className="col-span-12 md:col-span-4">
+            <div className="col-span-12 md:col-span-3">
               <FormField
                 control={form.control}
                 name="code"
@@ -374,7 +373,22 @@ export function ProductForm({ product, onSave, onCancel }: ProductFormProps) {
                 )}
               />
             </div>
-            
+             <div className="col-span-12 md:col-span-3">
+              <FormField
+                control={form.control}
+                name="ean"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>EAN</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Product EAN" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
             {/* Row 4: Quantity, Price, Image */}
              <div className="col-span-6 md:col-span-3">
               <FormField
