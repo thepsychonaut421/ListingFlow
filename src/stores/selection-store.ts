@@ -38,18 +38,21 @@ export const useSelectionStore = create<SelectionState>()(
       clear: () => set({ selectedIds: new Set() }),
     }),
     {
-      name: 'listingflow-selection-v1',
+      name: 'listingflow-selection-v2', // Changed name to prevent conflicts with old structure
       storage: createJSONStorage(() => localStorage, {
         // Custom reviver/replacer to handle Set serialization.
-        reviver: (key, value) => {
-          if (key === 'selectedIds' && Array.isArray(value)) {
-            return new Set(value);
+        replacer: (key, value) => {
+          if (value instanceof Set) {
+            return {
+              dataType: 'Set',
+              value: Array.from(value),
+            };
           }
           return value;
         },
-        replacer: (key, value) => {
-          if (key === 'selectedIds' && value instanceof Set) {
-            return Array.from(value);
+        reviver: (key, value) => {
+          if (typeof value === 'object' && value !== null && value.dataType === 'Set') {
+            return new Set(value.value);
           }
           return value;
         },
