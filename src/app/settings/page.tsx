@@ -32,11 +32,9 @@ function SettingsClient() {
    const [erpNextUrl, setErpNextUrl] = React.useState('');
 
   React.useEffect(() => {
-    // Since env vars are not available client-side by default, this will be empty.
-    // The goal is to inform the user about the variable they NEED to set.
     // The actual usage is server-side or at build time.
     // To make it available client-side for display, we prefix it with NEXT_PUBLIC_
-    const url = process.env.NEXT_PUBLIC_ERPNEXT_URL;
+    const url = process.env.NEXT_PUBLIC_ERPNEXT_BASE_URL;
     setErpNextUrl(url || 'Not set in .env file');
   }, []);
 
@@ -57,13 +55,21 @@ function SettingsClient() {
         <CardHeader>
           <CardTitle>ERPNext Integration</CardTitle>
           <CardDescription>
-            Your ERPNext credentials should be stored securely in an <strong>.env</strong> file in the root of your project. This file is not checked into version control.
+            Your ERPNext credentials should be stored securely in an <strong>.env</strong> file in the root of your project. This file is not checked into version control. For production, these should be set as secrets in your hosting environment.
             <br /><br />
-            For images from ERPNext to load correctly, you must provide the full URL to your instance in a variable called `NEXT_PUBLIC_ERPNEXT_URL`.
+            For images from ERPNext to load correctly, you must provide the full URL to your instance. Use `.env.local` or `.env.development` for local testing and production environment variables for deployment.
              <pre className="mt-2 p-2 bg-muted rounded-md text-sm font-mono">
-              NEXT_PUBLIC_ERPNEXT_URL=https://your-erp.rembayer.info<br/>
-              ERPNEXT_API_KEY=your_api_key<br/>
-              ERPNEXT_API_SECRET=your_api_secret
+              # For local development (.env.local)
+              ERPNEXT_BASE_URL=https://your-test-erp.rembayer.info
+              NEXT_PUBLIC_ERPNEXT_BASE_URL=https://your-test-erp.rembayer.info
+              ERPNEXT_API_KEY=your_test_api_key
+              ERPNEXT_API_SECRET=your_test_api_secret
+
+              # For production (set in hosting provider)
+              ERPNEXT_BASE_URL=https://your-prod-erp.rembayer.info
+              NEXT_PUBLIC_ERPNEXT_BASE_URL=https://your-prod-erp.rembayer.info
+              ERPNEXT_API_KEY=your_prod_api_key
+              ERPNEXT_API_SECRET=your_prod_api_secret
             </pre>
              <p className="mt-4 text-sm text-muted-foreground">
               The app will construct image URLs using the base: <strong>{erpNextUrl}</strong>

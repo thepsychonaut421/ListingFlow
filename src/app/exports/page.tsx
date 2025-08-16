@@ -176,9 +176,9 @@ function ExportsClient() {
                       <TableRow key={product.id}>
                         <TableCell className="font-medium">{product.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')}</TableCell>
                         <TableCell>{product.name}</TableCell>
-                        <TableCell>{product.brand}</TableCell>
+                        <TableCell>{(product.technicalSpecs?.Marke || product.technicalSpecs?.brand) as string}</TableCell>
                         <TableCell>{product.price ? product.price.toFixed(2) : '0.00'}</TableCell>
-                        <TableCell>{product.ean}</TableCell>
+                        <TableCell>{(product.technicalSpecs?.EAN || product.technicalSpecs?.ean) as string}</TableCell>
                       </TableRow>
                     ))
                   ) : (
