@@ -43,11 +43,37 @@ const getEbayConditionId = (status: Product['listingStatus']): number => {
   }
 };
 
-const getSpecValue = (specs: Record<string, any>, keyDe: string, keyEn: string): string => {
-  const value = specs[keyDe] ?? specs[keyEn] ?? '';
-  if (Array.isArray(value)) return value.join(', ');
-  return String(value);
-}
+const pickVal = (
+  product: Product,
+  specs: Record<string, any>,
+  ...keys: string[]
+): string => {
+  for (const k of keys) {
+    // Look in specs first (case-sensitive), then product object, then case-insensitive
+    const v =
+      specs[k] ??
+      (product as any)[k] ??
+      specs[k.toLowerCase()] ??
+      (product as any)[k.toLowerCase()];
+      
+    if (v !== undefined && v !== null && String(v).trim() !== '') {
+      return Array.isArray(v) ? v.join(', ') : String(v).trim();
+    }
+  }
+  return '';
+};
+
+const inferProductType = (title: string, categoryId?: string): string => {
+  const t = title.toLowerCase();
+  if (categoryId === '36029' || /polo.?hemd|polo.?shirt/.test(t)) return 'Polohemd';
+  if (/heissluftfrit+euse|air\s*fryer/.test(t)) return 'Heißluftfritteuse';
+  if (/inlineskates|inline skates/.test(t)) return 'Inlineskates';
+  if (/lautsprecher|speaker/.test(t)) return 'Lautsprecher';
+  if (/teppich|rug/.test(t)) return 'Teppich';
+  if (/topf(set)?|kochgeschirr|pfanne/.test(t)) return 'Kochgeschirr';
+  return '';
+};
+
 
 const generateEbayCsvContent = (products: Product[]): string => {
   const headers = [
@@ -61,11 +87,14 @@ const generateEbayCsvContent = (products: Product[]): string => {
     .filter(product => product.code) 
     .map(product => {
       const specs = product.technicalSpecs || {};
-      const brand = getSpecValue(specs, 'Marke', 'brand');
-      const productType = getSpecValue(specs, 'Produktart', 'productType');
-      const model = getSpecValue(specs, 'Modell', 'model');
+      const brand = pickVal(product, specs, 'Marke', 'brand', 'Brand');
+      let productType = pickVal(product, specs, 'Produktart', 'productType', 'Type');
+      if (!productType) productType = inferProductType(product.name, product.ebayCategoryId);
+
+      const model = pickVal(product, specs, 'Modell', 'model', 'Model');
       const mpn = product.code; // Use SKU as MPN
-      const ean = getSpecValue(specs, 'EAN', 'ean');
+      const ean = pickVal(product, specs, 'EAN', 'ean', 'Barcode');
+
 
       return [
       'Draft',
@@ -131,11 +160,14 @@ const generateShopifyCsvContent = (products: Product[]): string => {
       const handle = product.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
       const imageUrl = ensureValidImageSrc(product.image);
       const specs = product.technicalSpecs || {};
-      const brand = getSpecValue(specs, 'Marke', 'brand');
-      const productType = getSpecValue(specs, 'Produktart', 'productType');
-      const ean = getSpecValue(specs, 'EAN', 'ean');
+      const brand = pickVal(product, specs, 'Marke', 'brand', 'Brand');
+      let productType = pickVal(product, specs, 'Produktart', 'productType', 'Type');
+      if (!productType) productType = inferProductType(product.name, product.ebayCategoryId);
+      
+      const ean = pickVal(product, specs, 'EAN', 'ean', 'Barcode');
       const mpn = product.code; // Use SKU as MPN
-      const weight = getSpecValue(specs, 'Gewicht', 'weight') || '0';
+      const weight = pickVal(product, specs, 'Gewicht', 'weight') || '0';
+
 
       const rowData: Record<string, any> = {
         'Handle': handle, 'Title': product.name, 'Body (HTML)': product.description,
