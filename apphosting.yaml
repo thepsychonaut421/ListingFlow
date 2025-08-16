@@ -12,7 +12,6 @@ env:
   - variable: ERPNEXT_BASE_URL
     value: "https://erp.rembayer.info"
     availability:
-      - BUILD
       - RUNTIME
   - variable: NEXT_PUBLIC_ERPNEXT_BASE_URL
     value: "https://erp.rembayer.info"
@@ -22,17 +21,14 @@ env:
   - variable: ERPNEXT_API_KEY
     secret: ERPNEXT_API_KEY
     availability:
-      - BUILD
       - RUNTIME
   - variable: ERPNEXT_API_SECRET
     secret: ERPNEXT_API_SECRET
     availability:
-      - BUILD
       - RUNTIME
   - variable: FIREBASE_SERVICE_ACCOUNT
     secret: FIREBASE_SERVICE_ACCOUNT
     availability:
-      - BUILD
       - RUNTIME
   - variable: NEXT_PUBLIC_BASE_URL
     value: '' # Will be populated by App Hosting
