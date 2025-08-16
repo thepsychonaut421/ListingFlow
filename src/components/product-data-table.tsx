@@ -45,11 +45,13 @@ export function ProductDataTable<TData extends { id: string }, TValue>({
 
   const rowSelection = React.useMemo(() => {
     const selection: { [key: string]: boolean } = {};
-    selectedIds.forEach(id => {
-      selection[id] = true;
-    });
+    data.forEach(row => {
+        if(selectedIds.has(row.id)) {
+            selection[row.id] = true;
+        }
+    })
     return selection;
-  }, [selectedIds]);
+  }, [selectedIds, data]);
 
   const table = useReactTable({
     data,
@@ -62,25 +64,16 @@ export function ProductDataTable<TData extends { id: string }, TValue>({
     enableRowSelection: true,
     getRowId: (row) => row.id,
     onRowSelectionChange: (updater) => {
-      const newSelection = typeof updater === 'function' ? updater(rowSelection) : updater;
-      const allIds = data.map(d => d.id);
-      const newSelectedIds = allIds.filter(id => newSelection[id]);
+        // This is primarily for the "select all" checkbox.
+        // Individual row selection is handled in the column definition.
+        const newSelection = typeof updater === 'function' ? updater(rowSelection) : updater;
+        const allIdsInTable = data.map(d => d.id);
+        
+        const idsToSelect = allIdsInTable.filter(id => newSelection[id]);
+        const idsToDeselect = allIdsInTable.filter(id => !newSelection[id]);
 
-      // This logic is simplified. A more robust solution would compare
-      // the new selection with the old one to only update changed rows.
-      // For now, we sync the entire dataset's selection state.
-      const currentIdsInTable = new Set(data.map(p => p.id));
-      const oldSelectedIdsInTable = Array.from(selectedIds).filter(id => currentIdsInTable.has(id));
-      
-      const toUnselect = oldSelectedIdsInTable.filter(id => !newSelection[id]);
-      const toSelect = Object.keys(newSelection).filter(id => !oldSelectedIdsInTable.includes(id));
-
-      if (toUnselect.length > 0) {
-        setMany(toUnselect, false);
-      }
-      if (toSelect.length > 0) {
-        setMany(toSelect, true);
-      }
+        if (idsToSelect.length > 0) setMany(idsToSelect, true);
+        if (idsToDeselect.length > 0) setMany(idsToDeselect, false);
     },
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
