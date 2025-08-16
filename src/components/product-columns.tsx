@@ -1,7 +1,7 @@
 'use client';
 
 import type { ColumnDef } from '@tanstack/react-table';
-import { MoreHorizontal, ArrowUpDown, Sparkles, Loader2, Edit, Trash2, Search, Copy, PackageSearch, Send, ImageIcon } from 'lucide-react';
+import { MoreHorizontal, ArrowUpDown, Sparkles, Loader2, Edit, Trash2, Search, Copy, PackageSearch, Send, ImageIcon, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -20,13 +20,12 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import type { Product } from '@/lib/types';
 import { handleExternalSearch } from '@/lib/external-search';
-
+import { useSelectionStore } from '@/stores/selection-store';
 
 type GetColumnsProps = {
   onEdit: (product: Product) => void;
   onDelete: (id: string) => void;
   onGenerate: (product: Product) => void;
-  onUpdate: (id: string, data: Partial<Product>) => void;
   onCopyDescription: (product: Product, source: 'otto' | 'ebay') => void;
   onExtractTechSpecs: (product: Product) => void;
   onGenerateImage: (product: Product) => void;
@@ -44,23 +43,37 @@ const formatCurrency = (amount: number) => {
 export const getColumns = ({ onEdit, onDelete, onGenerate, onCopyDescription, onExtractTechSpecs, onGenerateImage, onSendToEbay, generatingProductId }: GetColumnsProps): ColumnDef<Product>[] => [
   {
     id: 'select',
-    header: ({ table }) => (
-      <Checkbox
-        checked={
-          table.getIsAllPageRowsSelected() ||
-          (table.getIsSomePageRowsSelected() && 'indeterminate')
-        }
-        onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
-        aria-label="Select all"
-      />
-    ),
-    cell: ({ row }) => (
-      <Checkbox
-        checked={row.getIsSelected()}
-        onCheckedChange={(value) => row.toggleSelected(!!value)}
-        aria-label="Select row"
-      />
-    ),
+    header: ({ table }) => {
+      const { setMany } = useSelectionStore.getState();
+      const pageIds = table.getRowModel().rows.map(r => r.original.id);
+      
+      const isAllOnPageSelected = table.getIsAllPageRowsSelected();
+      const isSomeOnPageSelected = table.getIsSomePageRowsSelected();
+
+      return (
+        <Checkbox
+          checked={isAllOnPageSelected || (isSomeOnPageSelected && 'indeterminate')}
+          onCheckedChange={(value) => {
+            table.toggleAllPageRowsSelected(!!value);
+            setMany(pageIds, !!value);
+          }}
+          aria-label="Select all"
+        />
+      );
+    },
+    cell: ({ row }) => {
+      const { toggle, selectedIds } = useSelectionStore.getState();
+      return (
+        <Checkbox
+          checked={selectedIds.has(row.original.id)}
+          onCheckedChange={() => {
+            row.toggleSelected(!row.getIsSelected());
+            toggle(row.original.id);
+          }}
+          aria-label="Select row"
+        />
+      );
+    },
     enableSorting: false,
     enableHiding: false,
   },
@@ -94,6 +107,28 @@ export const getColumns = ({ onEdit, onDelete, onGenerate, onCopyDescription, on
         </div>
       );
     },
+  },
+    {
+    accessorKey: 'ebayCategoryId',
+    header: 'eBay Category',
+    cell: ({ row }) => {
+      const product = row.original;
+      const categoryId = row.getValue('ebayCategoryId') as string;
+
+      const handleDetect = () => { /* Placeholder for detect logic */ };
+      const handlePick = () => onEdit(product); // Opens the edit form
+
+      return (
+        <div className="flex items-center gap-2">
+          {categoryId ? (
+            <span className="font-mono text-sm bg-muted px-2 py-1 rounded-md">{categoryId}</span>
+          ) : (
+             <span className="text-muted-foreground text-xs italic">Not set</span>
+          )}
+          <EbayCategoryButton onDetect={handleDetect} onPick={handlePick} lastUsed={categoryId} />
+        </div>
+      );
+    }
   },
   {
     accessorKey: 'listingStatus',
@@ -225,3 +260,37 @@ export const getColumns = ({ onEdit, onDelete, onGenerate, onCopyDescription, on
     },
   },
 ];
+
+
+function EbayCategoryButton({ onDetect, onPick, lastUsed }: { onDetect: () => void; onPick: () => void; lastUsed?: string }) {
+  const [isLoading, setIsLoading] = React.useState(false);
+
+  const handleDetectClick = async () => {
+    setIsLoading(true);
+    await onDetect();
+    // Assuming onDetect will update the product and trigger a re-render
+    // A more robust implementation might return a promise that resolves when detection is done.
+    setTimeout(() => setIsLoading(false), 1000); // Simplified loading state
+  };
+
+  return (
+    <div className="inline-flex items-stretch rounded-md shadow-sm">
+      <Button onClick={handleDetectClick} size="sm" className="rounded-r-none h-8" disabled={isLoading}>
+        {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+      </Button>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="outline" size="sm" className="rounded-l-none border-l-0 h-8">
+            <ChevronDown className="h-4 w-4" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="min-w-48">
+          {lastUsed && <DropdownMenuItem disabled>Last used: {lastUsed}</DropdownMenuItem>}
+          <DropdownMenuItem onClick={onPick}>
+            Choose manually…
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </div>
+  );
+}

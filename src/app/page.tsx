@@ -6,18 +6,13 @@ import { useRouter } from 'next/navigation';
 import {
   File,
   PlusCircle,
-  Upload,
   FilePenLine,
-  Database,
-  DollarSign,
   Download,
   RefreshCw,
   Send,
   Loader2,
-  ImageIcon,
   MoreVertical
 } from 'lucide-react';
-import Papa from 'papaparse';
 import type { RowSelectionState } from '@tanstack/react-table';
 
 import { Button } from '@/components/ui/button';
@@ -65,6 +60,7 @@ import {
   updatePricesAndStocksFromERPNext,
   exportProductsToERPNext,
 } from '@/lib/erpnext';
+import { useSelectionStore } from '@/stores/selection-store';
 
 
 function DashboardClient() {
@@ -72,17 +68,16 @@ function DashboardClient() {
   const [isSheetOpen, setIsSheetOpen] = React.useState(false);
   const [isBulkEditOpen, setIsBulkEditOpen] = React.useState(false);
   const [selectedProduct, setSelectedProduct] = React.useState<Product | null>(null);
-  const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
   const [isLoading, setIsLoading] = React.useState(true);
   const [isErpLoading, setIsErpLoading] = React.useState(false);
   const [generatingProductId, setGeneratingProductId] = React.useState<string | null>(null);
   const { toast } = useToast();
-  const fileInputRef = React.useRef<HTMLInputElement>(null);
-  const erpFileInputRef = React.useRef<HTMLInputElement>(null);
-  const priceFileInputRef = React.useRef<HTMLInputElement>(null);
   const router = useRouter();
 
-  const selectedProductIds = React.useMemo(() => Object.keys(rowSelection), [rowSelection]);
+  const selectedIds = useSelectionStore(state => state.selectedIds);
+  const clearSelection = useSelectionStore(state => state.clear);
+
+  const selectedProductIds = React.useMemo(() => Array.from(selectedIds), [selectedIds]);
   
   React.useEffect(() => {
     try {
@@ -115,11 +110,6 @@ function DashboardClient() {
       }
     }
   }, [products, isLoading, toast]);
-  
-  // Effect to store selected product IDs in localStorage for the exports page
-  React.useEffect(() => {
-    localStorage.setItem('listingFlowSelectedProductIds', JSON.stringify(selectedProductIds));
-  }, [selectedProductIds]);
 
   const handleAddProduct = () => {
     setSelectedProduct(null);
@@ -137,7 +127,7 @@ function DashboardClient() {
   
   const handleBulkDelete = (ids: string[]) => {
     setProducts(products.filter((p) => !ids.includes(p.id)));
-    setRowSelection({}); // Clear selection after deletion
+    clearSelection();
     toast({
         title: 'Products Deleted',
         description: `${ids.length} products have been deleted successfully.`,
@@ -163,7 +153,7 @@ function DashboardClient() {
 
   const handleSaveBulkEdit = (data: Partial<Product>) => {
     setProducts(products.map(p => {
-        if (selectedProductIds.includes(p.id)) {
+        if (selectedIds.has(p.id)) {
             const updatedProduct = { ...p };
             for (const key in data) {
                 if (data[key as keyof typeof data]) {
@@ -179,7 +169,7 @@ function DashboardClient() {
         description: `${selectedProductIds.length} products have been updated.`,
     });
     setIsBulkEditOpen(false);
-    setRowSelection({}); // Clear selection
+    clearSelection();
   };
   
   const handleGenerateDescription = async (product: Product) => {
@@ -192,8 +182,7 @@ function DashboardClient() {
         brand: product.brand,
       });
       
-      setProducts(products.map(p => p.id === product.id ? {
-        ...p,
+      handleUpdateProduct(product.id, {
         description: result.description,
         tags: Array.isArray(result.tags) ? result.tags : [],
         keywords: Array.isArray(result.keywords) ? result.keywords : [],
@@ -202,7 +191,7 @@ function DashboardClient() {
         brand: result.brand,
         productType: result.productType,
         ean: result.ean,
-      } : p));
+      });
 
       toast({
         title: 'AI Magic Successful!',
@@ -358,157 +347,18 @@ function DashboardClient() {
   };
 
   const handleExportToCSV = () => {
-    router.push('/exports');
-  };
-
-  const handleImportClick = () => {
-    fileInputRef.current?.click();
-  };
-  
-  const handleErpImportClick = () => {
-    erpFileInputRef.current?.click();
-  };
-  
-  const handlePriceImportClick = () => {
-    priceFileInputRef.current?.click();
-  };
-
-  const handleCSVUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    Papa.parse(file, {
-      header: true,
-      skipEmptyLines: true,
-      complete: (results) => {
-        try {
-          const newProducts = results.data.map((row: any): Product => {
-            const code = row['Artikel-Code'] || row['Cod articol'] || '';
-            const name = row['Artikelname'] || row['Numele articolului'] || 'No Name';
-            const category = row['Artikelgruppe'] || row['Grup Articol'] || '';
-            
-            return {
-              id: crypto.randomUUID(),
-              name: name,
-              code: code.toString(),
-              quantity: 0,
-              price: 0,
-              description: '',
-              image: '',
-              supplier: '',
-              location: '',
-              tags: [],
-              keywords: [],
-              category: category,
-              ebayCategoryId: '',
-              listingStatus: 'draft',
-              brand: '',
-              productType: '',
-              ean: '',
-              technicalSpecs: {},
-            };
-          }).filter(p => p.code); // Filter out any items without a SKU
-
-          const updatedProducts = [...newProducts, ...products];
-          setProducts(updatedProducts);
-
-          toast({
-            title: 'Import Successful',
-            description: `${newProducts.length} products have been imported and added to the list.`,
-          });
-        } catch (err) {
-          console.error("Error processing CSV data:", err);
-          toast({
-            variant: 'destructive',
-            title: 'Import Failed',
-            description: 'Could not process the CSV file. Please check the file format.',
-          });
-        }
-      },
-      error: (err) => {
-        console.error("Error parsing CSV:", err);
+    if (selectedIds.size > 0) {
+       router.push('/exports');
+    } else {
         toast({
             variant: 'destructive',
-            title: 'Import Failed',
-            description: 'Could not parse the CSV file. Please ensure it is a valid CSV.',
+            title: 'Export Canceled',
+            description: 'Please select at least one product to export.',
         });
-      },
-    });
-    
-    if(event.target) {
-        event.target.value = '';
-    }
-  };
-
-  const handlePriceCSVUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    Papa.parse(file, {
-      header: true,
-      skipEmptyLines: true,
-      complete: (results) => {
-        let updatedCount = 0;
-        let notFoundCount = 0;
-        
-        const priceMap = new Map<string, number>();
-        results.data.forEach((row: any) => {
-          const sku = row['Cod articol'] || row['Artikel-Code'];
-          const price = row['Pret'] || row['Preis'];
-          if (sku && price !== undefined) {
-             const parsedPrice = parseFloat(String(price).replace(',', '.'));
-             if (!isNaN(parsedPrice)) {
-                priceMap.set(String(sku).trim(), parsedPrice);
-             }
-          }
-        });
-        
-        if(priceMap.size === 0) {
-            toast({
-              variant: 'destructive',
-              title: 'Update Failed',
-              description: 'No valid price data found in the CSV. Check column headers (e.g., "Cod articol", "Pret").',
-            });
-            return;
-        }
-
-        setProducts(currentProducts => {
-            const updatedProducts = currentProducts.map(p => {
-                if (priceMap.has(p.code)) {
-                    updatedCount++;
-                    return { ...p, price: priceMap.get(p.code)! };
-                }
-                return p;
-            });
-
-            const productsInFile = Array.from(priceMap.keys());
-            const productsInTable = currentProducts.map(p => p.code);
-            notFoundCount = productsInFile.filter(code => !productsInTable.includes(code)).length;
-
-            toast({
-              title: 'Price Update Complete',
-              description: `${updatedCount} prices updated. ${notFoundCount} SKUs from the file were not found in the table.`,
-            });
-            return updatedProducts;
-        });
-
-      },
-      error: (err) => {
-        console.error("Error parsing Price CSV:", err);
-        toast({
-            variant: 'destructive',
-            title: 'Import Failed',
-            description: 'Could not parse the price CSV file.',
-        });
-      },
-    });
-
-    if(event.target) {
-        event.target.value = '';
     }
   };
   
-    const handleErpImport = async () => {
+  const handleErpImport = async () => {
     await importProductsFromERPNext(setIsErpLoading, setProducts, products);
   };
 
@@ -534,7 +384,6 @@ function DashboardClient() {
       onEdit: handleEditProduct,
       onDelete: handleDeleteProduct,
       onGenerate: handleGenerateDescription,
-      onUpdate: handleUpdateProduct,
       onCopyDescription: handleCopyDescription,
       onExtractTechSpecs: handleExtractTechSpecs,
       onGenerateImage: handleGenerateImage,
@@ -685,8 +534,6 @@ function DashboardClient() {
           <ProductDataTable 
             columns={columns} 
             data={products} 
-            rowSelection={rowSelection}
-            setRowSelection={setRowSelection}
             onBulkDelete={handleBulkDelete}
           />
         </CardContent>

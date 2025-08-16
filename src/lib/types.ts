@@ -17,4 +17,5 @@ export type Product = {
   productType?: string;
   ean?: string;
   technicalSpecs: Record<string, string | string[]>;
+  sourceModified?: string; // ISO string date from ERPNext 'modified'
 };
