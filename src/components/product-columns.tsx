@@ -110,18 +110,25 @@ export const getColumns = ({ onEdit, onDelete, onGenerate, onCopyDescription, on
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ productName: product.name, ean: product.ean }),
             });
-            if (!res.ok) throw new Error('No match found');
+            if (!res.ok) {
+                 const err = await res.json();
+                 throw new Error(err.error || 'No match found');
+            }
             const data = await res.json();
-            onUpdateProduct(product.id, { ebayCategoryId: data.categoryId });
-            toast({
-                title: 'Category Detected!',
-                description: `Suggested category: ${data.categoryPath} (${data.categoryId})`,
-            });
-        } catch(e) {
+            if (data.categoryId) {
+                onUpdateProduct(product.id, { ebayCategoryId: data.categoryId });
+                toast({
+                    title: 'Category Detected!',
+                    description: `Suggested category: ${data.categoryPath} (${data.categoryId})`,
+                });
+            } else {
+                 throw new Error('No match found');
+            }
+        } catch(e: any) {
             toast({
                 variant: 'destructive',
                 title: 'Detection Failed',
-                description: 'Could not find a matching category in the local knowledge base.',
+                description: e.message || 'Could not find a matching category in the local knowledge base.',
             });
         }
       };

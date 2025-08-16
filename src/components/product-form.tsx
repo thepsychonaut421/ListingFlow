@@ -160,14 +160,9 @@ export function ProductForm({ product, onSave, onCancel }: ProductFormProps) {
   };
   
  const handleFindCategory = async () => {
-    const queryParts = [
-        form.watch("name"),
-        form.watch("brand"),
-        form.watch("productType"),
-        form.watch("model"),
-    ].filter(Boolean).join(" ");
+    const productName = form.watch("name");
     
-    if (!queryParts.trim()) {
+    if (!productName.trim()) {
       toast({
         variant: 'destructive',
         title: 'Missing Product Info',
@@ -179,19 +174,24 @@ export function ProductForm({ product, onSave, onCancel }: ProductFormProps) {
     setIsFindingCategory(true);
     setCategorySuggestions([]);
     try {
-      const res = await fetch(`/api/ebay/category/suggest?q=${encodeURIComponent(queryParts)}`);
-      const { suggestions } = await res.json();
-      if (suggestions && suggestions.length > 0) {
-        setCategorySuggestions(suggestions);
+      const res = await fetch(`/api/ebay/category/suggest`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ productName: form.watch("name"), ean: form.watch("ean") }),
+      });
+      const data = await res.json();
+      if (res.ok && data.categoryId) {
+        setCategorySuggestions([{ id: data.categoryId, path: data.categoryPath }]);
+         form.setValue("ebayCategoryId", String(data.categoryId));
         toast({
-            title: 'Categories Found',
-            description: 'Select one of the suggested categories below.',
+            title: 'Category Found',
+            description: `Set to: ${data.categoryPath}`,
         });
       } else {
          toast({
             variant: 'destructive',
             title: 'No Suggestions Found',
-            description: 'Could not find a matching category in the local database.',
+            description: data.error || 'Could not find a matching category.',
         });
       }
     } catch (err: any) {
