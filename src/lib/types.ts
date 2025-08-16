@@ -15,7 +15,6 @@ export type Product = {
   listingStatus: 'draft' | 'listed' | 'error' | 'new' | 'used' | 'refurbished';
   brand?: string;
   productType?: string;
-  ean?: string;
   technicalSpecs: Record<string, string | string[]>;
   sourceModified?: string; // ISO string date from ERPNext 'modified'
   
