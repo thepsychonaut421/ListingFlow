@@ -22,6 +22,7 @@ import { Badge } from '@/components/ui/badge';
 import type { Product } from '@/lib/types';
 import { handleExternalSearch } from '@/lib/external-search';
 import { useToast } from '@/hooks/use-toast';
+import { useSelectionStore } from '@/stores/selection-store';
 
 type GetColumnsProps = {
   onEdit: (product: Product) => void;
@@ -47,7 +48,7 @@ export const getColumns = ({ onEdit, onDelete, onGenerate, onCopyDescription, on
     id: 'select',
     header: ({ table }) => (
       <Checkbox
-        checked={table.getIsAllPageRowsSelected() || (table.getIsSomePageRowsSelected() && 'indeterminate')}
+        checked={table.getIsAllPageRowsSelected()}
         onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
         aria-label="Select all"
       />
