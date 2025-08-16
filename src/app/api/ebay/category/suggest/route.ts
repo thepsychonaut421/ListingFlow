@@ -14,12 +14,35 @@ export async function POST(req: Request) {
     const result = await findEbayCategoryId({ productTitle: productName, ean });
 
     if (result.categoryId) {
-      return NextResponse.json(result);
+      // The new product form expects 'id' and 'path'
+      return NextResponse.json({ id: result.categoryId, path: result.categoryPath });
     } else {
       return NextResponse.json({ error: "No matching category found" }, { status: 404 });
     }
   } catch (error) {
     console.error("Failed to find eBay category:", error);
     return NextResponse.json({ error: "An internal error occurred." }, { status: 500 });
+  }
+}
+
+
+export async function GET(req: Request) {
+  const { searchParams } = new URL(req.url);
+  const name = searchParams.get('name') || '';
+
+  if (!name) {
+    return NextResponse.json({ error: 'Product name query is required' }, { status: 400 });
+  }
+
+  try {
+    const result = await findEbayCategoryId({ productTitle: name });
+    if (result.categoryId) {
+      return NextResponse.json({ id: result.categoryId, path: result.categoryPath });
+    } else {
+      return NextResponse.json({ error: 'No matching category found' }, { status: 404 });
+    }
+  } catch (error) {
+    console.error('Failed to find eBay category:', error);
+    return NextResponse.json({ error: 'An internal error occurred.' }, { status: 500 });
   }
 }
