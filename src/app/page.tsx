@@ -14,7 +14,6 @@ import {
   MoreVertical,
   Server,
 } from 'lucide-react';
-import type { RowSelectionState } from '@tanstack/react-table';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -57,12 +56,6 @@ import { generateProductImage } from '@/ai/flows/generate-product-image';
 import { useToast } from '@/hooks/use-toast';
 import { ProductForm } from '@/components/product-form';
 import { BulkEditForm } from '@/components/bulk-edit-form';
-import {
-  importProductsFromERPNext,
-  updatePricesAndStocksFromERPNext,
-  exportProductsToERPNext,
-  erpPing,
-} from '@/lib/erpnext';
 import { useSelectionStore } from '@/stores/selection-store';
 
 const EnvBadge = () => {
@@ -375,25 +368,42 @@ function DashboardClient() {
     }
   };
   
-  const handleErpImport = async () => {
-    await importProductsFromERPNext(setIsErpLoading, setProducts, products);
-  };
+  const handleErpAction = async (action: 'import' | 'update' | 'export') => {
+    setIsErpLoading(true);
+    try {
+      const response = await fetch(`/api/erp/${action}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: action === 'export' ? JSON.stringify({
+          products: products.filter(p => selectedIds.has(p.id)),
+        }) : JSON.stringify({ products }),
+      });
+      
+      const result = await response.json();
 
-  const handleErpUpdate = async () => {
-    await updatePricesAndStocksFromERPNext(setIsErpLoading, setProducts, products);
-  };
+      if (!response.ok) {
+        throw new Error(result.error || `ERP ${action} failed.`);
+      }
 
-  const handleErpExport = async () => {
-    if (selectedProductIds.length === 0) {
+      if (result.products) {
+        setProducts(result.products);
+      }
+      
+      toast({
+        title: `ERP ${action} successful!`,
+        description: result.message,
+      });
+
+    } catch (error: any) {
+      console.error(`ERP ${action} failed:`, error);
       toast({
         variant: 'destructive',
-        title: 'Export Failed',
-        description: 'Please select at least one product to export.',
+        title: `ERP ${action} Failed`,
+        description: error.message,
       });
-      return;
+    } finally {
+      setIsErpLoading(false);
     }
-    const productsToExport = products.filter(p => selectedProductIds.includes(p.id));
-    await exportProductsToERPNext(setIsErpLoading, productsToExport);
   };
 
 
@@ -440,15 +450,15 @@ function DashboardClient() {
                     </Button>
                 ) : (
                     <div className="flex items-center gap-2">
-                       <Button size="sm" variant="outline" className="h-8 gap-1" onClick={handleErpImport}>
+                       <Button size="sm" variant="outline" className="h-8 gap-1" onClick={() => handleErpAction('import')}>
                           <Download className="h-3.5 w-3.5" />
                           <span>Import from ERPNext</span>
                         </Button>
-                        <Button size="sm" variant="outline" className="h-8 gap-1" onClick={handleErpUpdate}>
+                        <Button size="sm" variant="outline" className="h-8 gap-1" onClick={() => handleErpAction('update')}>
                           <RefreshCw className="h-3.5 w-3.5" />
                           <span>Update from ERPNext</span>
                         </Button>
-                        <Button size="sm" variant="outline" className="h-8 gap-1" onClick={handleErpExport} disabled={selectedProductIds.length === 0}>
+                        <Button size="sm" variant="outline" className="h-8 gap-1" onClick={() => handleErpAction('export')} disabled={selectedProductIds.length === 0}>
                           <Send className="h-3.5 w-3.5" />
                           <span>Export to ERPNext ({selectedProductIds.length})</span>
                         </Button>
@@ -523,15 +533,15 @@ function DashboardClient() {
                             </DropdownMenuItem>
                         ) : (
                             <>
-                                <DropdownMenuItem onClick={handleErpImport}>
+                                <DropdownMenuItem onClick={() => handleErpAction('import')}>
                                     <Download className="mr-2 h-4 w-4" />
                                     <span>Import from ERPNext</span>
                                 </DropdownMenuItem>
-                                <DropdownMenuItem onClick={handleErpUpdate}>
+                                <DropdownMenuItem onClick={() => handleErpAction('update')}>
                                     <RefreshCw className="mr-2 h-4 w-4" />
                                     <span>Update from ERPNext</span>
                                 </DropdownMenuItem>
-                                <DropdownMenuItem onClick={handleErpExport} disabled={selectedProductIds.length === 0}>
+                                <DropdownMenuItem onClick={() => handleErpAction('export')} disabled={selectedProductIds.length === 0}>
                                     <Send className="mr-2 h-4 w-4" />
                                     <span>Export to ERPNext ({selectedProductIds.length})</span>
                                 </DropdownMenuItem>

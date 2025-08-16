@@ -21,8 +21,8 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import type { Product } from '@/lib/types';
 import { handleExternalSearch } from '@/lib/external-search';
+import { findEbayCategoryId } from '@/ai/flows/find-ebay-category-id';
 import { useToast } from '@/hooks/use-toast';
-import { useSelectionStore } from '@/stores/selection-store';
 
 type GetColumnsProps = {
   onEdit: (product: Product) => void;
@@ -100,7 +100,6 @@ export const getColumns = ({ onEdit, onDelete, onGenerate, onCopyDescription, on
     cell: ({ row }) => {
       const product = row.original;
       const categoryId = row.getValue('ebayCategoryId') as string;
-      
       const { toast } = useToast();
 
       const handleDetect = async () => {
