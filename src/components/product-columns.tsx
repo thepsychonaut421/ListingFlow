@@ -21,6 +21,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import type { Product } from '@/lib/types';
 import { handleExternalSearch } from '@/lib/external-search';
+import { useToast } from '@/hooks/use-toast';
 
 type GetColumnsProps = {
   onEdit: (product: Product) => void;
@@ -31,6 +32,7 @@ type GetColumnsProps = {
   onGenerateImage: (product: Product) => void;
   onSendToEbay: (product: Product) => void;
   generatingProductId: string | null;
+  onUpdateProduct: (id: string, data: Partial<Product>) => void;
 };
 
 const formatCurrency = (amount: number) => {
@@ -40,7 +42,7 @@ const formatCurrency = (amount: number) => {
     }).format(amount);
 }
 
-export const getColumns = ({ onEdit, onDelete, onGenerate, onCopyDescription, onExtractTechSpecs, onGenerateImage, onSendToEbay, generatingProductId }: GetColumnsProps): ColumnDef<Product>[] => [
+export const getColumns = ({ onEdit, onDelete, onGenerate, onCopyDescription, onExtractTechSpecs, onGenerateImage, onSendToEbay, generatingProductId, onUpdateProduct }: GetColumnsProps): ColumnDef<Product>[] => [
   {
     id: 'select',
     header: ({ table }) => (
@@ -97,8 +99,32 @@ export const getColumns = ({ onEdit, onDelete, onGenerate, onCopyDescription, on
     cell: ({ row }) => {
       const product = row.original;
       const categoryId = row.getValue('ebayCategoryId') as string;
+      
+      const { toast } = useToast();
 
-      const handleDetect = () => { /* Placeholder for detect logic */ };
+      const handleDetect = async () => {
+        try {
+            const res = await fetch('/api/ebay/category/suggest', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ productName: product.name, ean: product.ean }),
+            });
+            if (!res.ok) throw new Error('No match found');
+            const data = await res.json();
+            onUpdateProduct(product.id, { ebayCategoryId: data.categoryId });
+            toast({
+                title: 'Category Detected!',
+                description: `Suggested category: ${data.categoryPath} (${data.categoryId})`,
+            });
+        } catch(e) {
+            toast({
+                variant: 'destructive',
+                title: 'Detection Failed',
+                description: 'Could not find a matching category in the local knowledge base.',
+            });
+        }
+      };
+      
       const handlePick = () => onEdit(product); // Opens the edit form
 
       return (
@@ -250,15 +276,16 @@ function EbayCategoryButton({ onDetect, onPick, lastUsed }: { onDetect: () => vo
 
   const handleDetectClick = async () => {
     setIsLoading(true);
-    await onDetect();
-    // Assuming onDetect will update the product and trigger a re-render
-    // A more robust implementation might return a promise that resolves when detection is done.
-    setTimeout(() => setIsLoading(false), 1000); // Simplified loading state
+    try {
+      await onDetect();
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
     <div className="inline-flex items-stretch rounded-md shadow-sm">
-      <Button onClick={handleDetectClick} size="sm" className="rounded-r-none h-8" disabled={isLoading}>
+      <Button type="button" onClick={handleDetectClick} size="sm" className="rounded-r-none h-8" disabled={isLoading}>
         {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
       </Button>
       <DropdownMenu>
