@@ -3,67 +3,70 @@
 
 import type { Product } from './types';
 
-// Helper function to call our new server-side proxy
-async function erpNextRequest(
-  endpoint: string,
-  method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE' = 'GET',
-  body?: any
-) {
-  const response = await fetch('/api/proxy-erpnext', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ endpoint, method, body }),
-  });
-
-  if (!response.ok) {
-    let errorMessage = `Request failed with status ${response.status}`;
-    try {
-        const errorText = await response.text();
-        
-        // Check if the response is HTML (like a Cloudflare error page)
-        if (errorText.trim().startsWith('<!doctype html>')) {
-            const $ = (await import('cheerio')).load(errorText);
-            // Extract a more meaningful title or header from the HTML
-            const pageTitle = $('title').text();
-            const h2Title = $('h2').first().text();
-            errorMessage = `${pageTitle || h2Title || 'Received an HTML error page.'}`;
-        } else {
-             // Try to parse it as JSON, as expected from the API
-            const errorBody = JSON.parse(errorText);
-            if (errorBody._server_messages) {
-                 const serverMessage = JSON.parse(errorBody._server_messages)[0];
-                 errorMessage = JSON.parse(serverMessage).message || serverMessage;
-            } else {
-                errorMessage = errorBody.message || errorBody.exception || errorBody.error || JSON.stringify(errorBody);
-            }
-        }
-    } catch {
-        // If any parsing fails, fallback to the status text
-         errorMessage = `${errorMessage}: ${response.statusText}`;
-    }
-    const error = new Error(`ERPNext API error: ${errorMessage}`);
-    (error as any).response = response;
-    throw error;
+function erpHeaders() {
+  const key = process.env.ERPNEXT_API_KEY;
+  const secret = process.env.ERPNEXT_API_SECRET;
+  if (!key || !secret) {
+    throw new Error('ERPNext API Key/Secret is not configured in environment variables.');
   }
-  
-  // Handle cases with no content in response
-  if (response.status === 204) {
-    return null;
-  }
-  
-  return response.json();
+  return {
+    'Authorization': `token ${key}:${secret}`,
+    'Content-Type': 'application/json',
+    'Accept': 'application/json',
+  };
 }
 
+async function erpFetch(path: string, init?: RequestInit) {
+  const base = process.env.ERPNEXT_BASE_URL;
+  if (!base) {
+    throw new Error('ERPNEXT_BASE_URL is not configured in environment variables.');
+  }
+  
+  const url = `${base.replace(/\/$/, '')}${path}`;
+  
+  try {
+    const response = await fetch(url, {
+      ...init,
+      headers: { ...erpHeaders(), ...(init?.headers as any) },
+      cache: 'no-store',
+    });
+
+    if (!response.ok) {
+      let errorDetails;
+      try {
+        const errorBody = await response.json();
+        // Frappe often wraps the real error in _server_messages
+        if (errorBody._server_messages) {
+          const serverMessage = JSON.parse(errorBody._server_messages[0]);
+          errorDetails = serverMessage.message || JSON.stringify(serverMessage);
+        } else {
+          errorDetails = errorBody.message || errorBody.exception || errorBody.error || JSON.stringify(errorBody);
+        }
+      } catch (e) {
+        errorDetails = await response.text();
+      }
+      throw new Error(`ERPNext request to ${path} failed with status ${response.status}: ${errorDetails}`);
+    }
+    
+    if (response.status === 204) {
+      return null;
+    }
+
+    return response.json();
+  } catch (err: any) {
+    console.error(`ERPNext fetch error for path ${path}:`, err);
+    // Re-throw a more informative error
+    throw new Error(`Failed to communicate with ERPNext at ${url}. Please check the URL and credentials. Original error: ${err.message}`);
+  }
+}
 
 /**
  * Performs a preflight check to ensure API credentials are valid.
  * @returns The logged-in user's email if successful.
  * @throws An error if authentication fails.
  */
-export async function erpPing() {
-  const data = await erpNextRequest(`/api/method/frappe.auth.get_logged_user`);
+export async function erpPing(): Promise<string> {
+  const data = await erpFetch(`/api/method/frappe.auth.get_logged_user`);
   if (data.message === 'Guest') {
     throw new Error('Authentication failed: credentials are for a Guest user.');
   }
@@ -104,8 +107,7 @@ export async function importProductsFromERPNext(
     let hasMore = true;
 
     while (hasMore) {
-      const endpoint = `/api/resource/Item?fields=${JSON.stringify(ERPNEXT_ITEM_FIELDS)}&limit_start=${start}&limit_page_length=${pageSize}`;
-      const itemsData = await erpNextRequest(endpoint);
+      const itemsData = await erpFetch(`/api/resource/Item?fields=${JSON.stringify(ERPNEXT_ITEM_FIELDS)}&limit_start=${start}&limit_page_length=${pageSize}`);
       
       if (itemsData && itemsData.data && itemsData.data.length > 0) {
         allItems = allItems.concat(itemsData.data);
@@ -134,7 +136,7 @@ export async function importProductsFromERPNext(
         let qty = existingProduct?.quantity || 0;
 
         try {
-            const binData = await erpNextRequest(`/api/resource/Bin?filters=[["item_code","=","${item.name}"]]&fields=["actual_qty"]`);
+            const binData = await erpFetch(`/api/resource/Bin?filters=[["item_code","=","${item.name}"]]&fields=["actual_qty"]`);
             qty = binData.data.reduce((acc: number, curr: any) => acc + curr.actual_qty, 0);
         } catch (err) {
             console.warn(`No Bin data for item ${item.name}`, err);
@@ -208,7 +210,7 @@ export async function updatePricesAndStocksFromERPNext(
       let hasUpdate = false;
       
       try {
-        const details = await erpNextRequest(`/api/resource/Item/${p.code}?fields=${JSON.stringify(ERPNEXT_ITEM_FIELDS)}`);
+        const details = await erpFetch(`/api/resource/Item/${p.code}?fields=${JSON.stringify(ERPNEXT_ITEM_FIELDS)}`);
         const itemData = details.data;
         const newProductData = { ...p };
 
@@ -230,7 +232,7 @@ export async function updatePricesAndStocksFromERPNext(
             hasUpdate = true;
         }
 
-        const binData = await erpNextRequest(`/api/resource/Bin?filters=[["item_code","=","${p.code}"]]&fields=["actual_qty"]`);
+        const binData = await erpFetch(`/api/resource/Bin?filters=[["item_code","=","${p.code}"]]&fields=["actual_qty"]`);
         const newQty = binData.data.reduce((acc: number, curr: any) => acc + curr.actual_qty, 0);
         if (newQty !== p.quantity) {
           newProductData.quantity = newQty;
@@ -311,7 +313,7 @@ export async function exportProductsToERPNext(
     setLoading(true);
     const loggedInUser = await erpPing(); // Preflight check
 
-    const isProd = process.env.NODE_ENV === 'production';
+    const isProd = process.env.NEXT_PUBLIC_ENV === 'prod';
     if (isProd) {
         if (!confirm(`⚠️ You are about to export ${productsToExport.length} products to the PRODUCTION ERP environment as "${loggedInUser}".\n\nAre you sure you want to continue?`)) {
             setLoading(false);
@@ -331,15 +333,12 @@ export async function exportProductsToERPNext(
     for (const p of productsToExport) {
         const fullDescription = buildFullDescription(p);
         const brand = (p.technicalSpecs?.Marke || p.technicalSpecs?.brand || '') as string;
-        const ean = (p.technicalSpecs?.EAN || p.technicalSpecs?.ean || '') as string;
-
-
+        
         const itemPayload: Record<string, any> = {
             item_name: p.name,
             standard_rate: p.price,
             description: fullDescription,
             web_long_description: fullDescription,
-            ean: ean,
         };
 
         if(brand) {
@@ -347,7 +346,7 @@ export async function exportProductsToERPNext(
         }
 
         try {
-            await erpNextRequest(`/api/resource/Item/${p.code}`, 'PUT', { data: itemPayload });
+            await erpFetch(`/api/resource/Item/${p.code}`, { method: 'PUT', body: JSON.stringify(itemPayload) });
             successCount++;
         } catch (error: any) {
              const message = `Failed to export product ${p.code}: ${error.message}`;
@@ -370,38 +369,5 @@ Errors encountered:
     alert(`Export failed: ${err.message}. Please check your ERPNext connection settings.`);
   } finally {
     setLoading(false);
-  }
-}
-
-
-// 5. Universal Search Function
-export async function searchInERPNext(
-  doctype: string,
-  filters: any[][],
-  fields: string[],
-  pageLength = 20,
-  start = 0
-): Promise<any[]> {
-  try {
-    // The standard API does not support OR filters, it treats arrays of filters as AND.
-    // To simulate an OR, we have to make separate requests and combine the results.
-    const requests = filters.map(filter => {
-       const endpoint = `/api/resource/${doctype}?filters=${JSON.stringify([filter])}&fields=${JSON.stringify(fields)}&limit_start=${start}&limit_page_length=${pageLength}`;
-       return erpNextRequest(endpoint);
-    });
-
-    const responses = await Promise.all(requests);
-    const allResults = responses.flatMap(resp => resp.data || []);
-    
-    // Remove duplicates based on the 'name' field, which is the unique ID in ERPNext
-    const uniqueResults = allResults.filter((item, index, self) =>
-        index === self.findIndex((t) => t.name === item.name)
-    );
-
-    return uniqueResults;
-  } catch(err) {
-    console.error(`Search in ${doctype} failed:`, err);
-    // Return empty array in case of error to avoid breaking the UI
-    return [];
   }
 }
