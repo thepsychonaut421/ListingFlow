@@ -10,7 +10,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Download } from 'lucide-react';
+import { Download, Loader2 } from 'lucide-react';
 import type { Product } from '@/lib/types';
 import {
   Table,
@@ -27,6 +27,7 @@ import { useSelectionStore } from '@/stores/selection-store';
 
 function ExportsClient() {
   const [products, setProducts] = React.useState<Product[]>([]);
+  const [isExporting, setIsExporting] = React.useState<false | 'ebay' | 'shopify'>(false);
   const { toast } = useToast();
   const selectedIds = useSelectionStore(state => state.selectedIds);
 
@@ -50,7 +51,7 @@ function ExportsClient() {
     }
   }, [selectedIds]);
 
-  const handleExport = (format: 'ebay' | 'shopify') => {
+  const handleExport = async (format: 'ebay' | 'shopify') => {
     if (products.length === 0) {
       toast({
         variant: 'destructive',
@@ -59,9 +60,11 @@ function ExportsClient() {
       });
       return;
     }
+    
+    setIsExporting(format);
 
     try {
-      const csvContent = generateCsv(products, format);
+      const csvContent = await generateCsv(products, format);
       const fileName = `${format}-export-${new Date().toISOString()}.csv`;
       const successMessage = `Your ${products.length} selected products have been exported to the ${format} CSV format.`;
       
@@ -86,6 +89,8 @@ function ExportsClient() {
         title: 'Export Failed',
         description: `Could not generate the ${format} export file. Please try again.`,
       });
+    } finally {
+        setIsExporting(false);
     }
   };
 
@@ -101,12 +106,12 @@ function ExportsClient() {
             </CardDescription>
           </div>
           <div className="flex gap-2">
-            <Button onClick={() => handleExport('ebay')}>
-              <Download className="mr-2 h-4 w-4" />
+            <Button onClick={() => handleExport('ebay')} disabled={!!isExporting}>
+              {isExporting === 'ebay' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
               Export to eBay
             </Button>
-            <Button onClick={() => handleExport('shopify')} variant="secondary">
-              <Download className="mr-2 h-4 w-4" />
+            <Button onClick={() => handleExport('shopify')} variant="secondary" disabled={!!isExporting}>
+              {isExporting === 'shopify' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
               Export to Shopify
             </Button>
           </div>
