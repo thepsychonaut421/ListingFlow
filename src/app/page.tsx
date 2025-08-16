@@ -389,6 +389,7 @@ function DashboardClient() {
       onGenerateImage: handleGenerateImage,
       onSendToEbay: handleSendToEbayDraft,
       generatingProductId,
+      onUpdateProduct: handleUpdateProduct,
   }), [generatingProductId, products]);
 
   if (isLoading) {
