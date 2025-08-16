@@ -65,32 +65,40 @@ export function ProductDataTable<TData extends { id: string }, TValue>({
     enableRowSelection: true,
     getRowId: (row) => row.id,
     onRowSelectionChange: (updater) => {
-      const newSelection = typeof updater === 'function' ? updater(rowSelection) : updater;
-      const idsToUpdate = Object.keys(newSelection);
-      const toSelect: string[] = [];
-      const toDeselect: string[] = [];
+        // This logic correctly handles individual and bulk selections
+        // by diffing the incoming patch with the current state from the store.
+        const currentSelection = rowSelection;
+        const selectionPatch = typeof updater === 'function' ? updater(currentSelection) : updater;
 
-      // Logic to handle "select all" which gives a full object
-      if (Object.keys(newSelection).length > table.getRowModel().rows.length / 2) {
-         table.getRowModel().rows.forEach(row => {
-            if (newSelection[row.id] && !selectedIds.has(row.id)) {
-              toSelect.push(row.id);
-            } else if (!newSelection[row.id] && selectedIds.has(row.id)) {
-              toDeselect.push(row.id);
-            }
-         });
-      } else { // Logic to handle individual clicks which give sparse objects
-         idsToUpdate.forEach(id => {
-            if (newSelection[id]) {
-                toSelect.push(id);
-            } else {
-                toDeselect.push(id);
-            }
-         });
-      }
+        const idsToSelect: string[] = [];
+        const idsToDeselect: string[] = [];
 
-      if (toSelect.length) setMany(toSelect, true);
-      if (toDeselect.length) setMany(toDeselect, false);
+        for (const id in selectionPatch) {
+            if (selectionPatch[id] && !currentSelection[id]) {
+                idsToSelect.push(id);
+            } else if (!selectionPatch[id] && currentSelection[id]) {
+                idsToDeselect.push(id);
+            }
+        }
+        
+        // Handle "Select All" case where updater provides a complete object
+        if (Object.keys(selectionPatch).length === data.length) {
+             data.forEach(row => {
+                if (selectionPatch[row.id] && !currentSelection[row.id]) {
+                    if (!idsToSelect.includes(row.id)) idsToSelect.push(row.id);
+                } else if (!selectionPatch[row.id] && currentSelection[row.id]) {
+                    if (!idsToDeselect.includes(row.id)) idsToDeselect.push(row.id);
+                }
+             });
+        }
+
+
+        if (idsToSelect.length > 0) {
+            setMany(idsToSelect, true);
+        }
+        if (idsToDeselect.length > 0) {
+            setMany(idsToDeselect, false);
+        }
     },
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
