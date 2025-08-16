@@ -3,11 +3,30 @@
 import type { Product } from './types';
 
 type Platform = 'ebay' | 'shopify';
+type ProductTypeMap = Record<string, string[]>;
 
 // --- Constants ---
 const EOL = '\n';
 const UTF8_BOM = '\uFEFF';
 const SHOPIFY_PLACEHOLDER_IMAGE = 'https://placehold.co/600x600.png';
+
+// --- Caching for JSON data ---
+let _ptm: ProductTypeMap | null = null;
+async function loadProductTypeMap(): Promise<ProductTypeMap> {
+  if (_ptm) return _ptm;
+  // This fetch path works because this code will be called from a client component
+  // which then calls an API route where this function runs on the server.
+  // In a pure server environment, you'd use fs.readFile.
+  // For this setup, we assume it's called in a context that can fetch from /public
+  try {
+     const res = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || ''}/data/ebay-product-type-map.de.json`, { cache: 'no-store' });
+    _ptm = res.ok ? await res.json() : {};
+  } catch(e) {
+    console.error("Failed to load product type map, returning empty.", e);
+    _ptm = {};
+  }
+  return _ptm!;
+}
 
 
 // --- Helper Functions ---
@@ -56,6 +75,7 @@ const getEbayConditionId = (status: Product['listingStatus']): number => {
   }
 };
 
+
 const pickVal = (
   product: Product,
   specs: Record<string, any>,
@@ -96,6 +116,9 @@ const PRODUCT_TYPE_MAP: Record<string, string> = {
   '14969': 'Lautsprecher',
   '159912': 'Inlineskates',
   '20635': 'Kochgeschirr',
+  '20643': 'Staubsauger',
+  '43560': 'Pfannenset',
+  '20649': 'Topfset',
   // ... can be extended as more categories are used
 };
 
@@ -115,7 +138,7 @@ const resolveProductType = (product: Product): string => {
 };
 
 
-const generateEbayCsvContent = (products: Product[]): string => {
+const generateEbayCsvContent = async (products: Product[]): Promise<string> => {
   const headers = [
     'Action(SiteID=Germany|Country=DE|Currency=EUR|Version=1193|CC=UTF-8)',
     'Custom label (SKU)', 'Category ID', 'Title', 'UPC', 'Price', 'Quantity',
@@ -123,9 +146,9 @@ const generateEbayCsvContent = (products: Product[]): string => {
     'C:Modell', 'C:Herstellernummer' // MPN
   ];
 
-  const dataRows = products
+  const dataRowsPromises = products
     .filter(product => product.code) 
-    .map(product => {
+    .map(async (product) => {
       const specs = product.technicalSpecs || {};
       const brand = pickVal(product, specs, 'Marke', 'brand', 'Brand');
       const productType = resolveProductType(product);
@@ -152,9 +175,11 @@ const generateEbayCsvContent = (products: Product[]): string => {
       mpn,
     ].map(cleanSemicolonCsvField)
   });
+
+  const dataRows = await Promise.all(dataRowsPromises);
   
   const ebayTemplateIdentifier = '#INFO;Version=0.0.2;Template= eBay-draft-listings-template_DE;;;;;;;';
-  const csvBody = buildCsvBody(headers, dataRows, ';');
+  const csvBody = buildCsvBody(headers, dataRows.filter(Boolean) as string[][], ';');
   const finalCsv = [ UTF8_BOM + ebayTemplateIdentifier, csvBody ].join(EOL);
   
   return finalCsv.replace(/\n/g, '\r\n');
@@ -235,11 +260,12 @@ const generateShopifyCsvContent = (products: Product[]): string => {
 
 // --- Main Export Function ---
 
-export const generateCsv = (products: Product[], platform: Platform): string => {
+export const generateCsv = async (products: Product[], platform: Platform): Promise<string> => {
   switch (platform) {
     case 'ebay':
-      return generateEbayCsvContent(products);
+      return await generateEbayCsvContent(products);
     case 'shopify':
+      // Shopify generation remains sync for now, but could be made async if needed
       return generateShopifyCsvContent(products);
     default:
       console.error(`Unsupported platform: ${platform}`);
