@@ -14,6 +14,7 @@ const SHOPIFY_PLACEHOLDER_IMAGE = 'https://placehold.co/600x600.png';
 
 const cleanSemicolonCsvField = (field: any): string => {
     if (field === null || field === undefined) return '';
+    // This will also handle the description cleaning by removing problematic chars.
     return String(field).replace(/[\t\n\r;]/g, ' ').trim();
 };
 
@@ -31,6 +32,18 @@ const buildCsvBody = (headers: string[], dataRows: string[][], delimiter: string
   const contentRows = dataRows.map(row => row.join(delimiter));
   return [headerRow, ...contentRows].join(EOL);
 };
+
+const safeTitle = (title?: string): string => {
+    return (title || '').slice(0, 80).trim();
+}
+
+const safeImage = (url?: string): string => {
+    if (url && (url.startsWith('http://') || url.startsWith('https://'))) {
+        return url;
+    }
+    return ''; // Return empty string if invalid, eBay handles missing images.
+}
+
 
 // --- eBay Specific Logic ---
 
@@ -53,7 +66,7 @@ const pickVal = (
     const v =
       specs[k] ??
       (product as any)[k] ??
-      specs[k.toLowerCase()] ??
+      specs[Object.keys(specs).find(sk => sk.toLowerCase() === k.toLowerCase())] ??
       (product as any)[k.toLowerCase()];
       
     if (v !== undefined && v !== null && String(v).trim() !== '') {
@@ -63,6 +76,7 @@ const pickVal = (
   return '';
 };
 
+
 const inferProductType = (title: string, categoryId?: string): string => {
   const t = title.toLowerCase();
   if (categoryId === '36029' || /polo.?hemd|polo.?shirt/.test(t)) return 'Polohemd';
@@ -71,6 +85,8 @@ const inferProductType = (title: string, categoryId?: string): string => {
   if (/lautsprecher|speaker/.test(t)) return 'Lautsprecher';
   if (/teppich|rug/.test(t)) return 'Teppich';
   if (/topf(set)?|kochgeschirr|pfanne/.test(t)) return 'Kochgeschirr';
+  if (/koch(en)?maschine|küchenmaschine/.test(t)) return 'Küchenmaschine';
+  if (/staubsauger|vacuum/.test(t)) return 'Staubsauger';
   return '';
 };
 
@@ -100,13 +116,13 @@ const generateEbayCsvContent = (products: Product[]): string => {
       'Draft',
       product.code,
       product.ebayCategoryId,
-      product.name,
+      safeTitle(product.name),
       ean,
       product.price ? product.price.toFixed(2) : '0.00',
       product.quantity,
-      product.image,
+      safeImage(product.image),
       getEbayConditionId(product.listingStatus),
-      product.description,
+      product.description, // cleanSemicolonCsvField handles this below
       'FixedPrice',
       brand,
       productType,
