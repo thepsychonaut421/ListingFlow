@@ -134,7 +134,7 @@ export function ProductForm({
         return;
       };
       try {
-        const r = await fetch('/api/ebay/category/path?id='_"' + ebayCategoryId);
+        const r = await fetch(`/api/ebay/category/path?id=${ebayCategoryId}`);
         if (r.ok) {
           const d = await r.json();
           setEbayPath(d?.path ?? '');
