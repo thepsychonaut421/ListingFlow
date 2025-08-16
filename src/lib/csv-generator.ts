@@ -5,48 +5,27 @@ import type { Product } from './types';
 type Platform = 'ebay' | 'shopify';
 
 // --- Constants ---
-const EOL = '\n'; // Use LF for internal generation, will be converted to CRLF for final output.
-const UTF8_BOM = '\uFEFF'; // UTF-8 Byte Order Mark for Excel compatibility
+const EOL = '\n';
+const UTF8_BOM = '\uFEFF';
 const SHOPIFY_PLACEHOLDER_IMAGE = 'https://placehold.co/600x600.png';
 
 
 // --- Helper Functions ---
 
-/**
- * Cleans a field for semicolon-delimited CSV files. It removes characters
- * that would break the format (semicolons, newlines, tabs) and trims whitespace.
- * @param field The value to clean.
- * @returns The cleaned string.
- */
 const cleanSemicolonCsvField = (field: any): string => {
     if (field === null || field === undefined) return '';
-    // For semicolon-separated, we remove semicolons, tabs, newlines, and carriage returns.
     return String(field).replace(/[\t\n\r;]/g, ' ').trim();
 };
 
-
-/**
- * Escapes a field for standard comma-delimited CSV files.
- * @param field The value to escape.
- * @returns The escaped string.
- */
 const escapeCommaCsvField = (field: any): string => {
   if (field === null || field === undefined) return '';
   const stringField = String(field).trim();
-  // Enclose in double quotes if it contains a comma, double quote, or newline.
   if (/[,"\n\r]/.test(stringField)) {
     return `"${stringField.replace(/"/g, '""')}"`;
   }
   return stringField;
 };
 
-/**
- * Builds a CSV body (header + data) from headers and data rows.
- * @param headers An array of header strings.
- * @param dataRows A 2D array of data rows.
- * @param delimiter The character to use for separating columns.
- * @returns A CSV content string using LF line endings.
- */
 const buildCsvBody = (headers: string[], dataRows: string[][], delimiter: string): string => {
   const headerRow = headers.join(delimiter);
   const contentRows = dataRows.map(row => row.join(delimiter));
@@ -60,16 +39,16 @@ const getEbayConditionId = (status: Product['listingStatus']): number => {
     case 'new': return 1000;
     case 'used': return 3000;
     case 'refurbished': return 2500;
-    default: return 1000;
+    default: return 1000; // Default to 'New' if status is draft/error etc.
   }
 };
 
 const generateEbayCsvContent = (products: Product[]): string => {
-  // eBay File Exchange headers (semicolon-separated).
   const headers = [
     'Action(SiteID=Germany|Country=DE|Currency=EUR|Version=1193|CC=UTF-8)',
     'Custom label (SKU)', 'Category ID', 'Title', 'UPC', 'Price', 'Quantity',
-    'Item photo URL', 'Condition ID', 'Description', 'Format', 'C:Marke', 'C:Produktart'
+    'Item photo URL', 'Condition ID', 'Description', 'Format', 'C:Marke', 'C:Produktart',
+    'C:Modell', 'C:Herstellernummer' // MPN
   ];
 
   const dataRows = products
@@ -87,20 +66,14 @@ const generateEbayCsvContent = (products: Product[]): string => {
       product.description,
       'FixedPrice',
       product.brand,
-      product.productType
+      product.productType,
+      product.model,
+      product.mpn,
     ].map(cleanSemicolonCsvField));
   
-  // The first line must be the exact template identifier from eBay.
   const ebayTemplateIdentifier = '#INFO;Version=0.0.2;Template= eBay-draft-listings-template_DE;;;;;;;';
-  
-  // The body consists of the header row and data rows.
   const csvBody = buildCsvBody(headers, dataRows, ';');
-  
-  // Final assembly: BOM + Template ID + Body, then convert to CRLF.
-  const finalCsv = [
-    UTF8_BOM + ebayTemplateIdentifier,
-    csvBody
-  ].join(EOL);
+  const finalCsv = [ UTF8_BOM + ebayTemplateIdentifier, csvBody ].join(EOL);
   
   return finalCsv.replace(/\n/g, '\r\n');
 };
@@ -117,84 +90,60 @@ const getShopifyCondition = (status: Product['listingStatus']): string => {
   }
 };
 
-/**
- * Ensures the image URL is a valid, public URL.
- * If not, it returns a placeholder to satisfy Shopify's requirements.
- * @param url The image URL to check.
- * @returns A valid public URL or a placeholder.
- */
 const ensureValidImageSrc = (url?: string): string => {
     if (url && (url.startsWith('http://') || url.startsWith('https://'))) {
         return url;
     }
-    // If the URL is a data URI or empty, use a placeholder.
     return SHOPIFY_PLACEHOLDER_IMAGE;
 };
 
 
 const generateShopifyCsvContent = (products: Product[]): string => {
-  // Standard Shopify product import headers.
   const headers = [
     'Handle', 'Title', 'Body (HTML)', 'Vendor', 'Product Category', 'Type', 'Tags', 
-    'Published', 'Option1 Name', 'Option1 Value', 'Option2 Name', 'Option2 Value', 
-    'Option3 Name', 'Option3 Value', 'Variant SKU', 'Variant Grams', 
+    'Published', 'Option1 Name', 'Option1 Value', 'Variant SKU', 'Variant Grams', 
     'Variant Inventory Tracker', 'Variant Inventory Qty', 'Variant Inventory Policy',
-    'Variant Fulfillment Service', 'Variant Price', 'Variant Compare At Price',
-    'Variant Requires Shipping', 'Variant Taxable', 'Variant Barcode', 'Image Src',
-    'Image Position', 'Image Alt Text', 'Gift Card', 'SEO Title', 'SEO Description',
-    'Google Shopping / Google Product Category', 'Google Shopping / Gender',
-    'Google Shopping / Age Group', 'Google Shopping / MPN', 'Google Shopping / AdWords Grouping',
-    'Google Shopping / AdWords Labels', 'Google Shopping / Condition', 'Google Shopping / Custom Product',
-    'Google Shopping / Custom Label 0', 'Google Shopping / Custom Label 1',
-    'Google Shopping / Custom Label 2', 'Google Shopping / Custom Label 3',
-    'Google Shopping / Custom Label 4', 'Variant Image', 'Variant Weight Unit',
-    'Variant Tax Code', 'Cost per item', 'Status'
+    'Variant Fulfillment Service', 'Variant Price', 'Variant Requires Shipping', 
+    'Variant Taxable', 'Variant Barcode', 'Image Src', 'Image Position', 'Image Alt Text', 
+    'Gift Card', 'SEO Title', 'SEO Description', 
+    'Google Shopping / Google Product Category', 'Google Shopping / Condition',
+    'Google Shopping / MPN', 'Status'
   ];
 
   const dataRows = products
     .filter(product => product.code)
     .map(product => {
       const handle = product.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
-      
       const imageUrl = ensureValidImageSrc(product.image);
 
       const rowData: Record<string, any> = {
         'Handle': handle, 'Title': product.name, 'Body (HTML)': product.description,
         'Vendor': product.brand, 'Product Category': product.category, 'Type': product.productType,
-        'Tags': product.tags.join(', '), 'Published': 'true', 'Option1 Name': 'Title',
-        'Option1 Value': 'Default Title', 'Variant SKU': product.code, 'Variant Grams': '0',
+        'Tags': (product.tags || []).join(', '), 'Published': 'true', 'Option1 Name': 'Title',
+        'Option1 Value': 'Default Title', 'Variant SKU': product.code, 
+        'Variant Grams': product.weight ? parseFloat(product.weight.replace(/[^0-9.]/g, '')) * 1000 : '0',
         'Variant Inventory Tracker': 'shopify', 'Variant Inventory Qty': product.quantity,
         'Variant Inventory Policy': 'deny', 'Variant Fulfillment Service': 'manual',
         'Variant Price': product.price ? product.price.toFixed(2) : '0.00', 'Variant Requires Shipping': 'true',
         'Variant Taxable': 'true', 'Variant Barcode': product.ean, 
-        'Image Src': imageUrl,
-        'Image Position': '1',
-        'Image Alt Text': product.name,
-        'Gift Card': 'false',
-        'SEO Title': `${product.name} - ${product.brand || ''}`,
+        'Image Src': imageUrl, 'Image Position': '1', 'Image Alt Text': product.name,
+        'Gift Card': 'false', 'SEO Title': `${product.name} - ${product.brand || ''}`,
         'SEO Description': product.description ? product.description.substring(0, 320) : '',
         'Google Shopping / Google Product Category': product.category,
         'Google Shopping / Condition': getShopifyCondition(product.listingStatus),
+        'Google Shopping / MPN': product.mpn,
         'Status': 'active'
       };
       return headers.map(header => escapeCommaCsvField(rowData[header] ?? ''));
     });
 
   const rawCsv = buildCsvBody(headers, dataRows, ',');
-  
-  // Shopify works well with BOM for Excel compatibility.
   return UTF8_BOM + rawCsv.replace(/\n/g, '\r\n');
 };
 
 
 // --- Main Export Function ---
 
-/**
- * Generates CSV content for a specified e-commerce platform.
- * @param products The array of products to export.
- * @param platform The target platform ('ebay' or 'shopify').
- * @returns A string containing the full CSV content.
- */
 export const generateCsv = (products: Product[], platform: Platform): string => {
   switch (platform) {
     case 'ebay':

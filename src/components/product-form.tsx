@@ -53,6 +53,13 @@ const productSchema = z.object({
     key: z.string().min(1, 'Key cannot be empty'),
     value: z.string().min(1, 'Value cannot be empty'),
   })),
+  model: z.string().optional(),
+  mpn: z.string().optional(),
+  color: z.string().optional(),
+  material: z.string().optional(),
+  size: z.string().optional(),
+  dimensions: z.string().optional(),
+  weight: z.string().optional(),
 });
 
 type ProductFormValues = z.infer<typeof productSchema>;
@@ -86,6 +93,13 @@ const toProductFormValues = (product: Product | null): ProductFormValues => {
         productType: product?.productType || '',
         ean: product?.ean || '',
         technicalSpecs: technicalSpecs,
+        model: product?.model || '',
+        mpn: product?.mpn || '',
+        color: product?.color || '',
+        material: product?.material || '',
+        size: product?.size || '',
+        dimensions: product?.dimensions || '',
+        weight: product?.weight || '',
     };
 };
 
@@ -93,6 +107,7 @@ const toProductFormValues = (product: Product | null): ProductFormValues => {
 export function ProductForm({ product, onSave, onCancel }: ProductFormProps) {
   const [isFindingEan, setIsFindingEan] = React.useState(false);
   const [isFindingCategory, setIsFindingCategory] = React.useState(false);
+  const [categorySuggestions, setCategorySuggestions] = React.useState<{id: string; path: string}[]>([]);
   const { toast } = useToast();
 
   const form = useForm<ProductFormValues>({
@@ -136,8 +151,6 @@ export function ProductForm({ product, onSave, onCancel }: ProductFormProps) {
       ...data,
       technicalSpecs: data.technicalSpecs?.reduce((acc, { key, value }) => {
         if(key) {
-            // This is a simple heuristic. If value contains comma, split it into an array.
-            // A more robust solution might require a different UI for array values.
             acc[key] = value.includes(',') ? value.split(',').map(s => s.trim()) : value;
         }
         return acc;
@@ -147,36 +160,45 @@ export function ProductForm({ product, onSave, onCancel }: ProductFormProps) {
   };
   
  const handleFindCategory = async () => {
-    const productName = form.getValues('name');
-    if (!productName?.trim()) {
+    const queryParts = [
+        form.watch("name"),
+        form.watch("brand"),
+        form.watch("productType"),
+        form.watch("model"),
+    ].filter(Boolean).join(" ");
+    
+    if (!queryParts.trim()) {
       toast({
         variant: 'destructive',
-        title: 'Missing Product Name',
-        description: 'Please enter a product name to suggest a category.',
+        title: 'Missing Product Info',
+        description: 'Please enter a product name or other details to find a category.',
       });
       return;
     }
+    
     setIsFindingCategory(true);
+    setCategorySuggestions([]);
     try {
-      const res = await fetch('/api/ebay/category/suggest', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ productName, ean: form.getValues('ean') }),
-      });
-      if (!res.ok) {
-        throw new Error('No match found in our knowledge base.');
+      const res = await fetch(`/api/ebay/category/suggest?q=${encodeURIComponent(queryParts)}`);
+      const { suggestions } = await res.json();
+      if (suggestions && suggestions.length > 0) {
+        setCategorySuggestions(suggestions);
+        toast({
+            title: 'Categories Found',
+            description: 'Select one of the suggested categories below.',
+        });
+      } else {
+         toast({
+            variant: 'destructive',
+            title: 'No Suggestions Found',
+            description: 'Could not find a matching category in the local database.',
+        });
       }
-      const data = await res.json();
-      form.setValue('ebayCategoryId', data.categoryId, { shouldValidate: true });
-      toast({
-        title: 'Category Suggested!',
-        description: `Set to: ${data.categoryPath} (${data.categoryId})`,
-      });
     } catch (err: any) {
       toast({
         variant: 'destructive',
-        title: 'Category Suggestion Failed',
-        description: err.message || 'Could not find a suitable category.',
+        title: 'Category Search Failed',
+        description: err.message || 'An error occurred while searching.',
       });
     } finally {
       setIsFindingCategory(false);
@@ -226,7 +248,6 @@ export function ProductForm({ product, onSave, onCancel }: ProductFormProps) {
   const handleAutocomplete = async (code: string) => {
     if (!code) return;
 
-    // Search by both SKU (name in ERPNext) and EAN
     const filters = [
         ['Item', 'name', 'like', `%${code}%`],
         ['Item', 'ean', 'like', `%${code}%`],
@@ -239,7 +260,7 @@ export function ProductForm({ product, onSave, onCancel }: ProductFormProps) {
     );
 
     if (results.length > 0) {
-      const found = results[0]; // Use the first result
+      const found = results[0];
       form.setValue('name', found.item_name || found.name, { shouldValidate: true });
       form.setValue('category', found.item_group || '', { shouldValidate: true });
       form.setValue('code', found.name, { shouldValidate: true });
@@ -337,7 +358,7 @@ export function ProductForm({ product, onSave, onCancel }: ProductFormProps) {
                                 className="absolute right-1 top-1/2 h-8 w-8 -translate-y-1/2"
                                 onClick={handleFindCategory}
                                 disabled={isFindingCategory}
-                                aria-label="Detect eBay category"
+                                aria-label="Find eBay category"
                             >
                                 {isFindingCategory ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
                             </Button>
@@ -347,6 +368,26 @@ export function ProductForm({ product, onSave, onCancel }: ProductFormProps) {
                     )}
                 />
             </div>
+            { !isFindingCategory && categorySuggestions.length > 0 && (
+                <div className="md:col-span-2 space-y-2">
+                    <FormLabel>Category Suggestions</FormLabel>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                    {categorySuggestions.map(s => (
+                    <button
+                        key={s.id}
+                        type="button"
+                        className="text-left w-full rounded border p-2 text-sm hover:bg-muted"
+                        onClick={() => {
+                            form.setValue("ebayCategoryId", String(s.id));
+                            setCategorySuggestions([]);
+                        }}
+                    >
+                        {s.path} — <span className="font-mono bg-gray-200 dark:bg-gray-700 px-1 rounded">{s.id}</span>
+                    </button>
+                    ))}
+                    </div>
+                </div>
+            )}
 
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
               <FormField
