@@ -10,12 +10,12 @@ runConfig:
 # Replace values or reference secrets when deploying.
 env:
   - variable: ERPNEXT_BASE_URL
-    value: https://erp.rembayer.info
+    value: "https://erp.rembayer.info"
     availability:
       - BUILD
       - RUNTIME
   - variable: NEXT_PUBLIC_ERPNEXT_BASE_URL
-    value: https://erp.rembayer.info
+    value: "https://erp.rembayer.info"
     availability:
       - BUILD
       - RUNTIME
@@ -37,4 +37,9 @@ env:
   - variable: NEXT_PUBLIC_BASE_URL
     value: '' # Will be populated by App Hosting
     availability:
+      - RUNTIME
+  - variable: NEXT_PUBLIC_ENV
+    value: 'prod'
+    availability:
+      - BUILD
       - RUNTIME

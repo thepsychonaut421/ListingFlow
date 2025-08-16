@@ -61,10 +61,21 @@ import {
   importProductsFromERPNext,
   updatePricesAndStocksFromERPNext,
   exportProductsToERPNext,
+  erpPing,
 } from '@/lib/erpnext';
 import { useSelectionStore } from '@/stores/selection-store';
 
-const isProd = process.env.NODE_ENV === 'production';
+const EnvBadge = () => {
+    const env = process.env.NEXT_PUBLIC_ENV || 'dev';
+    const isProd = env === 'prod';
+    return (
+        <Badge variant={isProd ? 'destructive' : 'secondary'} className="hidden md:flex items-center gap-2">
+            <Server className="h-4 w-4" />
+            <span>ERP: {isProd ? 'Production' : 'Development'}</span>
+        </Badge>
+    );
+};
+
 
 function DashboardClient() {
   const [products, setProducts] = React.useState<Product[]>([]);
@@ -418,10 +429,7 @@ function DashboardClient() {
           </div>
           <div className="ml-auto flex items-center gap-2">
             
-             <Badge variant={isProd ? 'destructive' : 'secondary'} className="hidden md:flex items-center gap-2">
-                <Server className="h-4 w-4" />
-                <span>{isProd ? 'Production' : 'Development'}</span>
-            </Badge>
+             <EnvBadge />
 
              {/* Desktop Buttons */}
             <div className="hidden md:flex items-center gap-2">
