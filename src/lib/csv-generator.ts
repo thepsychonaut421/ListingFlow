@@ -43,6 +43,12 @@ const getEbayConditionId = (status: Product['listingStatus']): number => {
   }
 };
 
+const getSpecValue = (specs: Record<string, any>, keyDe: string, keyEn: string): string => {
+  const value = specs[keyDe] ?? specs[keyEn] ?? '';
+  if (Array.isArray(value)) return value.join(', ');
+  return String(value);
+}
+
 const generateEbayCsvContent = (products: Product[]): string => {
   const headers = [
     'Action(SiteID=Germany|Country=DE|Currency=EUR|Version=1193|CC=UTF-8)',
@@ -55,11 +61,11 @@ const generateEbayCsvContent = (products: Product[]): string => {
     .filter(product => product.code) 
     .map(product => {
       const specs = product.technicalSpecs || {};
-      const brand = specs.Marke || specs.brand || '';
-      const productType = specs.Produktart || '';
-      const model = specs.Modell || specs.model || '';
-      const mpn = specs.MPN || specs.mpn || '';
-      const ean = specs.EAN || specs.ean || '';
+      const brand = getSpecValue(specs, 'Marke', 'brand');
+      const productType = getSpecValue(specs, 'Produktart', 'productType');
+      const model = getSpecValue(specs, 'Modell', 'model');
+      const mpn = product.code; // Use SKU as MPN
+      const ean = getSpecValue(specs, 'EAN', 'ean');
 
       return [
       'Draft',
@@ -125,18 +131,18 @@ const generateShopifyCsvContent = (products: Product[]): string => {
       const handle = product.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
       const imageUrl = ensureValidImageSrc(product.image);
       const specs = product.technicalSpecs || {};
-      const brand = specs.Marke || specs.brand || '';
-      const productType = specs.Produktart || '';
-      const ean = specs.EAN || specs.ean || '';
-      const mpn = specs.MPN || specs.mpn || '';
-      const weight = (specs.Gewicht || specs.weight || '0') as string;
+      const brand = getSpecValue(specs, 'Marke', 'brand');
+      const productType = getSpecValue(specs, 'Produktart', 'productType');
+      const ean = getSpecValue(specs, 'EAN', 'ean');
+      const mpn = product.code; // Use SKU as MPN
+      const weight = getSpecValue(specs, 'Gewicht', 'weight') || '0';
 
       const rowData: Record<string, any> = {
         'Handle': handle, 'Title': product.name, 'Body (HTML)': product.description,
         'Vendor': brand, 'Product Category': product.category, 'Type': productType,
         'Tags': (product.tags || []).join(', '), 'Published': 'true', 'Option1 Name': 'Title',
         'Option1 Value': 'Default Title', 'Variant SKU': product.code, 
-        'Variant Grams': weight ? parseFloat(weight.replace(/[^0-9.]/g, '')) * 1000 : '0',
+        'Variant Grams': parseFloat(weight.replace(/[^0-9.]/g, '')) * 1000,
         'Variant Inventory Tracker': 'shopify', 'Variant Inventory Qty': product.quantity,
         'Variant Inventory Policy': 'deny', 'Variant Fulfillment Service': 'manual',
         'Variant Price': product.price ? product.price.toFixed(2) : '0.00', 'Variant Requires Shipping': 'true',
