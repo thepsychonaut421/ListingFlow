@@ -11,7 +11,8 @@ import {
   RefreshCw,
   Send,
   Loader2,
-  MoreVertical
+  MoreVertical,
+  Server,
 } from 'lucide-react';
 import type { RowSelectionState } from '@tanstack/react-table';
 
@@ -45,6 +46,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { Badge } from '@/components/ui/badge';
 import type { Product } from '@/lib/types';
 import { ProductDataTable } from '@/components/product-data-table';
 import { getColumns } from '@/components/product-columns';
@@ -62,6 +64,7 @@ import {
 } from '@/lib/erpnext';
 import { useSelectionStore } from '@/stores/selection-store';
 
+const isProd = process.env.NODE_ENV === 'production';
 
 function DashboardClient() {
   const [products, setProducts] = React.useState<Product[]>([]);
@@ -179,7 +182,7 @@ function DashboardClient() {
         productName: product.name,
         category: product.category,
         listingStatus: product.listingStatus,
-        brand: product.brand,
+        brand: product.technicalSpecs?.brand as string || product.technicalSpecs?.Marke as string,
       });
       
       handleUpdateProduct(product.id, {
@@ -188,9 +191,12 @@ function DashboardClient() {
         keywords: Array.isArray(result.keywords) ? result.keywords : [],
         category: result.category,
         ebayCategoryId: result.ebayCategoryId,
-        brand: result.brand,
-        productType: result.productType,
-        ean: result.ean,
+        technicalSpecs: {
+          ...product.technicalSpecs,
+          brand: result.brand,
+          Produktart: result.productType,
+          EAN: result.ean,
+        }
       });
 
       toast({
@@ -215,8 +221,8 @@ function DashboardClient() {
     try {
       const result = await findProductDescription({
         productName: product.name,
-        brand: product.brand,
-        ean: product.ean,
+        brand: product.technicalSpecs?.brand as string || product.technicalSpecs?.Marke as string,
+        ean: product.technicalSpecs?.EAN as string || product.technicalSpecs?.ean as string,
         source: source,
       });
       
@@ -412,6 +418,11 @@ function DashboardClient() {
           </div>
           <div className="ml-auto flex items-center gap-2">
             
+             <Badge variant={isProd ? 'destructive' : 'secondary'} className="hidden md:flex items-center gap-2">
+                <Server className="h-4 w-4" />
+                <span>{isProd ? 'Production' : 'Development'}</span>
+            </Badge>
+
              {/* Desktop Buttons */}
             <div className="hidden md:flex items-center gap-2">
                  {isErpLoading ? (
@@ -489,7 +500,7 @@ function DashboardClient() {
 
             {/* Mobile Dropdown */}
             <div className="md:hidden">
-                <DropdownMenu>
+                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                         <Button size="icon" variant="outline" className="h-8 w-8">
                             <MoreVertical className="h-4 w-4" />

@@ -56,6 +56,24 @@ async function erpNextRequest(
   return response.json();
 }
 
+
+/**
+ * Performs a preflight check to ensure API credentials are valid.
+ * @returns The logged-in user's email if successful.
+ * @throws An error if authentication fails.
+ */
+export async function erpPing() {
+  const data = await erpNextRequest(`/api/method/frappe.auth.get_logged_user`);
+  if (data.message === 'Guest') {
+    throw new Error('Authentication failed: credentials are for a Guest user.');
+  }
+  if (!data.message) {
+    throw new Error('Authentication check failed: unexpected response from ERPNext.');
+  }
+  return data.message as string; // email of the logged-in user
+}
+
+
 const ERPNEXT_ITEM_FIELDS = [
   'name', 'item_code', 'item_name', 'standard_rate', 'image', 'description', 'web_long_description', 'modified'
 ];
@@ -78,6 +96,7 @@ export async function importProductsFromERPNext(
 ) {
   try {
     setLoading(true);
+    await erpPing(); // Preflight check
 
     let allItems: any[] = [];
     const pageSize = 100; // Fetch in batches of 100
@@ -106,10 +125,11 @@ export async function importProductsFromERPNext(
     const productMap = new Map(currentProducts.map(p => [p.code, p]));
     let newCount = 0;
     let updatedCount = 0;
+    
+    const erpNextUrl = process.env.NEXT_PUBLIC_ERPNEXT_BASE_URL || '';
 
     const upsertedProducts = await Promise.all(allItems.map(async (item: any) => {
         const existingProduct = productMap.get(item.name);
-        const erpNextUrl = process.env.NEXT_PUBLIC_ERPNEXT_URL || '';
         const imageUrl = item.image ? (erpNextUrl.replace(/\/$/, '') + item.image) : '';
         let qty = existingProduct?.quantity || 0;
 
@@ -148,7 +168,7 @@ export async function importProductsFromERPNext(
                 image: imageUrl,
                 sourceModified: item.modified,
                 supplier: '', location: '', tags: [], keywords: [], category: '',
-                ebayCategoryId: '', listingStatus: 'draft', brand: '', productType: '', ean: '',
+                ebayCategoryId: '', listingStatus: 'draft',
                 technicalSpecs: {},
             } as Product;
         }
@@ -159,7 +179,7 @@ export async function importProductsFromERPNext(
     alert(`Import complete. ${newCount} new products added, ${updatedCount} products updated from ERPNext.`);
   } catch (err: any) {
     console.error(err);
-    alert(`Import failed: ${err.message}`);
+    alert(`Import failed: ${err.message}. Please check your ERPNext connection settings.`);
   } finally {
     setLoading(false);
   }
@@ -173,6 +193,7 @@ export async function updatePricesAndStocksFromERPNext(
 ) {
   try {
     setLoading(true);
+    await erpPing(); // Preflight check
 
     if (!currentProducts.length) {
       alert('No products loaded in ListingFlow to update.');
@@ -180,6 +201,9 @@ export async function updatePricesAndStocksFromERPNext(
     }
 
     let updatedCount = 0;
+    
+    const erpNextUrl = process.env.NEXT_PUBLIC_ERPNEXT_BASE_URL || '';
+
     const updatedProductsPromises = currentProducts.map(async (p: Product) => {
       let hasUpdate = false;
       
@@ -194,7 +218,6 @@ export async function updatePricesAndStocksFromERPNext(
           hasUpdate = true;
         }
         
-        const erpNextUrl = process.env.NEXT_PUBLIC_ERPNEXT_URL || '';
         const newImage = itemData.image ? (erpNextUrl.replace(/\/$/, '') + itemData.image) : '';
         if (newImage && newImage !== p.image) {
             newProductData.image = newImage;
@@ -230,7 +253,7 @@ export async function updatePricesAndStocksFromERPNext(
   } catch (err: any)
  {
     console.error(err);
-    alert(`Update failed: ${err.message}`);
+    alert(`Update failed: ${err.message}. Please check your ERPNext connection settings.`);
   } finally {
     setLoading(false);
   }
@@ -246,15 +269,20 @@ export async function updatePricesAndStocksFromERPNext(
 const buildFullDescription = (product: Product): string => {
   let fullDescription = product.description || '';
 
-  const specs = {
-    'Marke': product.brand,
-    'Produktart': product.productType,
-    ...product.technicalSpecs,
-  };
+  // Retrieve brand and productType from specs
+  const specs = { ...product.technicalSpecs };
+  const brand = specs.Marke || specs.brand;
+  const productType = specs['Produktart'];
+  
+  const mainSpecs: Record<string, any> = {};
+  if (brand) mainSpecs['Marke'] = brand;
+  if (productType) mainSpecs['Produktart'] = productType;
+  
+  const allSpecs = { ...mainSpecs, ...specs };
 
-  const specEntries = Object.entries(specs)
+  const specEntries = Object.entries(allSpecs)
     .map(([key, value]) => {
-      if (!value) return null; // Skip if value is empty
+      if (!value || key.toLowerCase() === 'brand' || key.toLowerCase() === 'marke' || key.toLowerCase() === 'produktart') return null; // Skip if value is empty or it's a main spec
       const formattedValue = Array.isArray(value) ? value.join(', ') : value;
       // Capitalize the first letter of the key
       const formattedKey = key.charAt(0).toUpperCase() + key.slice(1);
@@ -281,6 +309,16 @@ export async function exportProductsToERPNext(
 ) {
   try {
     setLoading(true);
+    const loggedInUser = await erpPing(); // Preflight check
+
+    const isProd = process.env.NODE_ENV === 'production';
+    if (isProd) {
+        if (!confirm(`⚠️ You are about to export ${productsToExport.length} products to the PRODUCTION ERP environment as "${loggedInUser}".\n\nAre you sure you want to continue?`)) {
+            setLoading(false);
+            return;
+        }
+    }
+
 
     if (!productsToExport.length) {
       alert('No products to export.');
@@ -292,17 +330,20 @@ export async function exportProductsToERPNext(
 
     for (const p of productsToExport) {
         const fullDescription = buildFullDescription(p);
+        const brand = (p.technicalSpecs?.Marke || p.technicalSpecs?.brand || '') as string;
+        const ean = (p.technicalSpecs?.EAN || p.technicalSpecs?.ean || '') as string;
+
 
         const itemPayload: Record<string, any> = {
             item_name: p.name,
             standard_rate: p.price,
             description: fullDescription,
             web_long_description: fullDescription,
-            ean: p.ean,
+            ean: ean,
         };
 
-        if(p.brand) {
-            itemPayload.brand = p.brand;
+        if(brand) {
+            itemPayload.brand = brand;
         }
 
         try {
@@ -326,7 +367,7 @@ Errors encountered:
 
   } catch (err: any) {
     console.error('A general error occurred during export:', err);
-    alert(`Export failed: ${err.message}`);
+    alert(`Export failed: ${err.message}. Please check your ERPNext connection settings.`);
   } finally {
     setLoading(false);
   }

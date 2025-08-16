@@ -25,7 +25,6 @@ import { DialogFooter } from '@/components/ui/dialog';
 import type { Product } from '@/lib/types';
 
 const bulkEditSchema = z.object({
-  brand: z.string().optional(),
   listingStatus: z.enum(['', 'draft', 'listed', 'error', 'new', 'used', 'refurbished']).optional(),
   category: z.string().optional(),
 });
@@ -41,7 +40,6 @@ export function BulkEditForm({ onSave, onCancel }: BulkEditFormProps) {
   const form = useForm<BulkEditFormValues>({
     resolver: zodResolver(bulkEditSchema),
     defaultValues: {
-      brand: '',
       listingStatus: '',
       category: '',
     },
@@ -49,7 +47,6 @@ export function BulkEditForm({ onSave, onCancel }: BulkEditFormProps) {
 
   const onSubmit = (data: BulkEditFormValues) => {
     const updateData: Partial<Product> = {};
-    if (data.brand) updateData.brand = data.brand;
     if (data.listingStatus) updateData.listingStatus = data.listingStatus as Product['listingStatus'];
     if (data.category) updateData.category = data.category;
     onSave(updateData);
@@ -59,19 +56,6 @@ export function BulkEditForm({ onSave, onCancel }: BulkEditFormProps) {
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
         <div className="space-y-4">
-          <FormField
-            control={form.control}
-            name="brand"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Brand (Marke)</FormLabel>
-                <FormControl>
-                  <Input placeholder="Leave blank to keep unchanged" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
           <FormField
             control={form.control}
             name="listingStatus"

@@ -53,23 +53,32 @@ const generateEbayCsvContent = (products: Product[]): string => {
 
   const dataRows = products
     .filter(product => product.code) 
-    .map(product => [
+    .map(product => {
+      const specs = product.technicalSpecs || {};
+      const brand = specs.Marke || specs.brand || '';
+      const productType = specs.Produktart || '';
+      const model = specs.Modell || specs.model || '';
+      const mpn = specs.MPN || specs.mpn || '';
+      const ean = specs.EAN || specs.ean || '';
+
+      return [
       'Draft',
       product.code,
       product.ebayCategoryId,
       product.name,
-      product.ean || '',
+      ean,
       product.price ? product.price.toFixed(2) : '0.00',
       product.quantity,
       product.image,
       getEbayConditionId(product.listingStatus),
       product.description,
       'FixedPrice',
-      product.brand,
-      product.productType,
-      product.model,
-      product.mpn,
-    ].map(cleanSemicolonCsvField));
+      brand,
+      productType,
+      model,
+      mpn,
+    ].map(cleanSemicolonCsvField)
+  });
   
   const ebayTemplateIdentifier = '#INFO;Version=0.0.2;Template= eBay-draft-listings-template_DE;;;;;;;';
   const csvBody = buildCsvBody(headers, dataRows, ';');
@@ -115,23 +124,29 @@ const generateShopifyCsvContent = (products: Product[]): string => {
     .map(product => {
       const handle = product.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
       const imageUrl = ensureValidImageSrc(product.image);
+      const specs = product.technicalSpecs || {};
+      const brand = specs.Marke || specs.brand || '';
+      const productType = specs.Produktart || '';
+      const ean = specs.EAN || specs.ean || '';
+      const mpn = specs.MPN || specs.mpn || '';
+      const weight = (specs.Gewicht || specs.weight || '0') as string;
 
       const rowData: Record<string, any> = {
         'Handle': handle, 'Title': product.name, 'Body (HTML)': product.description,
-        'Vendor': product.brand, 'Product Category': product.category, 'Type': product.productType,
+        'Vendor': brand, 'Product Category': product.category, 'Type': productType,
         'Tags': (product.tags || []).join(', '), 'Published': 'true', 'Option1 Name': 'Title',
         'Option1 Value': 'Default Title', 'Variant SKU': product.code, 
-        'Variant Grams': product.weight ? parseFloat(product.weight.replace(/[^0-9.]/g, '')) * 1000 : '0',
+        'Variant Grams': weight ? parseFloat(weight.replace(/[^0-9.]/g, '')) * 1000 : '0',
         'Variant Inventory Tracker': 'shopify', 'Variant Inventory Qty': product.quantity,
         'Variant Inventory Policy': 'deny', 'Variant Fulfillment Service': 'manual',
         'Variant Price': product.price ? product.price.toFixed(2) : '0.00', 'Variant Requires Shipping': 'true',
-        'Variant Taxable': 'true', 'Variant Barcode': product.ean, 
+        'Variant Taxable': 'true', 'Variant Barcode': ean, 
         'Image Src': imageUrl, 'Image Position': '1', 'Image Alt Text': product.name,
-        'Gift Card': 'false', 'SEO Title': `${product.name} - ${product.brand || ''}`,
+        'Gift Card': 'false', 'SEO Title': `${product.name} - ${brand || ''}`,
         'SEO Description': product.description ? product.description.substring(0, 320) : '',
         'Google Shopping / Google Product Category': product.category,
         'Google Shopping / Condition': getShopifyCondition(product.listingStatus),
-        'Google Shopping / MPN': product.mpn,
+        'Google Shopping / MPN': mpn,
         'Status': 'active'
       };
       return headers.map(header => escapeCommaCsvField(rowData[header] ?? ''));

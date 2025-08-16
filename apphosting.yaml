@@ -9,7 +9,12 @@ runConfig:
 # Environment variables for ERPNext integration.
 # Replace values or reference secrets when deploying.
 env:
-  - variable: NEXT_PUBLIC_ERPNEXT_URL
+  - variable: ERPNEXT_BASE_URL
+    value: https://erp.rembayer.info
+    availability:
+      - BUILD
+      - RUNTIME
+  - variable: NEXT_PUBLIC_ERPNEXT_BASE_URL
     value: https://erp.rembayer.info
     availability:
       - BUILD
