@@ -21,7 +21,6 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import type { Product } from '@/lib/types';
 import { handleExternalSearch } from '@/lib/external-search';
-import { useSelectionStore } from '@/stores/selection-store';
 
 type GetColumnsProps = {
   onEdit: (product: Product) => void;
@@ -44,37 +43,20 @@ const formatCurrency = (amount: number) => {
 export const getColumns = ({ onEdit, onDelete, onGenerate, onCopyDescription, onExtractTechSpecs, onGenerateImage, onSendToEbay, generatingProductId }: GetColumnsProps): ColumnDef<Product>[] => [
   {
     id: 'select',
-    header: ({ table }) => {
-      const { setMany } = useSelectionStore.getState();
-      const pageIds = table.getRowModel().rows.map(r => r.original.id);
-      
-      const isAllOnPageSelected = table.getIsAllPageRowsSelected();
-      const isSomeOnPageSelected = table.getIsSomePageRowsSelected();
-
-      return (
-        <Checkbox
-          checked={isAllOnPageSelected || (isSomeOnPageSelected && 'indeterminate')}
-          onCheckedChange={(value) => {
-            table.toggleAllPageRowsSelected(!!value);
-            setMany(pageIds, !!value);
-          }}
-          aria-label="Select all"
-        />
-      );
-    },
-    cell: ({ row }) => {
-      const { toggle, selectedIds } = useSelectionStore.getState();
-      return (
-        <Checkbox
-          checked={selectedIds.has(row.original.id)}
-          onCheckedChange={() => {
-            row.toggleSelected(!row.getIsSelected());
-            toggle(row.original.id);
-          }}
-          aria-label="Select row"
-        />
-      );
-    },
+    header: ({ table }) => (
+      <Checkbox
+        checked={table.getIsAllPageRowsSelected() || (table.getIsSomePageRowsSelected() && 'indeterminate')}
+        onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
+        aria-label="Select all"
+      />
+    ),
+    cell: ({ row }) => (
+      <Checkbox
+        checked={row.getIsSelected()}
+        onCheckedChange={(value) => row.toggleSelected(!!value)}
+        aria-label="Select row"
+      />
+    ),
     enableSorting: false,
     enableHiding: false,
   },

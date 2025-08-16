@@ -8,13 +8,14 @@ type SelectionState = {
   clear: () => void;
 };
 
+// Based on the user's suggestion to ensure immutability.
 export const useSelectionStore = create<SelectionState>()(
   persist(
     (set) => ({
       selectedIds: new Set<string>(),
       toggle: (id) =>
         set((state) => {
-          const newSelectedIds = new Set(state.selectedIds);
+          const newSelectedIds = new Set(state.selectedIds); // <<< Ensure immutability
           if (newSelectedIds.has(id)) {
             newSelectedIds.delete(id);
           } else {
@@ -24,7 +25,7 @@ export const useSelectionStore = create<SelectionState>()(
         }),
       setMany: (ids, checked) =>
         set((state) => {
-          const newSelectedIds = new Set(state.selectedIds);
+          const newSelectedIds = new Set(state.selectedIds); // <<< Ensure immutability
           ids.forEach((id) => {
             if (checked) {
               newSelectedIds.add(id);
@@ -39,15 +40,16 @@ export const useSelectionStore = create<SelectionState>()(
     {
       name: 'listingflow-selection-v1',
       storage: createJSONStorage(() => localStorage, {
+        // Custom reviver/replacer to handle Set serialization.
         reviver: (key, value) => {
-          if (key === 'selectedIds') {
-            return new Set(value as string[]);
+          if (key === 'selectedIds' && Array.isArray(value)) {
+            return new Set(value);
           }
           return value;
         },
         replacer: (key, value) => {
-          if (key === 'selectedIds') {
-            return Array.from(value as Set<string>);
+          if (key === 'selectedIds' && value instanceof Set) {
+            return Array.from(value);
           }
           return value;
         },

@@ -4,6 +4,7 @@ import * as React from 'react';
 import {
   ColumnDef,
   ColumnFiltersState,
+  RowSelectionState,
   SortingState,
   flexRender,
   getCoreRowModel,
@@ -40,18 +41,18 @@ export function ProductDataTable<TData extends { id: string }, TValue>({
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
 
+  // Zustand store integration
   const selectedIds = useSelectionStore((state) => state.selectedIds);
   const setMany = useSelectionStore((state) => state.setMany);
 
-  const rowSelection = React.useMemo(() => {
+  // Memoize row selection object from Zustand store
+  const rowSelection: RowSelectionState = React.useMemo(() => {
     const selection: { [key: string]: boolean } = {};
-    data.forEach(row => {
-        if(selectedIds.has(row.id)) {
-            selection[row.id] = true;
-        }
-    })
+    selectedIds.forEach((id) => {
+      selection[id] = true;
+    });
     return selection;
-  }, [selectedIds, data]);
+  }, [selectedIds]);
 
   const table = useReactTable({
     data,
@@ -64,16 +65,32 @@ export function ProductDataTable<TData extends { id: string }, TValue>({
     enableRowSelection: true,
     getRowId: (row) => row.id,
     onRowSelectionChange: (updater) => {
-        // This is primarily for the "select all" checkbox.
-        // Individual row selection is handled in the column definition.
-        const newSelection = typeof updater === 'function' ? updater(rowSelection) : updater;
-        const allIdsInTable = data.map(d => d.id);
-        
-        const idsToSelect = allIdsInTable.filter(id => newSelection[id]);
-        const idsToDeselect = allIdsInTable.filter(id => !newSelection[id]);
+      const newSelection = typeof updater === 'function' ? updater(rowSelection) : updater;
+      const idsToUpdate = Object.keys(newSelection);
+      const toSelect: string[] = [];
+      const toDeselect: string[] = [];
 
-        if (idsToSelect.length > 0) setMany(idsToSelect, true);
-        if (idsToDeselect.length > 0) setMany(idsToDeselect, false);
+      // Logic to handle "select all" which gives a full object
+      if (Object.keys(newSelection).length > table.getRowModel().rows.length / 2) {
+         table.getRowModel().rows.forEach(row => {
+            if (newSelection[row.id] && !selectedIds.has(row.id)) {
+              toSelect.push(row.id);
+            } else if (!newSelection[row.id] && selectedIds.has(row.id)) {
+              toDeselect.push(row.id);
+            }
+         });
+      } else { // Logic to handle individual clicks which give sparse objects
+         idsToUpdate.forEach(id => {
+            if (newSelection[id]) {
+                toSelect.push(id);
+            } else {
+                toDeselect.push(id);
+            }
+         });
+      }
+
+      if (toSelect.length) setMany(toSelect, true);
+      if (toDeselect.length) setMany(toDeselect, false);
     },
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
