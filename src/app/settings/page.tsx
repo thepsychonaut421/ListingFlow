@@ -35,7 +35,7 @@ function SettingsClient() {
     // The actual usage is server-side or at build time.
     // To make it available client-side for display, we prefix it with NEXT_PUBLIC_
     const url = process.env.NEXT_PUBLIC_ERPNEXT_BASE_URL;
-    setErpNextUrl(url || 'Not set in .env file');
+    setErpNextUrl(url || 'Not set in hosting environment variables');
   }, []);
 
   const handleClearData = () => {
@@ -59,20 +59,20 @@ function SettingsClient() {
             <br /><br />
             For images from ERPNext to load correctly, you must provide the full URL to your instance. Use `.env.local` or `.env.development` for local testing and production environment variables for deployment.
              <pre className="mt-2 p-2 bg-muted rounded-md text-sm font-mono">
-              # For local development (.env.local)
-              ERPNEXT_BASE_URL=https://your-test-erp.rembayer.info
-              NEXT_PUBLIC_ERPNEXT_BASE_URL=https://your-test-erp.rembayer.info
-              ERPNEXT_API_KEY=your_test_api_key
-              ERPNEXT_API_SECRET=your_test_api_secret
+{`# For local development (.env.local)
+ERPNEXT_BASE_URL=https://your-test-erp.rembayer.info
+NEXT_PUBLIC_ERPNEXT_BASE_URL=https://your-test-erp.rembayer.info
+ERPNEXT_API_KEY=your_test_api_key
+ERPNEXT_API_SECRET=your_test_api_secret
 
-              # For production (set in hosting provider)
-              ERPNEXT_BASE_URL=https://your-prod-erp.rembayer.info
-              NEXT_PUBLIC_ERPNEXT_BASE_URL=https://your-prod-erp.rembayer.info
-              ERPNEXT_API_KEY=your_prod_api_key
-              ERPNEXT_API_SECRET=your_prod_api_secret
+# For production (set in hosting provider)
+ERPNEXT_BASE_URL=https://your-prod-erp.rembayer.info
+NEXT_PUBLIC_ERPNEXT_BASE_URL=https://your-prod-erp.rembayer.info
+ERPNEXT_API_KEY=your_prod_api_key
+ERPNEXT_API_SECRET=your_prod_api_secret`}
             </pre>
              <p className="mt-4 text-sm text-muted-foreground">
-              The app will construct image URLs using the base: <strong>{erpNextUrl}</strong>
+              The app will construct image URLs using the public base URL: <strong>{erpNextUrl}</strong>
             </p>
           </CardDescription>
         </CardHeader>
