@@ -11,12 +11,12 @@ const SHOPIFY_PLACEHOLDER_IMAGE = 'https://placehold.co/600x600.png';
 
 
 // --- Helper Functions ---
-
 const cleanSemicolonCsvField = (field: any): string => {
     if (field === null || field === undefined) return '';
-    // This will also handle the description cleaning by removing problematic chars.
-    return String(field).replace(/[\t\n\r;]/g, ' ').trim();
+    const cleaned = String(field).replace(/[\t\r\n;]/g, ' ').trim();
+    return cleaned;
 };
+
 
 const escapeCommaCsvField = (field: any): string => {
   if (field === null || field === undefined) return '';
@@ -90,6 +90,30 @@ const inferProductType = (title: string, categoryId?: string): string => {
   return '';
 };
 
+const PRODUCT_TYPE_MAP: Record<string, string> = {
+  '11700': 'Teppich', // Teppiche & Teppichböden
+  '20663': 'Küchenmaschine',
+  '14969': 'Lautsprecher',
+  '159912': 'Inlineskates',
+  '20635': 'Kochgeschirr',
+  // ... can be extended as more categories are used
+};
+
+const resolveProductType = (product: Product): string => {
+  const specs = product.technicalSpecs || {};
+  // 1. Use explicitly defined product type first
+  const explicitType = pickVal(product, specs, 'Produktart', 'productType', 'Type');
+  if (explicitType) return explicitType;
+
+  // 2. If a category ID is present, use the map
+  if (product.ebayCategoryId && PRODUCT_TYPE_MAP[product.ebayCategoryId]) {
+    return PRODUCT_TYPE_MAP[product.ebayCategoryId];
+  }
+  
+  // 3. Fallback to inferring from title
+  return inferProductType(product.name, product.ebayCategoryId);
+};
+
 
 const generateEbayCsvContent = (products: Product[]): string => {
   const headers = [
@@ -104,9 +128,7 @@ const generateEbayCsvContent = (products: Product[]): string => {
     .map(product => {
       const specs = product.technicalSpecs || {};
       const brand = pickVal(product, specs, 'Marke', 'brand', 'Brand');
-      let productType = pickVal(product, specs, 'Produktart', 'productType', 'Type');
-      if (!productType) productType = inferProductType(product.name, product.ebayCategoryId);
-
+      const productType = resolveProductType(product);
       const model = pickVal(product, specs, 'Modell', 'model', 'Model');
       const mpn = product.code; // Use SKU as MPN
       const ean = pickVal(product, specs, 'EAN', 'ean', 'Barcode');
@@ -122,7 +144,7 @@ const generateEbayCsvContent = (products: Product[]): string => {
       product.quantity,
       safeImage(product.image),
       getEbayConditionId(product.listingStatus),
-      product.description, // cleanSemicolonCsvField handles this below
+      cleanSemicolonCsvField(product.description),
       'FixedPrice',
       brand,
       productType,
