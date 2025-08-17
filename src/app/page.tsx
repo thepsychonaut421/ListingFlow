@@ -210,6 +210,7 @@ function DashboardClient() {
         keywords: Array.isArray(result.keywords) ? result.keywords : [],
         category: result.category,
         ebayCategoryId: result.ebayCategoryId,
+        ean: result.ean,
         technicalSpecs: {
           ...product.technicalSpecs,
           brand: result.brand,
@@ -241,7 +242,7 @@ function DashboardClient() {
       const result = await findProductDescription({
         productName: product.name,
         brand: product.technicalSpecs?.brand as string || product.technicalSpecs?.Marke as string,
-        ean: product.technicalSpecs?.EAN as string || product.technicalSpecs?.ean as string,
+        ean: product.ean,
         source: source,
       });
       
@@ -402,7 +403,7 @@ function DashboardClient() {
             let hasMore = true;
 
             while (hasMore) {
-                const endpoint = `/api/resource/Item?fields=["name","item_code","item_name","standard_rate","image","description","modified"]&limit_page_length=${pageSize}&limit_start=${start}`;
+                const endpoint = `/api/resource/Item?fields=["name","item_code","item_name","standard_rate","image","description","modified","barcode"]&limit_page_length=${pageSize}&limit_start=${start}`;
                 const response = await fetch('/api/proxy-erpnext', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -446,6 +447,7 @@ function DashboardClient() {
                     location: String(item.location || ''),
                     technicalSpecs: typeof item.technicalSpecs === "object" && item.technicalSpecs !== null ? item.technicalSpecs : {},
                     sourceModified: item.modified,
+                    ean: item.barcode ? String(item.barcode) : undefined,
                 }));
                 setProducts(newProducts);
                  toast({
