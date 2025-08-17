@@ -1,3 +1,4 @@
+
 // This file contains logic for mapping product titles to Shopify categories.
 
 import { shopifyTaxonomy } from './shopify-taxonomy';
