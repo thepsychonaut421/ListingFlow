@@ -2,6 +2,7 @@
 import { writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import * as cheerio from 'cheerio';
+import { Element } from 'cheerio';
 
 // This script requires 'cheerio' and 'undici' (or node-fetch).
 // Run `npm install cheerio undici` if you don't have them.
@@ -37,7 +38,7 @@ type Cat = {
     return Array.from(uniqueWords);
   }
 
-  function walk($ul: cheerio.Cheerio) {
+  function walk($ul: cheerio.Cheerio<Element>) {
     $ul.children('li').each((_, li) => {
       const $li = $(li);
       const label = $li.clone().children('ul').remove().end().text().trim();
