@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -32,6 +33,7 @@ const ProductSchema = z.object({
   quantity: z.number().or(z.string()).optional(),
   description: z.string().optional(),
   technicalSpecs: z.array(z.object({ key: z.string(), value: z.string() })).optional(),
+  ean: z.string().optional(),
 });
 type ProductFormValues = z.infer<typeof ProductSchema>;
 
@@ -64,6 +66,7 @@ const toProductFormValues = (product: Product | null): ProductFormValues => {
         quantity: product?.quantity || 0,
         description: product?.description || '',
         technicalSpecs: technicalSpecs,
+        ean: product?.ean || '',
     };
 };
 
@@ -150,17 +153,17 @@ export function ProductForm({
   const processSubmit = (data: ProductFormValues) => {
     const finalData: Product = {
       id: product?.id ?? crypto.randomUUID(),
-      name: data.name ?? product?.name ?? "",
-      code: data.code ?? product?.code ?? "",
-      price: Number(data.price ?? product?.price ?? 0),
-      quantity: Number(data.quantity ?? product?.quantity ?? 0),
-      description: data.description ?? product?.description ?? "",
-      image: data.image ?? product?.image ?? "",
-      listingStatus: (data.listingStatus ?? product?.listingStatus ?? "draft") as Product["listingStatus"],
-      category: data.category ?? product?.category ?? "",
-      ebayCategoryId: data.ebayCategoryId ?? product?.ebayCategoryId ?? "",
-      tags: Array.isArray(product?.tags) ? product!.tags : [],
-      keywords: Array.isArray(product?.keywords) ? product!.keywords : [],
+      name: data.name ?? "",
+      code: data.code ?? "",
+      price: Number(data.price ?? 0),
+      quantity: Number(data.quantity ?? 0),
+      description: data.description ?? "",
+      image: data.image ?? "",
+      listingStatus: data.listingStatus as Product["listingStatus"],
+      category: data.category ?? "",
+      ebayCategoryId: data.ebayCategoryId ?? "",
+      tags: product?.tags ?? [],
+      keywords: product?.keywords ?? [],
       supplier: product?.supplier ?? "",
       location: product?.location ?? "",
       technicalSpecs: (data.technicalSpecs || []).reduce((acc, { key, value }) => {
@@ -168,9 +171,9 @@ export function ProductForm({
             acc[key] = value.includes(',') ? value.split(',').map(s => s.trim()) : value;
         }
         return acc;
-      }, product?.technicalSpecs ?? {}),
+      }, {} as Record<string, string | string[]>),
       sourceModified: product?.sourceModified ?? new Date().toISOString(),
-      ean: (data as any).ean ?? product?.ean ?? undefined,
+      ean: data.ean ?? undefined,
     };
     onSave(finalData);
   }
