@@ -132,7 +132,7 @@ const findEbayCategoryIdFlow = ai.defineFlow(
     inputSchema: FindEbayCategoryIdInputSchema,
     outputSchema: FindEbayCategoryIdOutputSchema,
   },
-  async ({ productTitle, ean }) => {
+  async ({ productTitle, ean }): Promise<FindEbayCategoryIdOutput> => {
     // 1. Direct EAN lookup (highest priority)
     if (ean) {
         const eanMap = await loadLocalData<EanMap>('ean-to-category.json');
