@@ -57,6 +57,7 @@ import { useToast } from '@/hooks/use-toast';
 import { ProductForm } from '@/components/product-form';
 import { BulkEditForm } from '@/components/bulk-edit-form';
 import { useSelectionStore } from '@/stores/selection-store';
+import { exportProductsToERPNext } from '@/lib/erpnext';
 
 const EnvBadge = () => {
     const env = process.env.NEXT_PUBLIC_ENV || 'dev';
@@ -368,84 +369,91 @@ function DashboardClient() {
     }
   };
   
- const handleErpAction = async (action: 'import' | 'update' | 'export') => {
+  const handleErpAction = async (action: 'import' | 'update' | 'export') => {
     setIsErpLoading(true);
 
-    const erpActionToEndpoint: Record<string, string> = {
-        import: '/api/resource/Item?fields=["name","item_code","item_name","standard_rate","image","description","modified"]&limit_page_length=20',
-        update: '/api/resource/Item',
-        export: '/api/resource/Item',
-    };
-
-    const getBody = () => {
+    try {
         if (action === 'export') {
-            return {
-                endpoint: erpActionToEndpoint['export'],
-                method: 'POST', // or 'PUT'
-                body: { products: products.filter(p => selectedIds.has(p.id)) },
+            await exportProductsToERPNext(
+                (loading) => setIsErpLoading(loading),
+                products.filter(p => selectedIds.has(p.id))
+            );
+            return; 
+        }
+
+        if (action === 'import') {
+            let allItems: any[] = [];
+            const pageSize = 100;
+            let start = 0;
+            let hasMore = true;
+
+            while (hasMore) {
+                const endpoint = `/api/resource/Item?fields=["name","item_code","item_name","standard_rate","image","description","modified"]&limit_page_length=${pageSize}&limit_start=${start}`;
+                const response = await fetch('/api/proxy-erpnext', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ endpoint, method: 'GET' }),
+                });
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    try {
+                        const errorBody = JSON.parse(errorText);
+                        throw new Error(errorBody.error || 'Import failed');
+                    } catch (e) {
+                        throw new Error(errorText || `Import failed with status ${response.status}`);
+                    }
+                }
+
+                const result = await response.json();
+                if (result.data && result.data.length > 0) {
+                    allItems = allItems.concat(result.data);
+                    start += pageSize;
+                } else {
+                    hasMore = false;
+                }
+            }
+
+            if (allItems.length > 0) {
+                const newProducts = allItems.map((item: any) => ({
+                    id: item.name,
+                    name: item.item_name || item.name,
+                    code: item.item_code,
+                    price: item.standard_rate || 0,
+                    description: item.description || '',
+                    image: item.image ? `${process.env.NEXT_PUBLIC_ERPNEXT_BASE_URL || ''}${item.image}` : '',
+                    quantity: 0,
+                    listingStatus: 'draft',
+                    category: '',
+                    ebayCategoryId: '',
+                    tags: [],
+                    keywords: [],
+                    supplier: '',
+                    location: '',
+                    technicalSpecs: {},
+                    sourceModified: item.modified,
+                }));
+                setProducts(newProducts);
+                 toast({
+                    title: `ERP Import Successful!`,
+                    description: `${newProducts.length} products have been imported.`,
+                });
+            } else {
+                 toast({
+                    title: 'No new products found',
+                    description: 'Your product list is already up to date.',
+                });
             }
         }
-        return {
-            endpoint: erpActionToEndpoint[action],
-            method: 'GET',
-        };
-    };
-
-    try {
-      const response = await fetch('/api/proxy-erpnext', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(getBody()),
-      });
-      
-      const resultText = await response.text();
-      if (!response.ok) {
-          try {
-              const errorBody = JSON.parse(resultText);
-              throw new Error(errorBody.error || `ERP ${action} failed.`);
-          } catch(e) {
-              throw new Error(resultText || `ERP ${action} failed with status ${response.status}`);
-          }
-      }
-
-      const result = JSON.parse(resultText);
-      
-      if (action === 'import' && result.data) {
-        const allProducts = result.data.map((item: any) => ({
-            id: item.name,
-            name: item.item_name || item.name,
-            code: item.item_code,
-            price: item.standard_rate || 0,
-            description: item.description || '',
-            image: item.image ? `${process.env.NEXT_PUBLIC_ERPNEXT_BASE_URL || ''}${item.image}` : '',
-            quantity: 0,
-            listingStatus: 'draft',
-            category: '',
-            ebayCategoryId: '',
-            tags: [],
-            keywords: [],
-            supplier: '',
-            location: '',
-            technicalSpecs: {},
-            sourceModified: item.modified,
-        }));
-        setProducts(allProducts);
-      }
-      
-      toast({
-        title: `ERP ${action} successful!`,
-        description: `Action ${action} completed.`,
-      });
-
     } catch (error: any) {
-      console.error(`ERP ${action} failed:`, error);
-      toast({
-        variant: 'destructive',
-        title: `ERP ${action} Failed`,
-        description: error.message,
-      });
+        console.error(`ERP ${action} failed:`, error);
+        toast({
+            variant: 'destructive',
+            title: `ERP ${action} Failed`,
+            description: error.message,
+        });
     } finally {
-      setIsErpLoading(false);
+        setIsErpLoading(false);
     }
   };
 
@@ -497,7 +505,7 @@ function DashboardClient() {
                           <Download className="h-3.5 w-3.5" />
                           <span>Import from ERPNext</span>
                         </Button>
-                        <Button size="sm" variant="outline" className="h-8 gap-1" onClick={() => handleErpAction('update')}>
+                        <Button size="sm" variant="outline" className="h-8 gap-1" onClick={() => handleErpAction('update')} disabled>
                           <RefreshCw className="h-3.5 w-3.5" />
                           <span>Update from ERPNext</span>
                         </Button>
@@ -580,7 +588,7 @@ function DashboardClient() {
                                     <Download className="mr-2 h-4 w-4" />
                                     <span>Import from ERPNext</span>
                                 </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => handleErpAction('update')}>
+                                <DropdownMenuItem onClick={() => handleErpAction('update')} disabled>
                                     <RefreshCw className="mr-2 h-4 w-4" />
                                     <span>Update from ERPNext</span>
                                 </DropdownMenuItem>
