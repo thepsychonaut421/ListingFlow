@@ -16,13 +16,13 @@ export const initialProducts: Product[] = [
     category: 'Home & Garden > Kitchen & Dining > Kitchen Appliances > Food Mixers & Blenders',
     ebayCategoryId: '183597', // Haushaltsgeräte > Kleingeräte Küche > Küchenmaschinen
     listingStatus: 'draft',
-    brand: 'Silvercrest',
-    productType: 'Küchenmaschine',
     ean: '4055334050142',
     technicalSpecs: {
       'Leistung': '600 W',
       'Geschwindigkeitsstufen': '8',
-      'Schüsselkapazität': '5 L'
+      'Schüsselkapazität': '5 L',
+      'brand': 'Silvercrest',
+      'productType': 'Küchenmaschine',
     }
   }
 ];
