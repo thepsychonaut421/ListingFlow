@@ -53,7 +53,7 @@ export async function POST(req: Request) {
                     const errorBody = JSON.parse(errorText);
                     if (errorBody._server_messages) {
                          const serverMessage = JSON.parse(errorBody._server_messages[0]);
-                         errorDetails = JSON.parse(serverMessage).message || serverMessage;
+                         errorDetails = serverMessage.message || JSON.stringify(serverMessage);
                     } else {
                         errorDetails = errorBody.message || errorBody.exception || errorBody.error || JSON.stringify(errorBody);
                     }
