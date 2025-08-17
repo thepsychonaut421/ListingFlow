@@ -404,7 +404,7 @@ function DashboardClient() {
             let hasMore = true;
 
             while (hasMore) {
-                const endpoint = `/api/resource/Item?fields=["name","item_code","item_name","standard_rate","image","description","modified","barcode"]&limit_page_length=${pageSize}&limit_start=${start}`;
+                const endpoint = `/api/resource/Item?fields=["name","item_code","item_name","standard_rate","image","description","modified"]&limit_page_length=${pageSize}&limit_start=${start}`;
                 const response = await fetch('/api/proxy-erpnext', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -448,7 +448,7 @@ function DashboardClient() {
                     location: String(item.location || ''),
                     technicalSpecs: typeof item.technicalSpecs === "object" && item.technicalSpecs !== null ? item.technicalSpecs : {},
                     sourceModified: item.modified,
-                    ean: item.barcode ? String(item.barcode) : undefined,
+                    ean: item.ean ? String(item.ean) : undefined,
                 }));
                 setProducts(newProducts);
                  toast({
