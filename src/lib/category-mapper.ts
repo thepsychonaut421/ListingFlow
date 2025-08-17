@@ -14,7 +14,7 @@ function guessShopifyCategoryFromTitle(title: string): string {
   const t = title.toLowerCase();
 
   // Define regex mappings
-  const mappings: { [key: string]: string } = {
+  const mappings: Record<string, RegExp> = {
     'Heim & Garten > Haushaltsgeräte > Staubsauger & Bodenpflege > Staubsauger': /staubsauger|vacuum cleaner/i,
     'Elektronik > Audio > Lautsprecher': /lautsprecher|speaker/i,
     'Heim & Garten > Küche & Esszimmer > Küchengeräte > Fritteusen': /air ?fryer|heißluft|heissluft/i,
@@ -24,8 +24,8 @@ function guessShopifyCategoryFromTitle(title: string): string {
     'Bekleidung & Zubehör > Schuhe': /schuhe|sneaker|stiefel|sandalen/i,
   };
 
-  for (const category in mappings) {
-    if (mappings[category].test(t)) {
+  for (const [category, regex] of Object.entries(mappings)) {
+    if (regex.test(t)) {
       return category;
     }
   }
