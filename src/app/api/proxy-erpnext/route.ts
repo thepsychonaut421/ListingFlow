@@ -40,28 +40,32 @@ export async function POST(req: Request) {
         try {
             const errorText = await response.text();
             
-            // Check if the response is HTML (like a Cloudflare error page)
-            if (errorText.trim().startsWith('<!doctype html>')) {
+            // Check if the response is HTML (like a Cloudflare error page or ERPNext error)
+            if (errorText.trim().startsWith('<!DOCTYPE html>')) {
                 const $ = cheerio.load(errorText);
                 // Extract a more meaningful title or header from the HTML
                 const pageTitle = $('title').text();
+                const h1Title = $('h1').first().text();
                 const h2Title = $('h2').first().text();
-                errorDetails = `${errorDetails}: ${pageTitle || h2Title || 'Received an HTML error page.'}`;
+                errorDetails = `${errorDetails}: ${pageTitle || h1Title || h2Title || 'Received an HTML error page from the server.'}`;
             } else {
-                 // Try to parse it as JSON, as expected from the API
+                 // Try to parse it as JSON, as expected from a well-behaved API
                 const errorBody = JSON.parse(errorText);
                 if (errorBody._server_messages) {
-                     const serverMessage = JSON.parse(errorBody._server_messages)[0];
-                     errorMessage = JSON.parse(serverMessage).message || serverMessage;
+                     const serverMessage = JSON.parse(errorBody._server_messages[0]);
+                     errorDetails = JSON.parse(serverMessage).message || serverMessage;
                 } else {
-                    errorMessage = errorBody.message || errorBody.exception || errorBody.error || JSON.stringify(errorBody);
+                    errorDetails = errorBody.message || errorBody.exception || errorBody.error || JSON.stringify(errorBody);
                 }
             }
-        } catch {
-            // If any parsing fails, fallback to the status text
-            errorDetails = `${errorDetails}: ${response.statusText}`;
+        } catch (e: any) {
+            // If any parsing fails (e.g., it was HTML but cheerio failed, or not valid JSON),
+            // fallback to the raw status text. The key is to avoid reaching the final .json() call.
+            console.error("Failed to parse error response body:", e.message);
+            errorDetails = `${errorDetails}. The server returned a non-JSON response that could not be parsed.`;
         }
         
+        console.error("ERPNext Proxy Error:", errorDetails);
         return NextResponse.json({ error: errorDetails }, { status: response.status });
     }
 
