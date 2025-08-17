@@ -55,18 +55,27 @@ function SettingsClient() {
         <CardHeader>
           <CardTitle>ERPNext Integration</CardTitle>
           <CardDescription>
-            Your ERPNext credentials should be stored securely in an <strong>.env</strong> file in the root of your project or as secrets in your hosting environment.
+            Your ERPNext credentials should be stored securely. The method depends on your environment.
             <br /><br />
-            For images from ERPNext to load correctly, you must provide the full URL to your instance. Use `.env.local` or `.env.development` for local testing and production environment variables for deployment.
+            <strong>For Local Development (Test Mode):</strong>
+            <p className="mb-2">
+              Create a file named <strong>.env.local</strong> in the root of your project and add your test credentials there. This file is ignored by version control and will not be published.
+            </p>
              <pre className="mt-2 p-2 bg-muted rounded-md text-sm font-mono">
-{`# For local development (.env.local)
+{`# .env.local (for testing)
 ERPNEXT_BASE_URL="https://your-test-erp.rembayer.info"
 NEXT_PUBLIC_ERPNEXT_BASE_URL="https://your-test-erp.rembayer.info"
 ERPNEXT_API_KEY="your_test_api_key"
 ERPNEXT_API_SECRET="your_test_api_secret"
-NEXT_PUBLIC_ENV="dev"
-
-# For production (set in hosting provider)
+NEXT_PUBLIC_ENV="dev"`}
+            </pre>
+            <br />
+            <strong>For Production (after publishing):</strong>
+             <p className="mb-2">
+              In your hosting environment (like Firebase App Hosting), you must set these as secrets. The application is configured to read them from `apphosting.yaml`.
+            </p>
+             <pre className="mt-2 p-2 bg-muted rounded-md text-sm font-mono">
+{`# For production (set in hosting provider)
 ERPNEXT_BASE_URL="https://your-prod-erp.rembayer.info"
 NEXT_PUBLIC_ERPNEXT_BASE_URL="https://your-prod-erp.rembayer.info"
 # ERPNEXT_API_KEY and ERPNEXT_API_SECRET should be secrets
