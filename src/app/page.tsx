@@ -70,6 +70,20 @@ const EnvBadge = () => {
     );
 };
 
+type ListingStatus = Product["listingStatus"];
+
+const asListingStatus = (v: unknown): ListingStatus => {
+  switch ((v ?? "").toString().toLowerCase()) {
+    case "draft": return "draft";
+    case "listed": return "listed";
+    case "error": return "error";
+    case "new": return "new";
+    case "used": return "used";
+    case "refurbished": return "refurbished";
+    default: return "draft"; // sensible fallback
+  }
+};
+
 
 function DashboardClient() {
   const [products, setProducts] = React.useState<Product[]>([]);
@@ -415,22 +429,22 @@ function DashboardClient() {
             }
 
             if (allItems.length > 0) {
-                const newProducts = allItems.map((item: any) => ({
-                    id: item.name,
-                    name: item.item_name || item.name,
-                    code: item.item_code,
-                    price: item.standard_rate || 0,
-                    description: item.description || '',
+                const newProducts: Product[] = allItems.map((item: any) => ({
+                    id: String(item.name),
+                    name: String(item.item_name || item.name),
+                    code: String(item.item_code),
+                    price: Number(item.standard_rate || 0),
+                    description: String(item.description || ''),
                     image: item.image ? `${process.env.NEXT_PUBLIC_ERPNEXT_BASE_URL || ''}${item.image}` : '',
                     quantity: 0,
-                    listingStatus: 'draft',
-                    category: '',
-                    ebayCategoryId: '',
-                    tags: [],
-                    keywords: [],
-                    supplier: '',
-                    location: '',
-                    technicalSpecs: {},
+                    listingStatus: asListingStatus(item.listingStatus),
+                    category: String(item.category || ''),
+                    ebayCategoryId: String(item.ebayCategoryId || ''),
+                    tags: Array.isArray(item.tags) ? item.tags : [],
+                    keywords: Array.isArray(item.keywords) ? item.keywords : [],
+                    supplier: String(item.supplier || ''),
+                    location: String(item.location || ''),
+                    technicalSpecs: typeof item.technicalSpecs === "object" && item.technicalSpecs !== null ? item.technicalSpecs : {},
                     sourceModified: item.modified,
                 }));
                 setProducts(newProducts);
