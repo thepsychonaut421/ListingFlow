@@ -148,23 +148,29 @@ export function ProductForm({
   }, [product, methods]);
   
   const processSubmit = (data: ProductFormValues) => {
-     const finalData: Product = {
-      ...(product || {
-        id: crypto.randomUUID(),
-        tags: [],
-        keywords: [],
-        supplier: '',
-        location: '',
-      }),
-      ...data,
-      price: Number(data.price) || 0,
-      quantity: Number(data.quantity) || 0,
+    const finalData: Product = {
+      id: product?.id ?? crypto.randomUUID(),
+      name: data.name ?? product?.name ?? "",
+      code: data.code ?? product?.code ?? "",
+      price: Number(data.price ?? product?.price ?? 0),
+      quantity: Number(data.quantity ?? product?.quantity ?? 0),
+      description: data.description ?? product?.description ?? "",
+      image: data.image ?? product?.image ?? "",
+      listingStatus: (data.listingStatus ?? product?.listingStatus ?? "draft") as Product["listingStatus"],
+      category: data.category ?? product?.category ?? "",
+      ebayCategoryId: data.ebayCategoryId ?? product?.ebayCategoryId ?? "",
+      tags: Array.isArray(product?.tags) ? product!.tags : [],
+      keywords: Array.isArray(product?.keywords) ? product!.keywords : [],
+      supplier: product?.supplier ?? "",
+      location: product?.location ?? "",
       technicalSpecs: (data.technicalSpecs || []).reduce((acc, { key, value }) => {
-        if(key) {
+        if (key) {
             acc[key] = value.includes(',') ? value.split(',').map(s => s.trim()) : value;
         }
         return acc;
-      }, {} as Record<string, string | string[]>),
+      }, product?.technicalSpecs ?? {}),
+      sourceModified: product?.sourceModified ?? new Date().toISOString(),
+      ean: (data as any).ean ?? product?.ean ?? undefined,
     };
     onSave(finalData);
   }
