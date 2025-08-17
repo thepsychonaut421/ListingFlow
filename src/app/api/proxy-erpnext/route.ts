@@ -36,7 +36,7 @@ export async function POST(req: Request) {
     const response = await fetch(fullUrl, requestOptions);
 
     if (!response.ok) {
-        let errorDetails = `Request failed with status ${response.status}`;
+        let errorDetails = `Request to ERPNext failed with status ${response.status}`;
         try {
             const errorText = await response.text();
             
@@ -46,8 +46,7 @@ export async function POST(req: Request) {
                 // Extract a more meaningful title or header from the HTML
                 const pageTitle = $('title').text();
                 const h1Title = $('h1').first().text();
-                const h2Title = $('h2').first().text();
-                errorDetails = `${errorDetails}: ${pageTitle || h1Title || h2Title || 'Received an HTML error page from the server.'}`;
+                errorDetails = `${errorDetails}: ${pageTitle || h1Title || 'Received an HTML error page from the server.'}`;
             } else {
                  // Try to parse it as JSON, as expected from a well-behaved API
                 const errorBody = JSON.parse(errorText);
@@ -59,8 +58,7 @@ export async function POST(req: Request) {
                 }
             }
         } catch (e: any) {
-            // If any parsing fails (e.g., it was HTML but cheerio failed, or not valid JSON),
-            // fallback to the raw status text. The key is to avoid reaching the final .json() call.
+            // If any parsing fails, fallback to the raw status text.
             console.error("Failed to parse error response body:", e.message);
             errorDetails = `${errorDetails}. The server returned a non-JSON response that could not be parsed.`;
         }
