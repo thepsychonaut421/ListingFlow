@@ -13,7 +13,7 @@ export async function POST(req: Request) {
     
     if (!url || !apiKey || !apiSecret) {
         return NextResponse.json(
-            { error: 'ERPNext credentials are not configured in the environment variables.' },
+            { error: 'ERPNext credentials are not configured in the environment variables. Please create a .env.local file in the project root as described in the Settings page.' },
             { status: 500 }
         );
     }
