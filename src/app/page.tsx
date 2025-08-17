@@ -396,12 +396,12 @@ function DashboardClient() {
                 });
 
                 if (!response.ok) {
-                    const errorText = await response.text();
+                    const resultText = await response.text();
                     try {
-                        const errorBody = JSON.parse(errorText);
+                        const errorBody = JSON.parse(resultText);
                         throw new Error(errorBody.error || 'Import failed');
                     } catch (e) {
-                        throw new Error(errorText || `Import failed with status ${response.status}`);
+                        throw new Error(resultText || `Import failed with status ${response.status}`);
                     }
                 }
 
