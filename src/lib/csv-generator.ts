@@ -81,13 +81,18 @@ const pickVal = (
   specs: Record<string, any>,
   ...keys: string[]
 ): string => {
+   // Build a lowercase view of specs once for efficient, safe case-insensitive lookup.
+  const specsLower = Object.fromEntries(
+    Object.entries(specs).map(([kk, vv]) => [kk.toLowerCase(), vv])
+  );
+
   for (const k of keys) {
-    // Look in specs first (case-sensitive), then product object, then case-insensitive
+    const keyLower = k.toLowerCase();
     const v =
-      specs[k] ??
-      (product as any)[k] ??
-      specs[Object.keys(specs).find(sk => sk.toLowerCase() === k.toLowerCase())] ??
-      (product as any)[k.toLowerCase()];
+      specs[k] ??                      // 1. Exact key on specs
+      (product as any)[k] ??           // 2. Exact key on product
+      specsLower[keyLower] ??          // 3. Case-insensitive key on specs
+      (product as any)[keyLower];      // 4. Case-insensitive key on product
       
     if (v !== undefined && v !== null && String(v).trim() !== '') {
       return Array.isArray(v) ? v.join(', ') : String(v).trim();
