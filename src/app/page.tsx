@@ -371,14 +371,8 @@ function DashboardClient() {
  const handleErpAction = async (action: 'import' | 'update' | 'export') => {
     setIsErpLoading(true);
 
-    const endpoints: Record<string, string> = {
-        import: '/api/proxy-erpnext',
-        update: '/api/proxy-erpnext',
-        export: '/api/proxy-erpnext',
-    };
-
     const erpActionToEndpoint: Record<string, string> = {
-        import: '/api/resource/Item?fields=["name","item_code","item_name","standard_rate","image","description","web_long_description","modified"]&limit_page_length=20',
+        import: '/api/resource/Item?fields=["name","item_code","item_name","standard_rate","image","description","modified"]&limit_page_length=20',
         update: '/api/resource/Item',
         export: '/api/resource/Item',
     };
@@ -398,26 +392,31 @@ function DashboardClient() {
     };
 
     try {
-      const response = await fetch(endpoints[action], {
+      const response = await fetch('/api/proxy-erpnext', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(getBody()),
       });
       
+      const resultText = await response.text();
       if (!response.ok) {
-          const errorBody = await response.json();
-          throw new Error(errorBody.error || `ERP ${action} failed.`);
+          try {
+              const errorBody = JSON.parse(resultText);
+              throw new Error(errorBody.error || `ERP ${action} failed.`);
+          } catch(e) {
+              throw new Error(resultText || `ERP ${action} failed with status ${response.status}`);
+          }
       }
 
-      const result = await response.json();
-
-      if (result.data) { // Assuming ERPNext returns data under a 'data' key for imports
+      const result = JSON.parse(resultText);
+      
+      if (action === 'import' && result.data) {
         const allProducts = result.data.map((item: any) => ({
             id: item.name,
             name: item.item_name || item.name,
             code: item.item_code,
             price: item.standard_rate || 0,
-            description: item.web_long_description || item.description || '',
+            description: item.description || '',
             image: item.image ? `${process.env.NEXT_PUBLIC_ERPNEXT_BASE_URL || ''}${item.image}` : '',
             quantity: 0,
             listingStatus: 'draft',
@@ -435,7 +434,7 @@ function DashboardClient() {
       
       toast({
         title: `ERP ${action} successful!`,
-        description: result.message || `Action ${action} completed.`,
+        description: `Action ${action} completed.`,
       });
 
     } catch (error: any) {
