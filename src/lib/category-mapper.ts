@@ -2,36 +2,20 @@
 
 import { shopifyTaxonomy } from './shopify-taxonomy';
 
-// Create a Set for faster lookups
-const validShopifyCategories = new Set(shopifyTaxonomy);
+type CategoryRule = { category: string; pattern: RegExp };
 
-/**
- * Tries to guess a valid Shopify category from a product title using regex.
- * @param title The product title.
- * @returns A valid Shopify category string or an empty string if no match is found.
- */
-function guessShopifyCategoryFromTitle(title: string): string {
-  const t = title.toLowerCase();
+// A list of rules to map keywords/patterns in a product title to a Shopify category.
+// This is more scalable than a single large object.
+const rules: CategoryRule[] = [
+  { category: 'Heim & Garten > Haushaltsgeräte > Staubsauger & Bodenpflege > Staubsauger', pattern: /staubsauger|vacuum cleaner/i },
+  { category: 'Elektronik > Audio > Lautsprecher', pattern: /lautsprecher|speaker/i },
+  { category: 'Heim & Garten > Küche & Esszimmer > Küchengeräte > Fritteusen', pattern: /air ?fryer|heißluft|heissluft/i },
+  { category: 'Heim & Garten > Küche & Esszimmer > Koch- & Backgeschirr > Kochgeschirrsets', pattern: /kochgeschirr|topfset|pfannenset/i },
+  { category: 'Bekleidung & Zubehör > Kleidung > Hemden & Tops', pattern: /hemd|shirt|bluse|top/i },
+  { category: 'Bekleidung & Zubehör > Kleidung > Hosen', pattern: /hose|jeans|pants/i },
+  { category: 'Bekleidung & Zubehör > Schuhe', pattern: /schuhe|sneaker|stiefel|sandalen/i },
+];
 
-  // Define regex mappings
-  const mappings: Record<string, RegExp> = {
-    'Heim & Garten > Haushaltsgeräte > Staubsauger & Bodenpflege > Staubsauger': /staubsauger|vacuum cleaner/i,
-    'Elektronik > Audio > Lautsprecher': /lautsprecher|speaker/i,
-    'Heim & Garten > Küche & Esszimmer > Küchengeräte > Fritteusen': /air ?fryer|heißluft|heissluft/i,
-    'Heim & Garten > Küche & Esszimmer > Koch- & Backgeschirr > Kochgeschirrsets': /kochgeschirr|topfset|pfannenset/i,
-    'Bekleidung & Zubehör > Kleidung > Hemden & Tops': /hemd|shirt|bluse|top/i,
-    'Bekleidung & Zubehör > Kleidung > Hosen': /hose|jeans|pants/i,
-    'Bekleidung & Zubehör > Schuhe': /schuhe|sneaker|stiefel|sandalen/i,
-  };
-
-  for (const [category, regex] of Object.entries(mappings)) {
-    if (regex.test(t)) {
-      return category;
-    }
-  }
-
-  return '';
-}
 
 /**
  * Validates a category string against the official Shopify taxonomy.
@@ -39,8 +23,21 @@ function guessShopifyCategoryFromTitle(title: string): string {
  * @returns True if the category is valid, false otherwise.
  */
 function isValidShopifyCategory(category: string): boolean {
-  return validShopifyCategories.has(category);
+  return shopifyTaxonomy.includes(category);
 }
+
+
+/**
+ * Tries to guess a valid Shopify category from a product title using regex rules.
+ * @param title The product title.
+ * @returns A valid Shopify category string or an empty string if no match is found.
+ */
+function guessShopifyCategoryFromTitle(title: string): string {
+  const normalizedTitle = title.toLowerCase();
+  const foundRule = rules.find(rule => rule.pattern.test(normalizedTitle));
+  return foundRule ? foundRule.category : '';
+}
+
 
 /**
  * Provides the best possible Shopify category suggestion.
