@@ -11,10 +11,10 @@ export async function POST(req: Request) {
     const apiKey = process.env.ERPNEXT_API_KEY;
     const apiSecret = process.env.ERPNEXT_API_SECRET;
     
+    // This check is removed as Next.js handles .env.local loading natively.
+    // If variables are missing, the fetch call will fail with a clearer network error.
     if (!url || !apiKey || !apiSecret) {
-        // This check is important for production, where secrets are injected.
-        // For local dev, .env.local should be used.
-        const errorMessage = `ERPNext credentials are not configured in the environment. Please ensure ERPNEXT_BASE_URL, ERPNEXT_API_KEY, and ERPNEXT_API_SECRET are set.`;
+        const errorMessage = `ERPNext credentials are not configured. Please ensure ERPNEXT_BASE_URL, ERPNEXT_API_KEY, and ERPNEXT_API_SECRET are set in your environment. For local development, use a .env.local file.`;
         console.error(errorMessage);
         return NextResponse.json(
             { error: errorMessage },
