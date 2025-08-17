@@ -46,21 +46,26 @@ export async function POST(req: Request) {
                 // Extract a more meaningful title or header from the HTML
                 const pageTitle = $('title').text();
                 const h1Title = $('h1').first().text();
-                errorDetails = `${errorDetails}: ${pageTitle || h1Title || 'Received an HTML error page from the server.'}`;
+                errorDetails = `${pageTitle || h1Title || 'Received an HTML error page from the server.'}`;
             } else {
                  // Try to parse it as JSON, as expected from a well-behaved API
-                const errorBody = JSON.parse(errorText);
-                if (errorBody._server_messages) {
-                     const serverMessage = JSON.parse(errorBody._server_messages[0]);
-                     errorDetails = JSON.parse(serverMessage).message || serverMessage;
-                } else {
-                    errorDetails = errorBody.message || errorBody.exception || errorBody.error || JSON.stringify(errorBody);
+                try {
+                    const errorBody = JSON.parse(errorText);
+                    if (errorBody._server_messages) {
+                         const serverMessage = JSON.parse(errorBody._server_messages[0]);
+                         errorDetails = JSON.parse(serverMessage).message || serverMessage;
+                    } else {
+                        errorDetails = errorBody.message || errorBody.exception || errorBody.error || JSON.stringify(errorBody);
+                    }
+                } catch(e) {
+                    // If parsing as JSON fails, use the raw text.
+                    errorDetails = errorText;
                 }
             }
         } catch (e: any) {
             // If any parsing fails, fallback to the raw status text.
             console.error("Failed to parse error response body:", e.message);
-            errorDetails = `${errorDetails}. The server returned a non-JSON response that could not be parsed.`;
+            errorDetails = `The server returned a non-JSON response that could not be parsed.`;
         }
         
         console.error("ERPNext Proxy Error:", errorDetails);

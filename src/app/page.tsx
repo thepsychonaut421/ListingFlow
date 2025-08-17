@@ -368,30 +368,74 @@ function DashboardClient() {
     }
   };
   
-  const handleErpAction = async (action: 'import' | 'update' | 'export') => {
+ const handleErpAction = async (action: 'import' | 'update' | 'export') => {
     setIsErpLoading(true);
+
+    const endpoints: Record<string, string> = {
+        import: '/api/proxy-erpnext',
+        update: '/api/proxy-erpnext',
+        export: '/api/proxy-erpnext',
+    };
+
+    const erpActionToEndpoint: Record<string, string> = {
+        import: '/api/resource/Item?fields=["name","item_code","item_name","standard_rate","image","description","web_long_description","modified"]&limit_page_length=20',
+        update: '/api/resource/Item',
+        export: '/api/resource/Item',
+    };
+
+    const getBody = () => {
+        if (action === 'export') {
+            return {
+                endpoint: erpActionToEndpoint['export'],
+                method: 'POST', // or 'PUT'
+                body: { products: products.filter(p => selectedIds.has(p.id)) },
+            }
+        }
+        return {
+            endpoint: erpActionToEndpoint[action],
+            method: 'GET',
+        };
+    };
+
     try {
-      const response = await fetch(`/api/erp/${action}`, {
+      const response = await fetch(endpoints[action], {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: action === 'export' ? JSON.stringify({
-          products: products.filter(p => selectedIds.has(p.id)),
-        }) : JSON.stringify({ products }),
+        body: JSON.stringify(getBody()),
       });
       
-      const result = await response.json();
-
       if (!response.ok) {
-        throw new Error(result.error || `ERP ${action} failed.`);
+          const errorBody = await response.json();
+          throw new Error(errorBody.error || `ERP ${action} failed.`);
       }
 
-      if (result.products) {
-        setProducts(result.products);
+      const result = await response.json();
+
+      if (result.data) { // Assuming ERPNext returns data under a 'data' key for imports
+        const allProducts = result.data.map((item: any) => ({
+            id: item.name,
+            name: item.item_name || item.name,
+            code: item.item_code,
+            price: item.standard_rate || 0,
+            description: item.web_long_description || item.description || '',
+            image: item.image ? `${process.env.NEXT_PUBLIC_ERPNEXT_BASE_URL || ''}${item.image}` : '',
+            quantity: 0,
+            listingStatus: 'draft',
+            category: '',
+            ebayCategoryId: '',
+            tags: [],
+            keywords: [],
+            supplier: '',
+            location: '',
+            technicalSpecs: {},
+            sourceModified: item.modified,
+        }));
+        setProducts(allProducts);
       }
       
       toast({
         title: `ERP ${action} successful!`,
-        description: result.message,
+        description: result.message || `Action ${action} completed.`,
       });
 
     } catch (error: any) {
