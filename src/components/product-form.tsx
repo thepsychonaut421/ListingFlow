@@ -245,6 +245,12 @@ export function ProductForm({
               <Label>Price</Label>
               <Input type="number" step="0.01" inputMode="decimal" {...register('price')} />
             </div>
+            
+            <div className="col-span-6 md:col-span-3">
+              <Label>EAN</Label>
+              <Input placeholder="EAN/UPC" {...register('ean')} />
+            </div>
+
 
             <div className="col-span-12 md:col-span-6">
               <Label>Image URL</Label>
