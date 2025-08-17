@@ -335,6 +335,7 @@ export async function exportProductsToERPNext(
         const brand = (p.technicalSpecs?.Marke || p.technicalSpecs?.brand || '') as string;
         
         const itemPayload: Record<string, any> = {
+            item_code: p.code, // Essential field for identifying the item
             item_name: p.name,
             standard_rate: p.price,
             description: fullDescription,
