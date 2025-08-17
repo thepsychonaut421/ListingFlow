@@ -8,6 +8,21 @@ type SelectionState = {
   clear: () => void;
 };
 
+// Type guard for safer deserialization
+type SetPayload = { dataType: 'Set'; value: unknown[] };
+
+function isSetPayload(v: unknown): v is SetPayload {
+  return (
+    typeof v === 'object' &&
+    v !== null &&
+    'dataType' in v &&
+    (v as any).dataType === 'Set' &&
+    'value' in v &&
+    Array.isArray((v as any).value)
+  );
+}
+
+
 // Based on the user's suggestion to ensure immutability.
 export const useSelectionStore = create<SelectionState>()(
   persist(
@@ -51,7 +66,7 @@ export const useSelectionStore = create<SelectionState>()(
           return value;
         },
         reviver: (key, value) => {
-          if (typeof value === 'object' && value !== null && value.dataType === 'Set') {
+          if (isSetPayload(value)) {
             return new Set(value.value);
           }
           return value;
