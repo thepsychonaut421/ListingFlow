@@ -30,21 +30,22 @@ import {
 function SettingsClient() {
   const { toast } = useToast();
    const [erpNextUrl, setErpNextUrl] = React.useState('');
+   const [firebaseApiKey, setFirebaseApiKey] = React.useState('');
 
   React.useEffect(() => {
     // The actual usage is server-side or at build time.
     // To make it available client-side for display, we prefix it with NEXT_PUBLIC_
     const url = process.env.NEXT_PUBLIC_ERPNEXT_BASE_URL;
     setErpNextUrl(url || 'Not set in environment variables');
+    setFirebaseApiKey(process.env.NEXT_PUBLIC_FIREBASE_API_KEY || '');
   }, []);
 
   const handleClearData = () => {
     localStorage.removeItem('listingFlowProducts');
-    // Note: This does not clear .env variables as they are server-side.
-    // Advise user to clear them manually if needed.
+    localStorage.removeItem('listingflow-selection-v2');
     toast({
       title: 'Local Data Cleared',
-      description: 'Your local product data has been successfully deleted from the browser. Your API credentials in the .env file are not affected.',
+      description: 'Your local product data has been successfully deleted from the browser. Your API credentials are not affected.',
     });
      setTimeout(() => window.location.href = '/', 1000);
   };
@@ -53,15 +54,14 @@ function SettingsClient() {
     <div className="grid gap-6">
        <Card>
         <CardHeader>
-          <CardTitle>ERPNext Integration</CardTitle>
+          <CardTitle>Environment Variables</CardTitle>
           <CardDescription>
-            Your ERPNext credentials should be stored securely. The method depends on your environment.
-            <br /><br />
-            <strong>For Local Development (Test Mode):</strong>
-            <p className="mb-2">
-              Create a file named <strong>.env.local</strong> in the root of your project and add your test credentials there. This file is ignored by version control and will not be published.
-            </p>
-             <pre className="mt-2 p-2 bg-muted rounded-md text-sm font-mono">
+           Configuration for external services like ERPNext and Firebase are managed via environment variables. For local development, create a file named <strong>.env.local</strong> in your project root.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <h3 className="mb-2 font-semibold">ERPNext Credentials</h3>
+           <pre className="mt-2 p-2 bg-muted rounded-md text-sm font-mono overflow-x-auto">
 {`# .env.local (for testing)
 ERPNEXT_BASE_URL="https://your-test-erp.rembayer.info"
 NEXT_PUBLIC_ERPNEXT_BASE_URL="https://your-test-erp.rembayer.info"
@@ -69,49 +69,28 @@ ERPNEXT_API_KEY="your_test_api_key"
 ERPNEXT_API_SECRET="your_test_api_secret"
 NEXT_PUBLIC_ENV="dev"`}
             </pre>
-            <br />
-            <strong>For Production (after publishing):</strong>
-             <p className="mb-2">
-              In your hosting environment (like Firebase App Hosting), you must set these as secrets. The application is configured to read them from `apphosting.yaml`.
+            <p className="mt-2 text-sm text-muted-foreground">
+              Current Public ERP URL: <strong>{erpNextUrl}</strong>
             </p>
-             <pre className="mt-2 p-2 bg-muted rounded-md text-sm font-mono">
-{`# For production (set in hosting provider)
-ERPNEXT_BASE_URL="https://your-prod-erp.rembayer.info"
-NEXT_PUBLIC_ERPNEXT_BASE_URL="https://your-prod-erp.rembayer.info"
-# ERPNEXT_API_KEY and ERPNEXT_API_SECRET should be secrets
-NEXT_PUBLIC_ENV="prod"
-`}
+
+             <h3 className="mt-6 mb-2 font-semibold">Firebase Credentials</h3>
+             <pre className="mt-2 p-2 bg-muted rounded-md text-sm font-mono overflow-x-auto">
+{`# .env.local
+NEXT_PUBLIC_FIREBASE_API_KEY=...
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=...
+NEXT_PUBLIC_FIREBASE_PROJECT_ID=...
+NEXT_PUBLIC_FIREBASE_APP_ID=...`}
             </pre>
-             <p className="mt-4 text-sm text-muted-foreground">
-              The app will construct image URLs using the public base URL: <strong>{erpNextUrl}</strong>
+             <p className="mt-2 text-sm text-muted-foreground">
+              Firebase integration is {firebaseApiKey ? 'active' : 'inactive (missing API key)'}.
             </p>
-          </CardDescription>
-        </CardHeader>
-      </Card>
-      
-      <Card>
-        <CardHeader>
-          <CardTitle>Settings</CardTitle>
-          <CardDescription>
-            Manage your application settings and preferences.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-6">
-            <div>
-              <h3 className="text-lg font-medium">Appearance</h3>
-              <p className="text-sm text-muted-foreground">
-                This setting is now controlled from the user menu in the header.
-              </p>
-            </div>
-          </div>
         </CardContent>
       </Card>
 
       <Card className="border-destructive">
           <CardHeader>
               <CardTitle>Danger Zone</CardTitle>
-              <CardDescription>These actions are permanent and cannot be undone.</CardDescription>
+              <CardDescription>This action is permanent and cannot be undone.</CardDescription>
           </CardHeader>
           <CardContent>
               <AlertDialog>
@@ -125,8 +104,7 @@ NEXT_PUBLIC_ENV="prod"
                       <AlertDialogHeader>
                       <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
                       <AlertDialogDescription>
-                          This action cannot be undone. This will permanently delete all your product data
-                          from your browser's local storage. Your API credentials in .env will not be affected.
+                          This action cannot be undone. This will permanently delete all your product and selection data from your browser's local storage. Your API credentials will not be affected.
                       </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
