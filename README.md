@@ -52,8 +52,7 @@ Funktionen:
 
 Zubehör:
 [Comma-separated list of accessories]
-
-💡 Note: If a brand is not pre-defined in ERPNext, it will still be included in the Description text, ensuring visibility without requiring ERPNext brand record creation.
+```
 
 ---
 
@@ -72,13 +71,14 @@ cd ListingFlow
 npm install
 ```
 
-### 3. Configure Environment Variables
+### 3. Configure Environment Variables for Local Development
 
-Create a file named `.env.local` in the project root and add the following variables. These are essential for authentication and connecting to external services.
+Create a file named `.env.local` in the project root and add the following variables. These are essential for authentication and connecting to external services. Use the `.env` file as a template.
 
 ```env
 # ERPNext Credentials
-NEXT_PUBLIC_ERPNEXT_URL=https://erp.example.com
+ERPNEXT_BASE_URL=https://erp.example.com
+NEXT_PUBLIC_ERPNEXT_BASE_URL=https://erp.example.com
 ERPNEXT_API_KEY=xxxxx
 ERPNEXT_API_SECRET=xxxxx
 
@@ -93,22 +93,25 @@ NEXT_PUBLIC_FIREBASE_APP_ID=xxxxx
 NEXT_PUBLIC_RECAPTCHA_SITE_KEY=xxxxx
 ```
 
-### 4. Configure Deployment Secrets
+### 4. Configure Deployment Secrets for Firebase App Hosting
 
-When deploying to Firebase App Hosting, you must create secrets for your environment variables. Run the following commands, replacing `your_value_here` with your actual credentials:
+When deploying to Firebase App Hosting, you must create secrets for your environment variables. **This is a mandatory step for the deployed app to function correctly.**
+
+Run the following commands, replacing `your_value_here` with your actual credentials:
 
 ```bash
 # Set secrets for ERPNext
-firebase apphosting:secrets:set ERPNEXT_API_KEY --value=your_value_here
-firebase apphosting:secrets:set ERPNEXT_API_SECRET --value=your_value_here
+firebase apphosting:secrets:set ERPNEXT_API_KEY
+firebase apphosting:secrets:set ERPNEXT_API_SECRET
 
 # Set secrets for Firebase SDK
-firebase apphosting:secrets:set NEXT_PUBLIC_FIREBASE_API_KEY --value=your_value_here
-firebase apphosting:secrets:set NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN --value=your_value_here
-firebase apphosting:secrets:set NEXT_PUBLIC_FIREBASE_PROJECT_ID --value=your_value_here
-firebase apphosting:secrets:set NEXT_PUBLIC_FIREBASE_APP_ID --value=your_value_here
-firebase apphosting:secrets:set NEXT_PUBLIC_RECAPTCHA_SITE_KEY --value=your_value_here
+firebase apphosting:secrets:set NEXT_PUBLIC_FIREBASE_API_KEY
+firebase apphosting:secrets:set NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
+firebase apphosting:secrets:set NEXT_PUBLIC_FIREBASE_PROJECT_ID
+firebase apphosting:secrets:set NEXT_PUBLIC_FIREBASE_APP_ID
+firebase apphosting:secrets:set NEXT_PUBLIC_RECAPTCHA_SITE_KEY
 ```
+*(You will be prompted to enter the secret value in your terminal after running each command.)*
 
 After creating the secrets, **you must grant the App Hosting service account access to them**. This is a critical step.
 
@@ -134,8 +137,3 @@ npm run dev
 	•	/public – Static resources
 
 ---
-
-## 📌 Notes
-	•	Works even if ERPNext doesn’t have the brand registered in its database.
-	•	Keeps ERPNext as the single source of truth while allowing advanced AI-based enrichment in ListingFlow.
-	•	Easily extendable for additional platforms like Amazon or WooCommerce.
