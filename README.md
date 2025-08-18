@@ -69,10 +69,24 @@ npm install
 
 	3.	Configure environment variables in .env
 
+# ERPNext Credentials
 NEXT_PUBLIC_ERPNEXT_URL=https://erp.example.com
 ERPNEXT_API_KEY=xxxxx
 ERPNEXT_API_SECRET=xxxxx
+
+# Firebase Credentials
+NEXT_PUBLIC_FIREBASE_API_KEY=xxxxx
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=xxxxx
+NEXT_PUBLIC_FIREBASE_PROJECT_ID=xxxxx
+NEXT_PUBLIC_FIREBASE_APP_ID=xxxxx
+
+# Genkit AI Credentials
 GENKIT_API_KEY=xxxxx
+
+# Firebase App Check Credentials
+# Get this from your Google Cloud Console -> APIs & Services -> Credentials -> reCAPTCHA Enterprise
+NEXT_PUBLIC_RECAPTCHA_SITE_KEY=xxxxx
+
 
 	4.	(Optional) When deploying, configure the same variables in your hosting provider.
 		For Firebase App Hosting, set them in the Firebase console or in `apphosting.yaml`:

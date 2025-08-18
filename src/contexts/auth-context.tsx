@@ -39,10 +39,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Process the redirect result only once on initial load
   useEffect(() => {
+    if (!auth) return;
     getRedirectResult(auth).catch(() => {/* ignore if not a redirect */});
   }, []);
 
   useEffect(() => {
+    if (!auth) {
+        setLoading(false);
+        return;
+    }
     const unsub = onAuthStateChanged(auth, (u) => {
       setUser(u ?? null);
       setLoading(false);
@@ -51,6 +56,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const loginGoogle = async () => {
+    if (!auth) throw new Error("Firebase Auth is not configured.");
     const provider = new GoogleAuthProvider();
     if (isPopupRedirectSupported()) {
         try {
@@ -68,6 +74,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const loginMicrosoft = async () => {
+    if (!auth) throw new Error("Firebase Auth is not configured.");
     const provider = new OAuthProvider('microsoft.com');
     provider.setCustomParameters({ prompt: 'select_account' });
      if (isPopupRedirectSupported()) {
@@ -86,10 +93,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const loginEmail = async (email: string, password: string) => {
+    if (!auth) throw new Error("Firebase Auth is not configured.");
     await signInWithEmailAndPassword(auth, email, password);
   };
 
-  const logout = async () => { await signOut(auth); };
+  const logout = async () => { 
+      if (!auth) return;
+      await signOut(auth);
+  };
 
   return (
     <Ctx.Provider value={{ user, loading, loginGoogle, loginMicrosoft, loginEmail, logout }}>
