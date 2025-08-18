@@ -11,6 +11,8 @@ import {
   signOut,
   getRedirectResult,
   User,
+  isSignInWithPopupSupported,
+  browserPopupRedirectResolver,
 } from 'firebase/auth';
 
 type AuthCtx = {
@@ -24,15 +26,20 @@ type AuthCtx = {
 
 const Ctx = createContext<AuthCtx | undefined>(undefined);
 
+function isPopupRedirectSupported() {
+  try {
+    return isSignInWithPopupSupported() && !!browserPopupRedirectResolver;
+  } catch { return false; }
+}
+
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
   // Process the redirect result only once on initial load
   useEffect(() => {
-    (async () => {
-      try { await getRedirectResult(auth); } catch { /* ignore */ }
-    })();
+    getRedirectResult(auth).catch(() => {/* ignore if not a redirect */});
   }, []);
 
   useEffect(() => {
@@ -45,29 +52,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const loginGoogle = async () => {
     const provider = new GoogleAuthProvider();
-    try {
-      await signInWithPopup(auth, provider);
-    } catch (e: any) {
-      if (e?.code === 'auth/popup-blocked' || e?.code === 'auth/popup-closed-by-user') {
-        await signInWithRedirect(auth, provider);
-      } else {
-        throw e;
-      }
+    if (isPopupRedirectSupported()) {
+        try {
+            await signInWithPopup(auth, provider);
+            return;
+        } catch (e: any) {
+            if (e?.code === "auth/popup-closed-by-user" || e?.code === 'auth/popup-blocked' || e?.code?.startsWith("auth/")) {
+                await signInWithRedirect(auth, provider);
+                return;
+            }
+            throw e;
+        }
     }
+    await signInWithRedirect(auth, provider);
   };
 
   const loginMicrosoft = async () => {
     const provider = new OAuthProvider('microsoft.com');
     provider.setCustomParameters({ prompt: 'select_account' });
-    try {
-      await signInWithPopup(auth, provider);
-    } catch (e: any) {
-      if (e?.code === 'auth/popup-blocked' || e?.code === 'auth/popup-closed-by-user') {
-        await signInWithRedirect(auth, provider);
-      } else {
-        throw e;
-      }
+     if (isPopupRedirectSupported()) {
+        try {
+            await signInWithPopup(auth, provider);
+            return;
+        } catch (e: any) {
+             if (e?.code === "auth/popup-closed-by-user" || e?.code === 'auth/popup-blocked' || e?.code?.startsWith("auth/")) {
+                await signInWithRedirect(auth, provider);
+                return;
+            }
+            throw e;
+        }
     }
+    await signInWithRedirect(auth, provider);
   };
 
   const loginEmail = async (email: string, password: string) => {
