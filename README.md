@@ -67,7 +67,7 @@ cd ListingFlow
 
 npm install
 
-	3.	Configure environment variables in .env
+	3.	Configure environment variables in .env.local
 
 # ERPNext Credentials
 NEXT_PUBLIC_ERPNEXT_URL=https://erp.example.com
@@ -111,7 +111,7 @@ env:
 After creating secrets, grant App Hosting access:
 
 ```bash
-firebase apphosting:secrets:grantaccess ERPNEXT_API_KEY ERPNEXT_API_SECRET
+firebase apphosting:secrets:grantaccess ERPNEXT_API_KEY ERPNEXT_API_SECRET NEXT_PUBLIC_FIREBASE_API_KEY NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN NEXT_PUBLIC_FIREBASE_PROJECT_ID NEXT_PUBLIC_FIREBASE_APP_ID NEXT_PUBLIC_RECAPTCHA_SITE_KEY
 ```
 
 	5.	Start the development server
