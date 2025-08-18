@@ -1,0 +1,11 @@
+{
+  "hosting": [
+    {
+      "site": "listingflow-sp4tf",
+      "source": ".",
+      "frameworksBackend": {
+        "region": "europe-west1"
+      }
+    }
+  ]
+}

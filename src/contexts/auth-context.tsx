@@ -48,7 +48,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       await signInWithPopup(auth, provider);
     } catch (e: any) {
-      if (e?.code === 'auth/popup-blocked') {
+      if (e?.code === 'auth/popup-blocked' || e?.code === 'auth/popup-closed-by-user') {
         await signInWithRedirect(auth, provider);
       } else {
         throw e;
@@ -62,7 +62,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       await signInWithPopup(auth, provider);
     } catch (e: any) {
-      if (e?.code === 'auth/popup-blocked') {
+      if (e?.code === 'auth/popup-blocked' || e?.code === 'auth/popup-closed-by-user') {
         await signInWithRedirect(auth, provider);
       } else {
         throw e;
