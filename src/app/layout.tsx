@@ -4,27 +4,6 @@ import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
 import * as React from 'react';
 import { AppShell } from '@/components/app-shell';
-import { AuthProvider } from '@/contexts/auth-context';
-import { ProtectedRoute } from '@/components/protected-route';
-import { usePathname } from 'next/navigation';
-
-
-function AppContent({ children }: { children: React.ReactNode }) {
-    const pathname = usePathname();
-    const isLoginPage = pathname === '/login';
-
-    if (isLoginPage) {
-        return <>{children}</>;
-    }
-    
-    return (
-        <ProtectedRoute>
-            <AppShell>
-                {children}
-            </AppShell>
-        </ProtectedRoute>
-    )
-}
 
 export default function RootLayout({
   children,
@@ -45,10 +24,10 @@ export default function RootLayout({
         ></link>
       </head>
       <body className="font-body antialiased">
-        <AuthProvider>
-            <AppContent>{children}</AppContent>
-            <Toaster />
-        </AuthProvider>
+        <AppShell>
+            {children}
+        </AppShell>
+        <Toaster />
       </body>
     </html>
   );

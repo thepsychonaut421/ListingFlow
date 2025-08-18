@@ -14,7 +14,6 @@ import {
   Sun,
   User,
   LifeBuoy,
-  LogOut,
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -39,7 +38,6 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
-import { useAuth } from '@/contexts/auth-context';
 
 
 export function AppShell({
@@ -49,7 +47,6 @@ export function AppShell({
 }) {
   const pathname = usePathname();
   const [theme, setTheme] = React.useState('system');
-  const { user, logout } = useAuth();
 
   React.useEffect(() => {
     const storedTheme = localStorage.getItem('listingFlowTheme') || 'system';
@@ -177,15 +174,11 @@ export function AppShell({
                   size="icon"
                   className="overflow-hidden rounded-full"
                 >
-                  {user?.photoURL ? (
-                    <img src={user.photoURL} alt="User avatar" className="h-full w-full object-cover" />
-                  ) : (
-                    <User className="h-5 w-5" />
-                  )}
+                  <User className="h-5 w-5" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuLabel>{user?.email || 'My Account'}</DropdownMenuLabel>
+                <DropdownMenuLabel>My Account</DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuGroup>
                     <DropdownMenuItem asChild>
@@ -223,11 +216,6 @@ export function AppShell({
                  <DropdownMenuItem disabled className="flex items-center gap-2">
                     <LifeBuoy className="h-4 w-4" />
                     <span>Support</span>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={logout} className="flex items-center gap-2 text-destructive">
-                    <LogOut className="h-4 w-4" />
-                    <span>Logout</span>
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>

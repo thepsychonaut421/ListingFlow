@@ -73,7 +73,7 @@ npm install
 
 ### 3. Configure Environment Variables for Local Development
 
-Create a file named `.env.local` in the project root and add the following variables. These are essential for authentication and connecting to external services. Use the `.env` file as a template.
+Create a file named `.env.local` in the project root and add the following variables. These are essential for connecting to external services. Use the `.env` file as a template.
 
 ```env
 # ERPNext Credentials
@@ -81,16 +81,6 @@ ERPNEXT_BASE_URL=https://erp.example.com
 NEXT_PUBLIC_ERPNEXT_BASE_URL=https://erp.example.com
 ERPNEXT_API_KEY=xxxxx
 ERPNEXT_API_SECRET=xxxxx
-
-# Firebase Credentials (get these from your Firebase project settings)
-NEXT_PUBLIC_FIREBASE_API_KEY=xxxxx
-NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=xxxxx
-NEXT_PUBLIC_FIREBASE_PROJECT_ID=xxxxx
-NEXT_PUBLIC_FIREBASE_APP_ID=xxxxx
-
-# Firebase App Check Credentials
-# Get this from your Google Cloud Console -> APIs & Services -> Credentials -> reCAPTCHA Enterprise
-NEXT_PUBLIC_RECAPTCHA_SITE_KEY=xxxxx
 ```
 
 ### 4. Configure Deployment Secrets for Firebase App Hosting
@@ -103,20 +93,13 @@ Run the following commands, replacing `your_value_here` with your actual credent
 # Set secrets for ERPNext
 firebase apphosting:secrets:set ERPNEXT_API_KEY
 firebase apphosting:secrets:set ERPNEXT_API_SECRET
-
-# Set secrets for Firebase SDK
-firebase apphosting:secrets:set NEXT_PUBLIC_FIREBASE_API_KEY
-firebase apphosting:secrets:set NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
-firebase apphosting:secrets:set NEXT_PUBLIC_FIREBASE_PROJECT_ID
-firebase apphosting:secrets:set NEXT_PUBLIC_FIREBASE_APP_ID
-firebase apphosting:secrets:set NEXT_PUBLIC_RECAPTCHA_SITE_KEY
 ```
 *(You will be prompted to enter the secret value in your terminal after running each command.)*
 
 After creating the secrets, **you must grant the App Hosting service account access to them**. This is a critical step.
 
 ```bash
-firebase apphosting:secrets:grantaccess ERPNEXT_API_KEY ERPNEXT_API_SECRET NEXT_PUBLIC_FIREBASE_API_KEY NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN NEXT_PUBLIC_FIREBASE_PROJECT_ID NEXT_PUBLIC_FIREBASE_APP_ID NEXT_PUBLIC_RECAPTCHA_SITE_KEY
+firebase apphosting:secrets:grantaccess ERPNEXT_API_KEY ERPNEXT_API_SECRET
 ```
 
 The `apphosting.yaml` file is already configured to use these secrets.
