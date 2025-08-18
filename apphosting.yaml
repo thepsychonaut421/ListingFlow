@@ -31,7 +31,9 @@ env:
     availability:
       - BUILD
       - RUNTIME
-  # Firebase Public Keys
+  # --- Firebase Public Keys ---
+  # These secrets must be created and granted access.
+  # See README for instructions.
   - variable: NEXT_PUBLIC_FIREBASE_API_KEY
     secret: NEXT_PUBLIC_FIREBASE_API_KEY
     availability:
