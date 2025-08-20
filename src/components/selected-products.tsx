@@ -6,16 +6,16 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import type { Product } from '@/lib/types';
-import { useSelectionStore } from '@/stores/selection-store';
 import { X, FilePenLine } from 'lucide-react';
 
 interface SelectedProductsProps {
   products: Product[];
+  onBulkEdit: () => void;
+  onClear: () => void;
+  onRemove: (id: string) => void;
 }
 
-export function SelectedProducts({ products }: SelectedProductsProps) {
-  const toggleSelection = useSelectionStore((state) => state.toggle);
-  const clearSelection = useSelectionStore((state) => state.clear);
+export function SelectedProducts({ products, onBulkEdit, onClear, onRemove }: SelectedProductsProps) {
 
   if (products.length === 0) {
     return null;
@@ -32,11 +32,11 @@ export function SelectedProducts({ products }: SelectedProductsProps) {
             </CardDescription>
           </div>
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" disabled>
+            <Button variant="outline" size="sm" onClick={onBulkEdit}>
                 <FilePenLine className="mr-2 h-4 w-4" />
                 Bulk Edit
             </Button>
-            <Button variant="destructive" size="sm" onClick={clearSelection}>
+            <Button variant="destructive" size="sm" onClick={onClear}>
                 <X className="mr-2 h-4 w-4" />
                 Clear Selection
             </Button>
@@ -52,7 +52,7 @@ export function SelectedProducts({ products }: SelectedProductsProps) {
                   variant="ghost"
                   size="icon"
                   className="absolute top-1 right-1 h-6 w-6 bg-black/50 text-white opacity-0 group-hover:opacity-100 transition-opacity z-10"
-                  onClick={() => toggleSelection(product.id)}
+                  onClick={() => onRemove(product.id)}
                   title="Deselect"
                 >
                   <X className="h-4 w-4" />
@@ -62,6 +62,7 @@ export function SelectedProducts({ products }: SelectedProductsProps) {
                     src={product.image || 'https://placehold.co/150x150.png'}
                     alt={product.name}
                     className="h-40 w-40 object-cover transition-transform group-hover:scale-105"
+                    data-ai-hint="product image"
                   />
                 </div>
                 <div className="pt-2">

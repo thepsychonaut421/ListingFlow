@@ -89,7 +89,7 @@ const asListingStatus = (v: unknown): ListingStatus => {
 function DashboardClient() {
   const [products, setProducts] = React.useState<Product[]>([]);
   const [isSheetOpen, setIsSheetOpen] = React.useState(false);
-  const [isBulkEditOpen, setIsBulkEditOpen] = React.useState(false);
+  const [isBulkEditDialogOpen, setIsBulkEditDialogOpen] = React.useState(false);
   const [selectedProduct, setSelectedProduct] = React.useState<Product | null>(null);
   const [isLoading, setIsLoading] = React.useState(true);
   const [isErpLoading, setIsErpLoading] = React.useState(false);
@@ -99,6 +99,7 @@ function DashboardClient() {
 
   const selectedIds = useSelectionStore(state => state.selectedIds);
   const clearSelection = useSelectionStore(state => state.clear);
+  const toggleSelection = useSelectionStore(state => state.toggle);
 
   const selectedProductIds = React.useMemo(() => Array.from(selectedIds), [selectedIds]);
   const selectedProducts = React.useMemo(() => {
@@ -181,8 +182,10 @@ function DashboardClient() {
     setProducts(products.map(p => {
         if (selectedIds.has(p.id)) {
             const updatedProduct = { ...p };
+            // Iterate over the keys in the update data object
             for (const key in data) {
-                if (data[key as keyof typeof data]) {
+                // Check if the key is a property of the data object and its value is not empty or null
+                if (Object.prototype.hasOwnProperty.call(data, key) && data[key as keyof typeof data]) {
                     (updatedProduct as any)[key] = data[key as keyof typeof data];
                 }
             }
@@ -194,7 +197,7 @@ function DashboardClient() {
         title: 'Bulk Edit Successful',
         description: `${selectedProductIds.length} products have been updated.`,
     });
-    setIsBulkEditOpen(false);
+    setIsBulkEditDialogOpen(false);
     clearSelection();
   };
   
@@ -390,12 +393,21 @@ function DashboardClient() {
   
   const handleErpAction = async (action: 'import' | 'update' | 'export') => {
     setIsErpLoading(true);
+    const productsToExport = products.filter(p => selectedIds.has(p.id));
 
     try {
         if (action === 'export') {
+            if (productsToExport.length === 0) {
+                toast({
+                    variant: 'destructive',
+                    title: 'Export Canceled',
+                    description: 'Please select at least one product to export to ERPNext.',
+                });
+                return;
+            }
             await exportProductsToERPNext(
                 (loading) => setIsErpLoading(loading),
-                products.filter(p => selectedIds.has(p.id))
+                productsToExport
             );
             return; 
         }
@@ -501,7 +513,12 @@ function DashboardClient() {
   return (
     <main className="grid flex-1 items-start gap-4 p-4 sm:px-6 sm:py-0 md:gap-8">
       {selectedProducts.length > 0 && (
-        <SelectedProducts products={selectedProducts} />
+        <SelectedProducts 
+            products={selectedProducts} 
+            onBulkEdit={() => setIsBulkEditDialogOpen(true)}
+            onClear={clearSelection}
+            onRemove={toggleSelection}
+        />
       )}
       <Card>
         <CardHeader className="flex flex-row items-center">
@@ -542,7 +559,7 @@ function DashboardClient() {
                   <File className="h-3.5 w-3.5" />
                   <span>Export CSV ({selectedProductIds.length})</span>
                 </Button>
-                 <Dialog open={isBulkEditOpen} onOpenChange={setIsBulkEditOpen}>
+                 <Dialog open={isBulkEditDialogOpen} onOpenChange={setIsBulkEditDialogOpen}>
                   <DialogTrigger asChild>
                       <Button size="sm" variant="outline" className="h-8 gap-1" disabled={selectedProductIds.length === 0}>
                         <FilePenLine className="h-3.5 w-3.5" />
@@ -551,14 +568,14 @@ function DashboardClient() {
                   </DialogTrigger>
                   <DialogContent className="sm:max-w-md">
                     <DialogHeader>
-                        <DialogTitle>Bulk Edit Products</DialogTitle>
+                        <DialogTitle>Bulk Edit {selectedProductIds.length} Products</DialogTitle>
                         <DialogDescription>
-                            Modify the fields below to update all {selectedProductIds.length} selected products at once.
+                            Modify the fields below to update all selected products at once. Leave a field blank to keep its current value.
                         </DialogDescription>
                     </DialogHeader>
                     <BulkEditForm 
                         onSave={handleSaveBulkEdit} 
-                        onCancel={() => setIsBulkEditOpen(false)}
+                        onCancel={() => setIsBulkEditDialogOpen(false)}
                     />
                   </DialogContent>
                 </Dialog>
@@ -625,7 +642,7 @@ function DashboardClient() {
                             <File className="mr-2 h-4 w-4" />
                             <span>Export CSV ({selectedProductIds.length})</span>
                         </DropdownMenuItem>
-                         <DropdownMenuItem onSelect={() => setIsBulkEditOpen(true)} disabled={selectedProductIds.length === 0}>
+                         <DropdownMenuItem onSelect={() => setIsBulkEditDialogOpen(true)} disabled={selectedProductIds.length === 0}>
                            <FilePenLine className="mr-2 h-4 w-4" />
                             <span>Bulk Edit ({selectedProductIds.length})</span>
                         </DropdownMenuItem>

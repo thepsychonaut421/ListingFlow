@@ -12,6 +12,7 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
+  FormDescription,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import {
@@ -23,10 +24,13 @@ import {
 } from '@/components/ui/select';
 import { DialogFooter } from '@/components/ui/dialog';
 import type { Product } from '@/lib/types';
+import { CategoryCombobox } from './category-combobox';
+
 
 const bulkEditSchema = z.object({
   listingStatus: z.enum(['', 'draft', 'listed', 'error', 'new', 'used', 'refurbished']).optional(),
   category: z.string().optional(),
+  ebayCategoryId: z.string().optional(),
 });
 
 type BulkEditFormValues = z.infer<typeof bulkEditSchema>;
@@ -42,13 +46,23 @@ export function BulkEditForm({ onSave, onCancel }: BulkEditFormProps) {
     defaultValues: {
       listingStatus: '',
       category: '',
+      ebayCategoryId: '',
     },
   });
 
   const onSubmit = (data: BulkEditFormValues) => {
+    // Construct an update object only with fields that have values
     const updateData: Partial<Product> = {};
-    if (data.listingStatus) updateData.listingStatus = data.listingStatus as Product['listingStatus'];
-    if (data.category) updateData.category = data.category;
+    if (data.listingStatus) {
+      updateData.listingStatus = data.listingStatus as Product['listingStatus'];
+    }
+    if (data.category) {
+      updateData.category = data.category;
+    }
+    if (data.ebayCategoryId) {
+        updateData.ebayCategoryId = data.ebayCategoryId;
+    }
+    
     onSave(updateData);
   };
 
@@ -65,7 +79,7 @@ export function BulkEditForm({ onSave, onCancel }: BulkEditFormProps) {
                 <Select onValueChange={field.onChange} defaultValue={field.value}>
                   <FormControl>
                     <SelectTrigger>
-                      <SelectValue placeholder="Leave blank to keep unchanged" />
+                      <SelectValue placeholder="Leave unchanged" />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
@@ -86,9 +100,26 @@ export function BulkEditForm({ onSave, onCancel }: BulkEditFormProps) {
             name="category"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Category</FormLabel>
+                <FormLabel>Shopify Category</FormLabel>
+                <CategoryCombobox 
+                    value={field.value || ''}
+                    onChange={field.onChange}
+                />
+                 <FormDescription>
+                  This will apply to all selected products.
+                </FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+           <FormField
+            control={form.control}
+            name="ebayCategoryId"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>eBay Category ID</FormLabel>
                 <FormControl>
-                  <Input placeholder="Leave blank to keep unchanged" {...field} />
+                  <Input placeholder="Leave unchanged" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
