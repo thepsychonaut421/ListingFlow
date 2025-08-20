@@ -13,12 +13,22 @@ interface SelectedProductsProps {
   onBulkEdit: () => void;
   onClear: () => void;
   onRemove: (id: string) => void;
+  onEditProduct: (product: Product) => void;
 }
 
-export function SelectedProducts({ products, onBulkEdit, onClear, onRemove }: SelectedProductsProps) {
+export function SelectedProducts({ products, onBulkEdit, onClear, onRemove, onEditProduct }: SelectedProductsProps) {
 
   if (products.length === 0) {
     return null;
+  }
+  
+  const handleCardClick = (product: Product) => {
+    onEditProduct(product);
+  }
+  
+  const handleRemoveClick = (e: React.MouseEvent, id: string) => {
+    e.stopPropagation(); // Prevent the card click event from firing
+    onRemove(id);
   }
 
   return (
@@ -47,17 +57,25 @@ export function SelectedProducts({ products, onBulkEdit, onClear, onRemove }: Se
         <ScrollArea className="w-full whitespace-nowrap">
           <div className="flex w-max space-x-4 pb-4">
             {products.map((product) => (
-              <div key={product.id} className="relative group w-40">
+              <div 
+                key={product.id} 
+                className="relative group w-40 cursor-pointer"
+                onClick={() => handleCardClick(product)}
+                onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && handleCardClick(product)}
+                role="button"
+                tabIndex={0}
+                title={`Edit ${product.name}`}
+               >
                 <Button
-                  variant="ghost"
+                  variant="destructive"
                   size="icon"
                   className="absolute top-1 right-1 h-6 w-6 bg-black/50 text-white opacity-0 group-hover:opacity-100 transition-opacity z-10"
-                  onClick={() => onRemove(product.id)}
+                  onClick={(e) => handleRemoveClick(e, product.id)}
                   title="Deselect"
                 >
                   <X className="h-4 w-4" />
                 </Button>
-                <div className="overflow-hidden rounded-md">
+                <div className="overflow-hidden rounded-md border hover:border-primary">
                   <img
                     src={product.image || 'https://placehold.co/150x150.png'}
                     alt={product.name}

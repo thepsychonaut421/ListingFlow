@@ -514,7 +514,8 @@ function DashboardClient() {
     <main className="grid flex-1 items-start gap-4 p-4 sm:px-6 sm:py-0 md:gap-8">
       {selectedProducts.length > 0 && (
         <SelectedProducts 
-            products={selectedProducts} 
+            products={selectedProducts}
+            onEditProduct={handleEditProduct}
             onBulkEdit={() => setIsBulkEditDialogOpen(true)}
             onClear={clearSelection}
             onRemove={toggleSelection}
@@ -583,7 +584,7 @@ function DashboardClient() {
            
             <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
               <SheetTrigger asChild>
-                  <Button size="sm" className="h-8 gap-1">
+                  <Button size="sm" className="h-8 gap-1" onClick={handleAddProduct}>
                   <PlusCircle className="h-3.5 w-3.5" />
                   <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
                     Add Product
