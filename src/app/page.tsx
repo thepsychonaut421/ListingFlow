@@ -58,6 +58,7 @@ import { ProductForm } from '@/components/product-form';
 import { BulkEditForm } from '@/components/bulk-edit-form';
 import { useSelectionStore } from '@/stores/selection-store';
 import { exportProductsToERPNext } from '@/lib/erpnext';
+import { SelectedProducts } from '@/components/selected-products';
 
 const EnvBadge = () => {
     const env = process.env.NEXT_PUBLIC_ENV || 'dev';
@@ -100,7 +101,10 @@ function DashboardClient() {
   const clearSelection = useSelectionStore(state => state.clear);
 
   const selectedProductIds = React.useMemo(() => Array.from(selectedIds), [selectedIds]);
-  
+  const selectedProducts = React.useMemo(() => {
+    return products.filter(p => selectedIds.has(p.id));
+  }, [products, selectedIds]);
+
   React.useEffect(() => {
     try {
       const storedProducts = localStorage.getItem('listingFlowProducts');
@@ -496,6 +500,9 @@ function DashboardClient() {
 
   return (
     <main className="grid flex-1 items-start gap-4 p-4 sm:px-6 sm:py-0 md:gap-8">
+      {selectedProducts.length > 0 && (
+        <SelectedProducts products={selectedProducts} />
+      )}
       <Card>
         <CardHeader className="flex flex-row items-center">
           <div className="flex-1">
