@@ -75,7 +75,7 @@ npm install
 
 ### 3. Configure Environment Variables for Local Development
 
-Create a file named `.env.local` in the project root and add the following variables. These are essential for connecting to external services. Use the `.env` file as a template.
+Create a file named `.env` in the project root and add the following variables. These are essential for connecting to external services. Use the provided `.env` file as a template.
 
 ```env
 # ERPNext Credentials
