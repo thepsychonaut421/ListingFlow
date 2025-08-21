@@ -71,7 +71,7 @@ const toProductFormValues = (product: Product | null): ProductFormValues => {
 };
 
 // New Component for Image Upload
-function ImageUploader({ control, setValue }: { control: any; setValue: any }) {
+function ImageUploader({ control, setValue, getValues }: { control: any; setValue: any, getValues: any }) {
     const { fields, append, remove, update } = useFieldArray({
         control,
         name: "images"
@@ -103,7 +103,7 @@ function ImageUploader({ control, setValue }: { control: any; setValue: any }) {
     };
     
     const handleSetMain = (indexToSet: number) => {
-      const currentImages = control.getValues('images') as ProductImage[];
+      const currentImages = getValues('images') as ProductImage[];
       const updatedImages = currentImages.map((img, index) => ({
         ...img,
         isMain: index === indexToSet,
@@ -112,7 +112,7 @@ function ImageUploader({ control, setValue }: { control: any; setValue: any }) {
     };
     
     const handleRemove = (indexToRemove: number) => {
-        const currentImages = control.getValues('images') as ProductImage[];
+        const currentImages = getValues('images') as ProductImage[];
         const wasMain = currentImages[indexToRemove]?.isMain;
         remove(indexToRemove);
 
@@ -205,6 +205,7 @@ export function ProductForm({
     register,
     setValue,
     control,
+    getValues,
     formState: { isSubmitting, errors },
   } = methods;
   
@@ -367,7 +368,7 @@ export function ProductForm({
           </div>
         </section>
         
-        <ImageUploader control={control} setValue={setValue} />
+        <ImageUploader control={control} setValue={setValue} getValues={getValues} />
 
         <section className="space-y-3 px-6 mt-6">
           <h3 className="text-sm font-medium text-muted-foreground mb-2">Description</h3>
