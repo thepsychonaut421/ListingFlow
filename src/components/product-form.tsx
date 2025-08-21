@@ -120,7 +120,7 @@ function ImageUploader({ control }: { control: any }) {
             </div>
             {fields.length > 0 && (
                  <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-4">
-                    {fields.map((field, index) => (
+                    {fields.map((field: { id: string } & string, index) => (
                         <div key={field.id} className="relative group aspect-square">
                             <img src={field as any} alt={`Product image ${index + 1}`} className="w-full h-full object-cover rounded-md border" />
                             <Button
