@@ -85,14 +85,16 @@ export async function publishToShopify(product: Product): Promise<any> {
     const shopUrl = process.env.SHOPIFY_STORE_URL;
     const accessToken = process.env.SHOPIFY_ADMIN_ACCESS_TOKEN;
 
-    if (!shopUrl || !accessToken) {
-        throw new Error('Shopify credentials (URL or Access Token) are not configured in environment variables.');
+    if (!shopUrl || !accessToken || accessToken.trim() === '' || shopUrl.trim() === '') {
+        const urlHint = shopUrl ? `Received URL starts with: "${shopUrl.substring(0, 20)}..."` : "URL not received.";
+        const tokenHint = accessToken ? `Received token starts with: "${accessToken.substring(0, 8)}..."` : "Access Token not received.";
+        throw new Error(`Shopify credentials missing or empty in environment variables. Please check your secrets configuration. Details: ${urlHint}, ${tokenHint}`);
     }
 
     try {
         const url = new URL(shopUrl);
         if (url.protocol !== 'https:' || !url.hostname.endsWith('myshopify.com')) {
-             throw new Error(`The provided URL is not a valid Shopify store URL.`);
+             throw new Error(`The provided URL is not a valid Shopify store URL. Received: "${shopUrl}"`);
         }
     } catch (e: any) {
         throw new Error(`The Shopify Store URL configured ("${shopUrl}") is not a valid URL. It should look like https://your-store.myshopify.com. ${e.message}`);
