@@ -72,7 +72,7 @@ const toProductFormValues = (product: Product | null): ProductFormValues => {
 
 // New Component for Image Upload
 function ImageUploader({ control, setValue, getValues }: { control: any; setValue: any, getValues: any }) {
-    const { fields, append, remove, update } = useFieldArray({
+    const { fields, append, remove } = useFieldArray({
         control,
         name: "images"
     });
