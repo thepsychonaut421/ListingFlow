@@ -161,6 +161,7 @@ const generateEbayCsvContent = async (products: Product[]): Promise<string> => {
       const model = pickVal(product, specs, 'Modell', 'model', 'Model');
       const mpn = product.code; // Use SKU as MPN
       const ean = pickVal(product, specs, 'EAN', 'ean', 'Barcode');
+      const mainImage = product.images.find(img => img.isMain) || product.images[0];
 
 
       return [
@@ -171,7 +172,7 @@ const generateEbayCsvContent = async (products: Product[]): Promise<string> => {
       ean,
       product.price ? product.price.toFixed(2) : '0.00',
       product.quantity,
-      safeImage(product.image),
+      safeImage(mainImage?.url),
       getEbayConditionId(product.listingStatus),
       cleanSemicolonCsvField(product.description),
       'FixedPrice',
@@ -227,7 +228,8 @@ const generateShopifyCsvContent = (products: Product[]): string => {
     .filter(product => product.code)
     .map(product => {
       const handle = product.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
-      const imageUrl = ensureValidImageSrc(product.image);
+      const mainImage = product.images.find(img => img.isMain) || product.images[0];
+      const imageUrl = ensureValidImageSrc(mainImage?.url);
       const specs = product.technicalSpecs || {};
       const brand = pickVal(product, specs, 'Marke', 'brand', 'Brand');
       let productType = pickVal(product, specs, 'Produktart', 'productType', 'Type');
