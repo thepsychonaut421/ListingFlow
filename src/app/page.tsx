@@ -102,6 +102,7 @@ function DashboardClient() {
   const [selectedProduct, setSelectedProduct] = React.useState<Product | null>(null);
   const [isLoading, setIsLoading] = React.useState(true);
   const [isErpLoading, setIsErpLoading] = React.useState(false);
+  const [isPublishing, setIsPublishing] = React.useState(false);
   const [generatingProductId, setGeneratingProductId] = React.useState<string | null>(null);
   const { toast } = useToast();
   const router = useRouter();
@@ -213,7 +214,6 @@ function DashboardClient() {
         description: `${selectedProductIds.length} products have been updated.`,
     });
     setIsBulkEditDialogOpen(false);
-    clearSelection();
   };
   
   const handleGenerateDescription = async (product: Product) => {
@@ -393,6 +393,57 @@ function DashboardClient() {
     } finally {
       setGeneratingProductId(null);
     }
+  };
+  
+  const handleBulkPublishToShopify = async () => {
+    if (selectedProductIds.length === 0) {
+      toast({
+        variant: 'destructive',
+        title: 'Action Canceled',
+        description: 'Please select at least one product to publish.',
+      });
+      return;
+    }
+
+    setIsPublishing(true);
+    let successCount = 0;
+    const errorMessages: string[] = [];
+
+    for (const productId of selectedProductIds) {
+      const product = products.find(p => p.id === productId);
+      if (!product) continue;
+
+      try {
+        const res = await fetch('/api/shopify/publish', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(product),
+        });
+        const result = await res.json();
+        if (!res.ok) {
+          throw new Error(result.error || `Failed for ${product.name}`);
+        }
+        successCount++;
+      } catch (error: any) {
+        errorMessages.push(error.message);
+      }
+    }
+
+    setIsPublishing(false);
+
+    if (errorMessages.length > 0) {
+      toast({
+        variant: 'destructive',
+        title: 'Shopify Publish Partially Failed',
+        description: `${successCount} products published. Errors: ${errorMessages.join(', ')}`,
+      });
+    } else {
+      toast({
+        title: 'Bulk Publish Successful!',
+        description: `${successCount} products have been published to Shopify.`,
+      });
+    }
+    clearSelection();
   };
 
   const handleExportToCSV = () => {
@@ -582,6 +633,10 @@ function DashboardClient() {
                         </Button>
                     </div>
                 )}
+                 <Button size="sm" variant="outline" className="h-8 gap-1" onClick={handleBulkPublishToShopify} disabled={selectedProductIds.length === 0 || isPublishing}>
+                   {isPublishing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
+                  <span>Publish to Shopify ({selectedProductIds.length})</span>
+                </Button>
                  <Button size="sm" variant="outline" className="h-8 gap-1" onClick={handleExportToCSV} disabled={selectedProductIds.length === 0}>
                   <File className="h-3.5 w-3.5" />
                   <span>Export CSV ({selectedProductIds.length})</span>
@@ -665,6 +720,10 @@ function DashboardClient() {
                                 </DropdownMenuItem>
                             </>
                         )}
+                        <DropdownMenuItem onClick={handleBulkPublishToShopify} disabled={selectedProductIds.length === 0 || isPublishing}>
+                            {isPublishing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
+                            <span>Publish to Shopify ({selectedProductIds.length})</span>
+                        </DropdownMenuItem>
                         <DropdownMenuItem onClick={handleExportToCSV} disabled={selectedProductIds.length === 0}>
                             <File className="mr-2 h-4 w-4" />
                             <span>Export CSV ({selectedProductIds.length})</span>
