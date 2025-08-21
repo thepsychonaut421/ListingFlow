@@ -31,3 +31,11 @@ env:
     availability:
       - BUILD
       - RUNTIME
+  - variable: SHOPIFY_STORE_URL
+    secret: SHOPIFY_STORE_URL
+    availability:
+      - RUNTIME
+  - variable: SHOPIFY_ADMIN_ACCESS_TOKEN
+    secret: SHOPIFY_ADMIN_ACCESS_TOKEN
+    availability:
+      - RUNTIME

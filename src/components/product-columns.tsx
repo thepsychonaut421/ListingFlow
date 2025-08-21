@@ -32,6 +32,7 @@ type GetColumnsProps = {
   onExtractTechSpecs: (product: Product) => void;
   onGenerateImage: (product: Product) => void;
   onSendToEbay: (product: Product) => void;
+  onPublishToShopify: (product: Product) => void;
   generatingProductId: string | null;
   onUpdateProduct: (id: string, data: Partial<Product>) => void;
 };
@@ -43,7 +44,7 @@ const formatCurrency = (amount: number) => {
     }).format(amount);
 }
 
-export const getColumns = ({ onEdit, onDelete, onGenerate, onCopyDescription, onExtractTechSpecs, onGenerateImage, onSendToEbay, generatingProductId, onUpdateProduct }: GetColumnsProps): ColumnDef<Product>[] => [
+export const getColumns = ({ onEdit, onDelete, onGenerate, onCopyDescription, onExtractTechSpecs, onGenerateImage, onSendToEbay, onPublishToShopify, generatingProductId, onUpdateProduct }: GetColumnsProps): ColumnDef<Product>[] => [
   {
     id: 'select',
     header: ({ table }) => (
@@ -212,9 +213,15 @@ export const getColumns = ({ onEdit, onDelete, onGenerate, onCopyDescription, on
                         <Trash2 className="mr-2 h-4 w-4" />
                         <span>Delete</span>
                     </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                     <DropdownMenuLabel>Publish</DropdownMenuLabel>
                     <DropdownMenuItem onClick={() => onSendToEbay(product)}>
                         <Send className="mr-2 h-4 w-4" />
                         <span>Send to eBay Drafts</span>
+                    </DropdownMenuItem>
+                     <DropdownMenuItem onClick={() => onPublishToShopify(product)}>
+                        <Send className="mr-2 h-4 w-4" />
+                        <span>Publish to Shopify</span>
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuGroup>

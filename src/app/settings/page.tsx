@@ -73,17 +73,12 @@ NEXT_PUBLIC_ENV="dev"`}
               Current Public ERP URL: <strong>{erpNextUrl}</strong>
             </p>
 
-             <h3 className="mt-6 mb-2 font-semibold">Firebase Credentials</h3>
+             <h3 className="mt-6 mb-2 font-semibold">Shopify Credentials</h3>
              <pre className="mt-2 p-2 bg-muted rounded-md text-sm font-mono overflow-x-auto">
 {`# .env.local
-NEXT_PUBLIC_FIREBASE_API_KEY=...
-NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=...
-NEXT_PUBLIC_FIREBASE_PROJECT_ID=...
-NEXT_PUBLIC_FIREBASE_APP_ID=...`}
+SHOPIFY_STORE_URL="https://your-store-name.myshopify.com"
+SHOPIFY_ADMIN_ACCESS_TOKEN="shpat_..."`}
             </pre>
-             <p className="mt-2 text-sm text-muted-foreground">
-              Firebase integration is {firebaseApiKey ? 'active' : 'inactive (missing API key)'}.
-            </p>
         </CardContent>
       </Card>
 

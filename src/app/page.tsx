@@ -379,6 +379,36 @@ function DashboardClient() {
     }
   };
 
+  const handlePublishToShopify = async (product: Product) => {
+    setGeneratingProductId(product.id);
+    try {
+      const res = await fetch('/api/shopify/publish', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(product),
+      });
+
+      const result = await res.json();
+      if (!res.ok) {
+        throw new Error(result.error || 'Failed to publish to Shopify');
+      }
+
+      toast({
+        title: 'Published to Shopify!',
+        description: `"${product.name}" is now live on Shopify.`,
+      });
+    } catch (error: any) {
+      console.error('Failed to publish to Shopify', error);
+      toast({
+        variant: 'destructive',
+        title: 'Shopify Publish Failed',
+        description: error.message,
+      });
+    } finally {
+      setGeneratingProductId(null);
+    }
+  };
+
   const handleExportToCSV = () => {
     if (selectedIds.size > 0) {
        router.push('/exports');
@@ -498,6 +528,7 @@ function DashboardClient() {
       onExtractTechSpecs: handleExtractTechSpecs,
       onGenerateImage: handleGenerateImage,
       onSendToEbay: handleSendToEbayDraft,
+      onPublishToShopify: handlePublishToShopify,
       generatingProductId,
       onUpdateProduct: handleUpdateProduct,
   }), [generatingProductId, products]);

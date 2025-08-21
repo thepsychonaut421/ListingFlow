@@ -15,6 +15,7 @@ The system uses **Genkit AI** for:
 - **Automated category detection** – Uses AI to determine the best-fit category for eBay listings.
 - **Technical specifications auto-extraction** – Extracts attributes like brand, model, power, capacity, material, dimensions, etc.
 - **Export back to ERPNext** – Updates the **Description** field in ERPNext with all enriched technical data.
+- **Publish to Shopify** - Creates new products directly in your Shopify store.
 
 ---
 
@@ -26,6 +27,7 @@ The system uses **Genkit AI** for:
    - Find Technical Specs (brand, model, and other technical attributes)
 3. **Review & adjust** extracted data inside the product form in ListingFlow.
 4. **Export back to ERPNext** — all technical specifications will be appended to the **Description** field.
+5. **Publish to Shopify** - use the action menu to create the product in your store.
 
 ---
 
@@ -81,6 +83,10 @@ ERPNEXT_BASE_URL=https://erp.example.com
 NEXT_PUBLIC_ERPNEXT_BASE_URL=https://erp.example.com
 ERPNEXT_API_KEY=xxxxx
 ERPNEXT_API_SECRET=xxxxx
+
+# Shopify Credentials
+SHOPIFY_STORE_URL="https://your-store-name.myshopify.com"
+SHOPIFY_ADMIN_ACCESS_TOKEN="shpat_..."
 ```
 
 ### 4. Configure Deployment Secrets for Firebase App Hosting
@@ -93,13 +99,17 @@ Run the following commands, replacing `your_value_here` with your actual credent
 # Set secrets for ERPNext
 firebase apphosting:secrets:set ERPNEXT_API_KEY
 firebase apphosting:secrets:set ERPNEXT_API_SECRET
+
+# Set secrets for Shopify
+firebase apphosting:secrets:set SHOPIFY_STORE_URL
+firebase apphosting:secrets:set SHOPIFY_ADMIN_ACCESS_TOKEN
 ```
 *(You will be prompted to enter the secret value in your terminal after running each command.)*
 
 After creating the secrets, **you must grant the App Hosting service account access to them**. This is a critical step.
 
 ```bash
-firebase apphosting:secrets:grantaccess ERPNEXT_API_KEY ERPNEXT_API_SECRET
+firebase apphosting:secrets:grantaccess ERPNEXT_API_KEY ERPNEXT_API_SECRET SHOPIFY_STORE_URL SHOPIFY_ADMIN_ACCESS_TOKEN
 ```
 
 The `apphosting.yaml` file is already configured to use these secrets.
