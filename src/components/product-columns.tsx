@@ -30,7 +30,6 @@ type GetColumnsProps = {
   onGenerate: (product: Product) => void;
   onCopyDescription: (product: Product, source: 'otto' | 'ebay') => void;
   onExtractTechSpecs: (product: Product) => void;
-  onGenerateImage: (product: Product) => void;
   onSendToEbay: (product: Product) => void;
   onPublishToShopify: (product: Product) => void;
   generatingProductId: string | null;
@@ -44,7 +43,7 @@ const formatCurrency = (amount: number) => {
     }).format(amount);
 }
 
-export const getColumns = ({ onEdit, onDelete, onGenerate, onCopyDescription, onExtractTechSpecs, onGenerateImage, onSendToEbay, onPublishToShopify, generatingProductId, onUpdateProduct }: GetColumnsProps): ColumnDef<Product>[] => [
+export const getColumns = ({ onEdit, onDelete, onGenerate, onCopyDescription, onExtractTechSpecs, onSendToEbay, onPublishToShopify, generatingProductId, onUpdateProduct }: GetColumnsProps): ColumnDef<Product>[] => [
   {
     id: 'select',
     header: ({ table }) => (
@@ -233,10 +232,6 @@ export const getColumns = ({ onEdit, onDelete, onGenerate, onCopyDescription, on
                          <DropdownMenuItem onClick={() => onExtractTechSpecs(product)}>
                             <PackageSearch className="mr-2 h-4 w-4" />
                             <span>Extract Tech Specs</span>
-                        </DropdownMenuItem>
-                         <DropdownMenuItem onClick={() => onGenerateImage(product)}>
-                            <ImageIcon className="mr-2 h-4 w-4" />
-                            <span>Generate Image</span>
                         </DropdownMenuItem>
                         <DropdownMenuSub>
                             <DropdownMenuSubTrigger>

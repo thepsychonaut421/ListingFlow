@@ -2,7 +2,7 @@
 'use client';
 
 import * as React from 'react';
-import { useForm, FormProvider, useWatch, useFieldArray } from 'react-hook-form';
+import { useForm, FormProvider, useWatch, useFieldArray, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Button } from '@/components/ui/button';
@@ -16,7 +16,7 @@ import {
   SheetFooter,
   SheetClose,
 } from '@/components/ui/sheet';
-import { Loader2, Search, Trash2, PlusCircle } from 'lucide-react';
+import { Loader2, Search, Trash2, Upload } from 'lucide-react';
 import { HTMLPreview } from './html-preview';
 import { CategoryCombobox } from './category-combobox';
 
@@ -28,7 +28,7 @@ const ProductSchema = z.object({
   category: z.string().optional(), // Shopify Category
   ebayCategoryId: z.string().optional(),
   code: z.string().optional(), // SKU
-  images: z.array(z.object({ url: z.string().url('Please enter a valid URL') })).optional(),
+  images: z.array(z.string()).optional(), // Now an array of strings (Data URIs)
   price: z.number().or(z.string()).optional(),
   quantity: z.number().or(z.string()).optional(),
   description: z.string().optional(),
@@ -54,8 +54,6 @@ const toProductFormValues = (product: Product | null): ProductFormValues => {
           }))
         : [];
         
-    const images = product?.images ? product.images.map(url => ({ url })) : [];
-
     return {
         id: product?.id || '',
         name: product?.name || '',
@@ -63,7 +61,7 @@ const toProductFormValues = (product: Product | null): ProductFormValues => {
         category: product?.category || '',
         ebayCategoryId: product?.ebayCategoryId || '',
         code: product?.code || '',
-        images: images,
+        images: product?.images || [],
         price: product?.price || 0,
         quantity: product?.quantity || 0,
         description: product?.description || '',
@@ -71,6 +69,77 @@ const toProductFormValues = (product: Product | null): ProductFormValues => {
         ean: product?.ean || '',
     };
 };
+
+// New Component for Image Upload
+function ImageUploader({ control }: { control: any }) {
+    const { fields, append, remove } = useFieldArray({
+        control,
+        name: "images"
+    });
+    const { toast } = useToast();
+
+    const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+        const files = event.target.files;
+        if (!files) return;
+
+        for (const file of Array.from(files)) {
+            if (!file.type.startsWith('image/')) {
+                toast({ variant: 'destructive', title: 'Invalid File', description: `${file.name} is not an image.`});
+                continue;
+            }
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                if (typeof e.target?.result === 'string') {
+                    append(e.target.result);
+                }
+            };
+            reader.onerror = () => {
+                 toast({ variant: 'destructive', title: 'Read Error', description: `Could not read file ${file.name}.`});
+            }
+            reader.readAsDataURL(file);
+        }
+    };
+
+    return (
+        <section className="space-y-3 px-6 mt-6">
+            <div className="flex justify-between items-center">
+                <h3 className="text-sm font-medium text-muted-foreground">Product Images</h3>
+                 <Button type="button" size="sm" variant="outline" asChild>
+                    <label>
+                        <Upload className="mr-2 h-4 w-4" />
+                        Upload Images
+                        <input
+                            type="file"
+                            multiple
+                            accept="image/*"
+                            className="sr-only"
+                            onChange={handleFileChange}
+                        />
+                    </label>
+                </Button>
+            </div>
+            {fields.length > 0 && (
+                 <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-4">
+                    {fields.map((field, index) => (
+                        <div key={field.id} className="relative group aspect-square">
+                            <img src={field as any} alt={`Product image ${index + 1}`} className="w-full h-full object-cover rounded-md border" />
+                            <Button
+                                type="button"
+                                variant="destructive"
+                                size="icon"
+                                className="absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                                onClick={() => remove(index)}
+                            >
+                                <Trash2 className="h-3 w-3" />
+                            </Button>
+                        </div>
+                    ))}
+                </div>
+            )}
+        </section>
+    );
+}
+
 
 export function ProductForm({
   product,
@@ -99,11 +168,6 @@ export function ProductForm({
    const { fields: techSpecFields, append: appendTechSpec, remove: removeTechSpec } = useFieldArray({
     control: control,
     name: "technicalSpecs",
-  });
-  
-  const { fields: imageFields, append: appendImage, remove: removeImage } = useFieldArray({
-    control: control,
-    name: "images",
   });
 
   const productName = useWatch({ control: methods.control, name: 'name' });
@@ -165,7 +229,7 @@ export function ProductForm({
       price: Number(data.price ?? 0),
       quantity: Number(data.quantity ?? 0),
       description: data.description ?? "",
-      images: (data.images || []).map(img => img.url).filter(Boolean),
+      images: data.images || [],
       listingStatus: data.listingStatus as Product["listingStatus"],
       category: data.category ?? "",
       ebayCategoryId: data.ebayCategoryId ?? "",
@@ -260,32 +324,7 @@ export function ProductForm({
           </div>
         </section>
         
-        <section className="space-y-3 px-6 mt-6">
-          <div className="flex justify-between items-center">
-             <h3 className="text-sm font-medium text-muted-foreground">Product Images</h3>
-              <Button type="button" size="sm" variant="outline" onClick={() => appendImage({ url: '' })}>
-                <PlusCircle className="mr-2 h-4 w-4" />
-                Add Image
-             </Button>
-           </div>
-           <div className="space-y-2">
-             {imageFields.map((field, index) => (
-                <div key={field.id} className="flex items-center gap-2">
-                    <Input 
-                        placeholder="https://..." 
-                        {...register(`images.${index}.url` as const)} 
-                        className={cn(errors.images?.[index]?.url && "border-destructive")}
-                    />
-                    <Button type="button" variant="destructive" size="icon" className="h-9 w-9" onClick={() => removeImage(index)}>
-                        <Trash2 className="h-4 w-4" />
-                    </Button>
-                </div>
-             ))}
-             {errors.images && (
-                 <p className="text-sm font-medium text-destructive">Please enter valid URLs for all images.</p>
-             )}
-           </div>
-        </section>
+        <ImageUploader control={control} />
 
         <section className="space-y-3 px-6 mt-6">
           <h3 className="text-sm font-medium text-muted-foreground mb-2">Description</h3>
@@ -306,7 +345,7 @@ export function ProductForm({
            <div className="flex justify-between items-center">
              <h3 className="text-sm font-medium text-muted-foreground">Technical Specifications</h3>
               <Button type="button" size="sm" variant="outline" onClick={() => appendTechSpec({ key: '', value: '' })}>
-                <PlusCircle className="mr-2 h-4 w-4" />
+                <Upload className="mr-2 h-4 w-4" />
                 Add Spec
              </Button>
            </div>
