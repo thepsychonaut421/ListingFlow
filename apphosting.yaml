@@ -29,11 +29,6 @@ env:
     availability:
       - BUILD
       - RUNTIME
-  - variable: NEXT_PUBLIC_ENV
-    value: 'dev'
-    availability:
-      - BUILD
-      - RUNTIME
   - variable: SHOPIFY_STORE_URL
     secret: SHOPIFY_STORE_URL
     availability:
@@ -41,6 +36,11 @@ env:
       - RUNTIME
   - variable: SHOPIFY_ADMIN_ACCESS_TOKEN
     secret: SHOPIFY_ADMIN_ACCESS_TOKEN
+    availability:
+      - BUILD
+      - RUNTIME
+  - variable: NEXT_PUBLIC_ENV
+    value: 'dev'
     availability:
       - BUILD
       - RUNTIME
