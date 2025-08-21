@@ -40,7 +40,7 @@ env:
       - BUILD
       - RUNTIME
   - variable: NEXT_PUBLIC_ENV
-    value: 'dev'
+    value: "prod"
     availability:
       - BUILD
       - RUNTIME
