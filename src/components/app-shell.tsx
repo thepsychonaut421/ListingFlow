@@ -12,8 +12,6 @@ import {
   Settings,
   Moon,
   Sun,
-  User,
-  LifeBuoy,
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -167,58 +165,27 @@ export function AppShell({
               </SheetContent>
             </Sheet>
             <div className="relative ml-auto flex-1 md:grow-0"></div>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                 <Button
-                  variant="outline"
-                  size="icon"
-                  className="overflow-hidden rounded-full"
-                >
-                  <User className="h-5 w-5" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuLabel>My Account</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuGroup>
-                    <DropdownMenuItem asChild>
-                        <Link href="/settings" className="flex items-center gap-2">
-                            <Settings className="h-4 w-4" />
-                            <span>Settings</span>
-                        </Link>
-                    </DropdownMenuItem>
-                     <DropdownMenuSub>
-                        <DropdownMenuSubTrigger className="flex items-center gap-2">
-                           {theme === 'light' && <Sun className="h-4 w-4" />}
-                           {theme === 'dark' && <Moon className="h-4 w-4" />}
-                           {theme === 'system' && <Settings className="h-4 w-4" />}
-                           <span>Theme</span>
-                        </DropdownMenuSubTrigger>
-                        <DropdownMenuPortal>
-                           <DropdownMenuSubContent>
-                              <DropdownMenuItem onClick={() => setTheme('light')} className="flex items-center gap-2">
-                                 <Sun className="h-4 w-4" />
-                                 <span>Light</span>
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => setTheme('dark')} className="flex items-center gap-2">
-                                 <Moon className="h-4 w-4" />
-                                 <span>Dark</span>
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => setTheme('system')} className="flex items-center gap-2">
-                                 <Settings className="h-4 w-4" />
-                                 <span>System</span>
-                              </DropdownMenuItem>
-                           </DropdownMenuSubContent>
-                        </DropdownMenuPortal>
-                     </DropdownMenuSub>
-                </DropdownMenuGroup>
-                <DropdownMenuSeparator />
-                 <DropdownMenuItem disabled className="flex items-center gap-2">
-                    <LifeBuoy className="h-4 w-4" />
-                    <span>Support</span>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+             <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                           <Button variant="ghost" size="icon">
+                             {theme === 'light' && <Sun className="h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />}
+                             {theme === 'dark' && <Moon className="absolute h-[1.2rem] w-[1.2rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />}
+                             {theme === 'system' && <Settings className="h-[1.2rem] w-[1.2rem]" />}
+                             <span className="sr-only">Toggle theme</span>
+                           </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                           <DropdownMenuItem onClick={() => setTheme('light')}>
+                              Light
+                           </DropdownMenuItem>
+                           <DropdownMenuItem onClick={() => setTheme('dark')}>
+                              Dark
+                           </DropdownMenuItem>
+                           <DropdownMenuItem onClick={() => setTheme('system')}>
+                              System
+                           </DropdownMenuItem>
+                        </DropdownMenuContent>
+                     </DropdownMenu>
           </header>
           <div className="flex-1">{children}</div>
         </div>
