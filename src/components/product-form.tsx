@@ -142,7 +142,7 @@ function ImageUploader({ control, setValue, getValues }: { control: any; setValu
             </div>
             {fields.length > 0 && (
                  <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-4">
-                    {fields.map((field: { id: string } & ProductImage, index) => (
+                    {fields.map((field, index) => (
                         <div key={field.id} className="relative group aspect-square">
                             <img src={field.url} alt={`Product image ${index + 1}`} className="w-full h-full object-cover rounded-md border" />
                             <div className="absolute top-1 right-1 flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
