@@ -323,16 +323,16 @@ function DashboardClient() {
     }
   };
   
-    const handleGenerateImage = async (product: Product) => {
+  const handleGenerateImage = async (product: Product) => {
     setGeneratingProductId(product.id);
     try {
       const { imageUrl } = await generateProductImage({
         productName: product.name,
-        sourceImageUrl: product.image,
+        sourceImageUrl: product.images?.[0],
       });
 
       if (imageUrl) {
-        handleUpdateProduct(product.id, { image: imageUrl });
+        handleUpdateProduct(product.id, { images: [imageUrl, ...(product.images || [])] });
         toast({
           title: 'AI Image Generated!',
           description: `A new image for "${product.name}" has been generated.`,
@@ -482,7 +482,7 @@ function DashboardClient() {
                     code: String(item.item_code),
                     price: Number(item.standard_rate || 0),
                     description: String(item.description || ''),
-                    image: item.image ? `${process.env.NEXT_PUBLIC_ERPNEXT_BASE_URL || ''}${item.image}` : '',
+                    images: item.image ? [`${process.env.NEXT_PUBLIC_ERPNEXT_BASE_URL || ''}${item.image}`] : [],
                     quantity: 0,
                     listingStatus: asListingStatus(item.listingStatus),
                     category: String(item.category || ''),

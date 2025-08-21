@@ -77,7 +77,7 @@ export function SelectedProducts({ products, onBulkEdit, onClear, onRemove, onEd
                 </Button>
                 <div className="overflow-hidden rounded-md border hover:border-primary">
                   <img
-                    src={product.image || 'https://placehold.co/150x150.png'}
+                    src={product.images?.[0] || 'https://placehold.co/150x150.png'}
                     alt={product.name}
                     className="h-40 w-40 object-cover transition-transform group-hover:scale-105"
                     data-ai-hint="product image"

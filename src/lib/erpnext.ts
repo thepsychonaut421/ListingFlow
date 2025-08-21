@@ -150,7 +150,7 @@ export async function importProductsFromERPNext(
                     ...existingProduct,
                     name: item.item_name || item.name,
                     price: item.standard_rate || 0,
-                    image: imageUrl,
+                    images: imageUrl ? [imageUrl] : [],
                     description: pickDescription(item),
                     sourceModified: item.modified,
                     quantity: qty,
@@ -167,7 +167,7 @@ export async function importProductsFromERPNext(
                 price: item.standard_rate || 0,
                 quantity: qty,
                 description: pickDescription(item),
-                image: imageUrl,
+                images: imageUrl ? [imageUrl] : [],
                 sourceModified: item.modified,
                 supplier: '', location: '', tags: [], keywords: [], category: '',
                 ebayCategoryId: '', listingStatus: 'draft',
@@ -221,8 +221,8 @@ export async function updatePricesAndStocksFromERPNext(
         }
         
         const newImage = itemData.image ? (erpNextUrl.replace(/\/$/, '') + itemData.image) : '';
-        if (newImage && newImage !== p.image) {
-            newProductData.image = newImage;
+        if (newImage && (!p.images || !p.images.includes(newImage))) {
+            newProductData.images = [newImage];
             hasUpdate = true;
         }
         

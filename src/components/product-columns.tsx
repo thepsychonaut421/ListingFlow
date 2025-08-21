@@ -79,7 +79,7 @@ export const getColumns = ({ onEdit, onDelete, onGenerate, onCopyDescription, on
     },
     cell: ({ row }) => {
       const product = row.original;
-      const imageUrl = product.image || 'https://placehold.co/40x40.png';
+      const imageUrl = product.images?.[0] || 'https://placehold.co/40x40.png';
       return (
         <div className="flex items-center gap-4">
           <img

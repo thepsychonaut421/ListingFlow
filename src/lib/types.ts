@@ -1,12 +1,12 @@
 
 export type Product = {
   id: string;
-  name: string;
+  name:string;
   code: string; // SKU
   quantity: number;
   price: number;
   description: string;
-  image: string;
+  images: string[];
   supplier: string;
   location: string;
   tags: string[];

@@ -28,7 +28,7 @@ const ProductSchema = z.object({
   category: z.string().optional(), // Shopify Category
   ebayCategoryId: z.string().optional(),
   code: z.string().optional(), // SKU
-  image: z.string().optional(),
+  images: z.array(z.object({ url: z.string().url('Please enter a valid URL') })).optional(),
   price: z.number().or(z.string()).optional(),
   quantity: z.number().or(z.string()).optional(),
   description: z.string().optional(),
@@ -53,6 +53,8 @@ const toProductFormValues = (product: Product | null): ProductFormValues => {
               value: Array.isArray(value) ? value.join(', ') : String(value) 
           }))
         : [];
+        
+    const images = product?.images ? product.images.map(url => ({ url })) : [];
 
     return {
         id: product?.id || '',
@@ -61,7 +63,7 @@ const toProductFormValues = (product: Product | null): ProductFormValues => {
         category: product?.category || '',
         ebayCategoryId: product?.ebayCategoryId || '',
         code: product?.code || '',
-        image: product?.image || '',
+        images: images,
         price: product?.price || 0,
         quantity: product?.quantity || 0,
         description: product?.description || '',
@@ -91,12 +93,17 @@ export function ProductForm({
     register,
     setValue,
     control,
-    formState: { isSubmitting },
+    formState: { isSubmitting, errors },
   } = methods;
   
-   const { fields, append, remove } = useFieldArray({
+   const { fields: techSpecFields, append: appendTechSpec, remove: removeTechSpec } = useFieldArray({
     control: control,
     name: "technicalSpecs",
+  });
+  
+  const { fields: imageFields, append: appendImage, remove: removeImage } = useFieldArray({
+    control: control,
+    name: "images",
   });
 
   const productName = useWatch({ control: methods.control, name: 'name' });
@@ -158,7 +165,7 @@ export function ProductForm({
       price: Number(data.price ?? 0),
       quantity: Number(data.quantity ?? 0),
       description: data.description ?? "",
-      image: data.image ?? "",
+      images: (data.images || []).map(img => img.url).filter(Boolean),
       listingStatus: data.listingStatus as Product["listingStatus"],
       category: data.category ?? "",
       ebayCategoryId: data.ebayCategoryId ?? "",
@@ -250,13 +257,34 @@ export function ProductForm({
               <Label>EAN</Label>
               <Input placeholder="EAN/UPC" {...register('ean')} />
             </div>
-
-
-            <div className="col-span-12 md:col-span-6">
-              <Label>Image URL</Label>
-              <Input placeholder="https://..." {...register('image')} />
-            </div>
           </div>
+        </section>
+        
+        <section className="space-y-3 px-6 mt-6">
+          <div className="flex justify-between items-center">
+             <h3 className="text-sm font-medium text-muted-foreground">Product Images</h3>
+              <Button type="button" size="sm" variant="outline" onClick={() => appendImage({ url: '' })}>
+                <PlusCircle className="mr-2 h-4 w-4" />
+                Add Image
+             </Button>
+           </div>
+           <div className="space-y-2">
+             {imageFields.map((field, index) => (
+                <div key={field.id} className="flex items-center gap-2">
+                    <Input 
+                        placeholder="https://..." 
+                        {...register(`images.${index}.url` as const)} 
+                        className={cn(errors.images?.[index]?.url && "border-destructive")}
+                    />
+                    <Button type="button" variant="destructive" size="icon" className="h-9 w-9" onClick={() => removeImage(index)}>
+                        <Trash2 className="h-4 w-4" />
+                    </Button>
+                </div>
+             ))}
+             {errors.images && (
+                 <p className="text-sm font-medium text-destructive">Please enter valid URLs for all images.</p>
+             )}
+           </div>
         </section>
 
         <section className="space-y-3 px-6 mt-6">
@@ -277,21 +305,21 @@ export function ProductForm({
         <section className="space-y-3 px-6 mt-6">
            <div className="flex justify-between items-center">
              <h3 className="text-sm font-medium text-muted-foreground">Technical Specifications</h3>
-              <Button type="button" size="sm" variant="outline" onClick={() => append({ key: '', value: '' })}>
+              <Button type="button" size="sm" variant="outline" onClick={() => appendTechSpec({ key: '', value: '' })}>
                 <PlusCircle className="mr-2 h-4 w-4" />
                 Add Spec
              </Button>
            </div>
            
             <div className="space-y-2">
-                {fields.length === 0 && (
+                {techSpecFields.length === 0 && (
                 <div className="text-sm text-center text-muted-foreground py-4">No technical specifications added.</div>
                 )}
-                {fields.map((field, index) => (
+                {techSpecFields.map((field, index) => (
                 <div key={field.id} className="grid grid-cols-12 gap-2 items-center">
                     <Input className="col-span-5" placeholder="Key (e.g. Marke)" {...register(`technicalSpecs.${index}.key` as const)} />
                     <Input className="col-span-6" placeholder="Value (e.g. CRIVIT)" {...register(`technicalSpecs.${index}.value` as const)} />
-                    <Button type="button" variant="destructive" size="icon" className="col-span-1 h-9 w-9" onClick={() => remove(index)}>
+                    <Button type="button" variant="destructive" size="icon" className="col-span-1 h-9 w-9" onClick={() => removeTechSpec(index)}>
                         <Trash2 className="h-4 w-4" />
                     </Button>
                 </div>
