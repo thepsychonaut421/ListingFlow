@@ -8,11 +8,10 @@ node_modules/
 .env.*
 firebase-debug.log
 
-# Firebase Studio / App Hosting
+# Firebase / App Hosting
 .firebase/
 
-# Firebase Functions (Next SSR în Functions)
+# Cloud Functions cu Next SSR
 functions/node_modules/
 functions/.next/
 functions/.cache/
-functions/*.log
