@@ -24,7 +24,7 @@ import { CategoryCombobox } from './category-combobox';
 const ProductSchema = z.object({
   id: z.string().optional(),
   name: z.string().min(1, 'Name is required'),
-  listingStatus: z.enum(['draft', 'listed', 'error', 'new', 'used', 'refurbished']).default('draft'),
+  listingStatus: z.enum(['draft', 'listed', 'error', 'new', 'used', 'refurbished', 'active', 'archived']).default('draft'),
   category: z.string().optional(), // Shopify Category
   ebayCategoryId: z.string().optional(),
   code: z.string().optional(), // SKU
@@ -314,11 +314,13 @@ export function ProductForm({
                 {...register('listingStatus')}
               >
                 <option value="draft">Draft</option>
-                <option value="new">New</option>
-                <option value="used">Used</option>
-                <option value="refurbished">Refurbished</option>
-                 <option value="listed">Listed</option>
-                 <option value="error">Error</option>
+                <option value="active">Active</option>
+                <option value="archived">Archived</option>
+                <option value="new">New (Condition)</option>
+                <option value="used">Used (Condition)</option>
+                <option value="refurbished">Refurbished (Condition)</option>
+                 <option value="listed">Listed (Legacy)</option>
+                 <option value="error">Error (Internal)</option>
               </select>
             </div>
 
@@ -329,9 +331,15 @@ export function ProductForm({
 
             <div className="col-span-12 md:col-span-6">
               <Label>Shopify Category</Label>
-               <CategoryCombobox 
-                    value={methods.watch('category') || ''}
-                    onChange={(value) => setValue('category', value)}
+               <Controller
+                  name="category"
+                  control={control}
+                  render={({ field }) => (
+                    <CategoryCombobox
+                        value={field.value || ''}
+                        onChange={field.onChange}
+                    />
+                  )}
                 />
             </div>
 

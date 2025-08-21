@@ -62,6 +62,24 @@ const toShopifyImages = (images: ProductImage[], productTitle: string) => {
   });
 }
 
+// Maps our internal status to a valid Shopify product status.
+const toShopifyStatus = (status: Product['listingStatus']): 'active' | 'draft' | 'archived' => {
+    switch (status) {
+        case 'active':
+        case 'listed': // Treat legacy 'listed' as 'active'
+            return 'active';
+        case 'archived':
+            return 'archived';
+        case 'draft':
+        case 'new':
+        case 'used':
+        case 'refurbished':
+        case 'error':
+        default:
+            return 'draft'; // Default to 'draft' for all other cases
+    }
+}
+
 
 // Main function to publish a product to Shopify
 export async function publishToShopify(product: Product): Promise<any> {
@@ -78,8 +96,8 @@ export async function publishToShopify(product: Product): Promise<any> {
     const ean = pickVal(product, specs, 'EAN', 'ean', 'Barcode');
     const weightInGrams = parseFloat(pickVal(product, specs, 'Gewicht', 'weight').replace(/[^0-9.]/g, '')) * 1000 || 0;
     
-    // Map ListingFlow status to Shopify status
-    const shopifyStatus = product.listingStatus === 'listed' ? 'active' : 'draft';
+    // Map ListingFlow status to a valid Shopify status
+    const shopifyStatus = toShopifyStatus(product.listingStatus);
 
     const shopifyProduct = {
         product: {
@@ -108,7 +126,7 @@ export async function publishToShopify(product: Product): Promise<any> {
         }
     };
     
-    const endpoint = `${shopUrl.replace(/\/$/, '')}/admin/api/2023-10/products.json`;
+    const endpoint = `${shopUrl.replace(/\/$/, '')}/admin/api/2024-04/products.json`;
 
     const response = await fetch(endpoint, {
         method: 'POST',

@@ -27,10 +27,14 @@ interface CategoryComboboxProps {
 export function CategoryCombobox({ value, onChange }: CategoryComboboxProps) {
   const [open, setOpen] = React.useState(false);
 
-  const categories = shopifyTaxonomy.map((category) => ({
-    value: category.toLowerCase(),
-    label: category,
-  }));
+  // Sort categories alphabetically by their full path for better usability
+  const categories = React.useMemo(() => 
+    [...shopifyTaxonomy]
+      .sort((a, b) => a.localeCompare(b))
+      .map((category) => ({
+        value: category.toLowerCase(), // Use full path for value to ensure uniqueness
+        label: category,
+    })), []);
   
   const selectedLabel = categories.find((c) => c.value === value?.toLowerCase())?.label || 'Select category...';
 
@@ -69,7 +73,7 @@ export function CategoryCombobox({ value, onChange }: CategoryComboboxProps) {
                       value?.toLowerCase() === category.value ? 'opacity-100' : 'opacity-0'
                     )}
                   />
-                  {category.label}
+                  <span className="truncate">{category.label}</span>
                 </CommandItem>
               ))}
             </CommandGroup>
