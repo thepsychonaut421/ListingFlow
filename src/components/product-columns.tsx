@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -42,6 +43,17 @@ const formatCurrency = (amount: number) => {
         currency: 'EUR',
     }).format(amount);
 }
+
+const statusVariantMap: Record<Product['listingStatus'], 'default' | 'secondary' | 'destructive' | 'outline'> = {
+    listed: 'default',
+    draft: 'secondary',
+    error: 'destructive',
+    new: 'outline',
+    used: 'outline',
+    refurbished: 'outline',
+    active: 'default',
+    archived: 'secondary'
+};
 
 export const getColumns = ({ onEdit, onDelete, onGenerate, onCopyDescription, onExtractTechSpecs, onSendToEbay, onPublishToShopify, generatingProductId, onUpdateProduct }: GetColumnsProps): ColumnDef<Product>[] => [
   {
@@ -158,11 +170,8 @@ export const getColumns = ({ onEdit, onDelete, onGenerate, onCopyDescription, on
     accessorKey: 'listingStatus',
     header: 'Status',
     cell: ({ row }) => {
-      const status = row.getValue('listingStatus') as string;
-      const variant: "default" | "secondary" | "destructive" | "outline" | null | undefined = 
-        status === 'listed' ? 'default' : 
-        status === 'draft' ? 'secondary' :
-        status === 'error' ? 'destructive' : 'outline';
+      const status = row.getValue('listingStatus') as Product['listingStatus'];
+      const variant = statusVariantMap[status] || 'outline';
       return <Badge variant={variant} className="capitalize">{status}</Badge>;
     },
   },
