@@ -28,7 +28,7 @@ import { CategoryCombobox } from './category-combobox';
 
 
 const bulkEditSchema = z.object({
-  listingStatus: z.enum(['', 'draft', 'listed', 'error', 'new', 'used', 'refurbished']).optional(),
+  listingStatus: z.enum(['', 'draft', 'listed', 'error', 'new', 'used', 'refurbished', 'active', 'archived']).optional(),
   category: z.string().optional(),
   ebayCategoryId: z.string().optional(),
 });
@@ -84,6 +84,8 @@ export function BulkEditForm({ onSave, onCancel }: BulkEditFormProps) {
                   </FormControl>
                   <SelectContent>
                     <SelectItem value="draft">Draft</SelectItem>
+                    <SelectItem value="active">Active</SelectItem>
+                    <SelectItem value="archived">Archived</SelectItem>
                     <SelectItem value="new">New</SelectItem>
                     <SelectItem value="used">Used</SelectItem>
                     <SelectItem value="refurbished">Refurbished</SelectItem>

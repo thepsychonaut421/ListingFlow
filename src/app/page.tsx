@@ -70,20 +70,6 @@ const EnvBadge = () => {
     );
 };
 
-type ListingStatus = Product["listingStatus"];
-
-const asListingStatus = (v: unknown): ListingStatus => {
-  switch ((v ?? "").toString().toLowerCase()) {
-    case "draft": return "draft";
-    case "listed": return "listed";
-    case "error": return "error";
-    case "new": return "new";
-    case "used": return "used";
-    case "refurbished": return "refurbished";
-    default: return "draft"; // sensible fallback
-  }
-};
-
 
 // Helper to migrate old image string[] to new ProductImage[]
 const migrateImages = (images: (string | ProductImage)[]): ProductImage[] => {
@@ -485,7 +471,7 @@ function DashboardClient() {
                     images: item.image ? [{ url: `${process.env.NEXT_PUBLIC_ERPNEXT_BASE_URL || ''}${item.image}`, isMain: true }] : [],
                     quantity: 0,
                     listingStatus: asListingStatus(item.listingStatus),
-                    category: String(item.category || ''),
+                    category: String(item.item_group || ''),
                     ebayCategoryId: String(item.ebayCategoryId || ''),
                     tags: Array.isArray(item.tags) ? item.tags : [],
                     keywords: Array.isArray(item.keywords) ? item.keywords : [],
@@ -517,6 +503,16 @@ function DashboardClient() {
     } finally {
         setIsErpLoading(false);
     }
+  };
+
+  // Helper function to safely cast ERPNext listing status to Product["listingStatus"]
+  const asListingStatus = (v: unknown): Product["listingStatus"] => {
+    const statusMap: { [key: string]: Product["listingStatus"] } = {
+      "draft": "draft", "listed": "listed", "error": "error", "new": "new",
+      "used": "used", "refurbished": "refurbished", "active": "active", "archived": "archived"
+    };
+    const lowerCaseV = (v ?? "").toString().toLowerCase();
+    return statusMap[lowerCaseV] || "draft"; // sensible fallback
   };
 
 

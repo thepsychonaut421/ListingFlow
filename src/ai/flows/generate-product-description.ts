@@ -16,7 +16,7 @@ import { getShopifyCategorySuggestion } from '@/lib/category-mapper';
 const GenerateProductDescriptionInputSchema = z.object({
   productName: z.string().describe('The name of the product.'),
   category: z.string().describe('The current category of the product.'),
-  listingStatus: z.enum(['draft', 'listed', 'error', 'new', 'used', 'refurbished']),
+  listingStatus: z.enum(['draft', 'listed', 'error', 'new', 'used', 'refurbished', 'active', 'archived']),
   brand: z.string().optional().describe('The brand of the product, if known.'),
 });
 export type GenerateProductDescriptionInput = z.infer<
@@ -48,7 +48,7 @@ const generateDetailsPrompt = ai.definePrompt({
   input: {schema: z.object({
       productName: z.string().describe('The name of the product.'),
       category: z.string().describe('The current category of the product.'),
-      listingStatus: z.enum(['draft', 'listed', 'error', 'new', 'used', 'refurbished']),
+      listingStatus: z.enum(['draft', 'listed', 'error', 'new', 'used', 'refurbished', 'active', 'archived']),
        brand: z.string().optional().describe('The brand of the product, if known.'),
     })
   },
