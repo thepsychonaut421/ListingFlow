@@ -1,4 +1,9 @@
 
+export type ProductImage = {
+  url: string; // Can be a remote URL or a base64 Data URI
+  isMain: boolean;
+};
+
 export type Product = {
   id: string;
   name:string;
@@ -6,7 +11,7 @@ export type Product = {
   quantity: number;
   price: number;
   description: string;
-  images: string[];
+  images: ProductImage[];
   supplier: string;
   location: string;
   tags: string[];

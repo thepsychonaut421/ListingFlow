@@ -8,7 +8,10 @@ export const initialProducts: Product[] = [
     quantity: 10,
     price: 79.99,
     description: 'Powerful kitchen machine for kneading, mixing and blending. Includes a large stainless steel bowl and various attachments.',
-    image: 'https://cdn.idealo.com/folder/Product/201673/3/201673324/s1_produktbild_gross/silvercrest-skm-600-b2-600-w-weiss.jpg',
+    images: [{
+        url: 'https://cdn.idealo.com/folder/Product/201673/3/201673324/s1_produktbild_gross/silvercrest-skm-600-b2-600-w-weiss.jpg',
+        isMain: true,
+    }],
     supplier: 'Lidl',
     location: 'Warehouse D, Shelf 2',
     tags: ['kitchen', 'mixer', 'baking', 'appliance'],

@@ -56,39 +56,43 @@ export function SelectedProducts({ products, onBulkEdit, onClear, onRemove, onEd
       <CardContent>
         <ScrollArea className="w-full whitespace-nowrap">
           <div className="flex w-max space-x-4 pb-4">
-            {products.map((product) => (
-              <div 
-                key={product.id} 
-                className="relative group w-40 cursor-pointer"
-                onClick={() => handleCardClick(product)}
-                onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && handleCardClick(product)}
-                role="button"
-                tabIndex={0}
-                title={`Edit ${product.name}`}
-               >
-                <Button
-                  variant="destructive"
-                  size="icon"
-                  className="absolute top-1 right-1 h-6 w-6 bg-black/50 text-white opacity-0 group-hover:opacity-100 transition-opacity z-10"
-                  onClick={(e) => handleRemoveClick(e, product.id)}
-                  title="Deselect"
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-                <div className="overflow-hidden rounded-md border hover:border-primary">
-                  <img
-                    src={product.images?.[0] || 'https://placehold.co/150x150.png'}
-                    alt={product.name}
-                    className="h-40 w-40 object-cover transition-transform group-hover:scale-105"
-                    data-ai-hint="product image"
-                  />
-                </div>
-                <div className="pt-2">
-                  <p className="text-sm font-medium leading-none truncate">{product.name}</p>
-                  <p className="text-xs text-muted-foreground">{product.code}</p>
-                </div>
-              </div>
-            ))}
+            {products.map((product) => {
+                const mainImage = product.images.find(img => img.isMain) || product.images[0];
+                const imageUrl = mainImage?.url || 'https://placehold.co/150x150.png';
+                return (
+                  <div 
+                    key={product.id} 
+                    className="relative group w-40 cursor-pointer"
+                    onClick={() => handleCardClick(product)}
+                    onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && handleCardClick(product)}
+                    role="button"
+                    tabIndex={0}
+                    title={`Edit ${product.name}`}
+                  >
+                    <Button
+                      variant="destructive"
+                      size="icon"
+                      className="absolute top-1 right-1 h-6 w-6 bg-black/50 text-white opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                      onClick={(e) => handleRemoveClick(e, product.id)}
+                      title="Deselect"
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                    <div className="overflow-hidden rounded-md border hover:border-primary">
+                      <img
+                        src={imageUrl}
+                        alt={product.name}
+                        className="h-40 w-40 object-cover transition-transform group-hover:scale-105"
+                        data-ai-hint="product image"
+                      />
+                    </div>
+                    <div className="pt-2">
+                      <p className="text-sm font-medium leading-none truncate">{product.name}</p>
+                      <p className="text-xs text-muted-foreground">{product.code}</p>
+                    </div>
+                  </div>
+                )
+            })}
           </div>
           <ScrollBar orientation="horizontal" />
         </ScrollArea>

@@ -46,7 +46,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
-import type { Product } from '@/lib/types';
+import type { Product, ProductImage } from '@/lib/types';
 import { ProductDataTable } from '@/components/product-data-table';
 import { getColumns } from '@/components/product-columns';
 import { generateProductDescription } from '@/ai/flows/generate-product-description';
@@ -85,6 +85,30 @@ const asListingStatus = (v: unknown): ListingStatus => {
 };
 
 
+// Helper to migrate old image string[] to new ProductImage[]
+const migrateImages = (images: (string | ProductImage)[]): ProductImage[] => {
+  if (!images || images.length === 0) {
+    return [];
+  }
+  // Check if migration is needed
+  if (typeof images[0] === 'string') {
+    return (images as string[]).map((url, index) => ({
+      url,
+      isMain: index === 0, // Set the first image as main by default
+    }));
+  }
+  // If it's already the new format, ensure at least one isMain is set
+  const newImages = images as ProductImage[];
+  if (newImages.some(img => img.isMain)) {
+    return newImages;
+  }
+  if (newImages.length > 0) {
+    newImages[0].isMain = true;
+  }
+  return newImages;
+};
+
+
 function DashboardClient() {
   const [products, setProducts] = React.useState<Product[]>([]);
   const [isSheetOpen, setIsSheetOpen] = React.useState(false);
@@ -107,9 +131,15 @@ function DashboardClient() {
 
   React.useEffect(() => {
     try {
-      const storedProducts = localStorage.getItem('listingFlowProducts');
-      if (storedProducts) {
-        setProducts(JSON.parse(storedProducts));
+      const storedProductsJSON = localStorage.getItem('listingFlowProducts');
+      if (storedProductsJSON) {
+        const storedProducts: Product[] = JSON.parse(storedProductsJSON);
+        // Migrate images on load
+        const migratedProducts = storedProducts.map(p => ({
+          ...p,
+          images: migrateImages(p.images),
+        }));
+        setProducts(migratedProducts);
       } else {
         setProducts([]);
       }
@@ -452,7 +482,7 @@ function DashboardClient() {
                     code: String(item.item_code),
                     price: Number(item.standard_rate || 0),
                     description: String(item.description || ''),
-                    images: item.image ? [`${process.env.NEXT_PUBLIC_ERPNEXT_BASE_URL || ''}${item.image}`] : [],
+                    images: item.image ? [{ url: `${process.env.NEXT_PUBLIC_ERPNEXT_BASE_URL || ''}${item.image}`, isMain: true }] : [],
                     quantity: 0,
                     listingStatus: asListingStatus(item.listingStatus),
                     category: String(item.category || ''),

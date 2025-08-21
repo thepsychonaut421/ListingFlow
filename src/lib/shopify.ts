@@ -62,7 +62,7 @@ export async function publishToShopify(product: Product): Promise<any> {
                     weight_unit: 'g'
                 }
             ],
-            images: product.images ? product.images.map(img => ({ src: img })) : []
+            images: product.images ? product.images.map(img => ({ src: img.url })) : []
         }
     };
     

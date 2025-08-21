@@ -11,12 +11,12 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
-import type { Product } from '@/lib/types';
+import type { Product, ProductImage } from '@/lib/types';
 import {
   SheetFooter,
   SheetClose,
 } from '@/components/ui/sheet';
-import { Loader2, Search, Trash2, Upload } from 'lucide-react';
+import { Loader2, Search, Trash2, Upload, Star } from 'lucide-react';
 import { HTMLPreview } from './html-preview';
 import { CategoryCombobox } from './category-combobox';
 
@@ -28,7 +28,7 @@ const ProductSchema = z.object({
   category: z.string().optional(), // Shopify Category
   ebayCategoryId: z.string().optional(),
   code: z.string().optional(), // SKU
-  images: z.array(z.string()).optional(), // Now an array of strings (Data URIs)
+  images: z.array(z.object({ url: z.string(), isMain: z.boolean() })).optional(),
   price: z.number().or(z.string()).optional(),
   quantity: z.number().or(z.string()).optional(),
   description: z.string().optional(),
@@ -71,8 +71,8 @@ const toProductFormValues = (product: Product | null): ProductFormValues => {
 };
 
 // New Component for Image Upload
-function ImageUploader({ control }: { control: any }) {
-    const { fields, append, remove } = useFieldArray({
+function ImageUploader({ control, setValue }: { control: any; setValue: any }) {
+    const { fields, append, remove, update } = useFieldArray({
         control,
         name: "images"
     });
@@ -90,13 +90,35 @@ function ImageUploader({ control }: { control: any }) {
             const reader = new FileReader();
             reader.onload = (e) => {
                 if (typeof e.target?.result === 'string') {
-                    append(e.target.result);
+                    // If it's the first image, mark it as main
+                    const isFirstImage = fields.length === 0;
+                    append({ url: e.target.result, isMain: isFirstImage });
                 }
             };
             reader.onerror = () => {
                  toast({ variant: 'destructive', title: 'Read Error', description: `Could not read file ${file.name}.`});
             }
             reader.readAsDataURL(file);
+        }
+    };
+    
+    const handleSetMain = (indexToSet: number) => {
+      const currentImages = control.getValues('images') as ProductImage[];
+      const updatedImages = currentImages.map((img, index) => ({
+        ...img,
+        isMain: index === indexToSet,
+      }));
+      setValue('images', updatedImages, { shouldDirty: true });
+    };
+    
+    const handleRemove = (indexToRemove: number) => {
+        const currentImages = control.getValues('images') as ProductImage[];
+        const wasMain = currentImages[indexToRemove]?.isMain;
+        remove(indexToRemove);
+
+        // If the removed image was the main one, set the new first image as main
+        if (wasMain && fields.length > 1) {
+            handleSetMain(0);
         }
     };
 
@@ -120,18 +142,39 @@ function ImageUploader({ control }: { control: any }) {
             </div>
             {fields.length > 0 && (
                  <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-4">
-                    {fields.map((field: { id: string } & string, index) => (
+                    {fields.map((field: { id: string } & ProductImage, index) => (
                         <div key={field.id} className="relative group aspect-square">
-                            <img src={field as any} alt={`Product image ${index + 1}`} className="w-full h-full object-cover rounded-md border" />
-                            <Button
-                                type="button"
-                                variant="destructive"
-                                size="icon"
-                                className="absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
-                                onClick={() => remove(index)}
-                            >
-                                <Trash2 className="h-3 w-3" />
-                            </Button>
+                            <img src={field.url} alt={`Product image ${index + 1}`} className="w-full h-full object-cover rounded-md border" />
+                            <div className="absolute top-1 right-1 flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <Button
+                                    type="button"
+                                    variant="secondary"
+                                    size="icon"
+                                    className={cn(
+                                        "h-6 w-6",
+                                        field.isMain && "bg-amber-400 hover:bg-amber-500 text-black"
+                                    )}
+                                    onClick={() => handleSetMain(index)}
+                                    title="Set as main image"
+                                >
+                                    <Star className="h-3 w-3" />
+                                </Button>
+                                <Button
+                                    type="button"
+                                    variant="destructive"
+                                    size="icon"
+                                    className="h-6 w-6"
+                                    onClick={() => handleRemove(index)}
+                                >
+                                    <Trash2 className="h-3 w-3" />
+                                </Button>
+                            </div>
+                            {field.isMain && (
+                                <div className="absolute bottom-1 left-1 bg-black/60 text-white text-xs px-1.5 py-0.5 rounded-full flex items-center gap-1">
+                                    <Star className="h-3 w-3 text-amber-400" />
+                                    Main
+                                </div>
+                            )}
                         </div>
                     ))}
                 </div>
@@ -324,7 +367,7 @@ export function ProductForm({
           </div>
         </section>
         
-        <ImageUploader control={control} />
+        <ImageUploader control={control} setValue={setValue} />
 
         <section className="space-y-3 px-6 mt-6">
           <h3 className="text-sm font-medium text-muted-foreground mb-2">Description</h3>
