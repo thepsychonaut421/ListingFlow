@@ -3,7 +3,7 @@
 
 import * as React from 'react';
 import type { ColumnDef } from '@tanstack/react-table';
-import { MoreHorizontal, ArrowUpDown, Sparkles, Loader2, Edit, Trash2, Search, Copy, PackageSearch, Send, ImageIcon, ChevronDown } from 'lucide-react';
+import { MoreHorizontal, ArrowUpDown, Sparkles, Loader2, Edit, Trash2, Search, Copy, PackageSearch, Send, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -44,16 +44,17 @@ const formatCurrency = (amount: number) => {
     }).format(amount);
 }
 
-const statusVariantMap: Record<Product['listingStatus'], 'default' | 'secondary' | 'destructive' | 'outline'> = {
+const statusVariantMap: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
+    active: 'default',
     listed: 'default',
     draft: 'secondary',
+    archived: 'outline',
     error: 'destructive',
     new: 'outline',
     used: 'outline',
     refurbished: 'outline',
-    active: 'default',
-    archived: 'secondary'
 };
+
 
 export const getColumns = ({ onEdit, onDelete, onGenerate, onCopyDescription, onExtractTechSpecs, onSendToEbay, onPublishToShopify, generatingProductId, onUpdateProduct }: GetColumnsProps): ColumnDef<Product>[] => [
   {
@@ -90,8 +91,9 @@ export const getColumns = ({ onEdit, onDelete, onGenerate, onCopyDescription, on
     },
     cell: ({ row }) => {
       const product = row.original;
-      const mainImage = product.images.find(img => img.isMain) || product.images[0];
-      const imageUrl = mainImage?.url || 'https://placehold.co/40x40.png';
+      const images = product.images ?? [];
+      const mainImage = images.find(img => img.isMain) ?? images[0];
+      const imageUrl = mainImage?.url ?? 'https://placehold.co/40x40.png';
       return (
         <div className="flex items-center gap-4">
           <img
@@ -101,6 +103,7 @@ export const getColumns = ({ onEdit, onDelete, onGenerate, onCopyDescription, on
             height={40}
             className="rounded-md object-cover"
             data-ai-hint="product image"
+            loading="lazy"
           />
           <div className="font-medium">{product.name}</div>
         </div>
