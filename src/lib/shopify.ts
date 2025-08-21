@@ -89,10 +89,17 @@ export async function publishToShopify(product: Product): Promise<any> {
         throw new Error('Shopify credentials (URL or Access Token) are not configured in environment variables.');
     }
     
-    // Basic validation to catch incorrect URL values like the one in the screenshot
-    if (!shopUrl.startsWith('https://')) {
-        throw new Error(`The Shopify Store URL configured ("${shopUrl}") is not a valid URL. It should look like https://your-store.myshopify.com.`);
+    try {
+        // More robust URL validation.
+        const url = new URL(shopUrl);
+        if (url.protocol !== 'https:' || !url.hostname.endsWith('myshopify.com')) {
+             throw new Error(`The provided URL is not a valid Shopify store URL.`);
+        }
+    } catch (e: any) {
+        // This will catch invalid URL formats and provide a much clearer error.
+        throw new Error(`The Shopify Store URL configured ("${shopUrl}") is not a valid URL. It should look like https://your-store.myshopify.com. ${e.message}`);
     }
+
 
     const specs = product.technicalSpecs || {};
     const brand = pickVal(product, specs, 'Marke', 'brand', 'Brand');
