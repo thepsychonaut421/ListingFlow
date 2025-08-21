@@ -144,7 +144,7 @@ function ImageUploader({ control, setValue, getValues }: { control: any; setValu
                  <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-4">
                     {fields.map((field, index) => (
                         <div key={field.id} className="relative group aspect-square">
-                            <img src={field.url} alt={`Product image ${index + 1}`} className="w-full h-full object-cover rounded-md border" />
+                            <img src={(field as any).url} alt={`Product image ${index + 1}`} className="w-full h-full object-cover rounded-md border" />
                             <div className="absolute top-1 right-1 flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                 <Button
                                     type="button"
@@ -152,7 +152,7 @@ function ImageUploader({ control, setValue, getValues }: { control: any; setValu
                                     size="icon"
                                     className={cn(
                                         "h-6 w-6",
-                                        field.isMain && "bg-amber-400 hover:bg-amber-500 text-black"
+                                        (field as any).isMain && "bg-amber-400 hover:bg-amber-500 text-black"
                                     )}
                                     onClick={() => handleSetMain(index)}
                                     title="Set as main image"
@@ -169,7 +169,7 @@ function ImageUploader({ control, setValue, getValues }: { control: any; setValu
                                     <Trash2 className="h-3 w-3" />
                                 </Button>
                             </div>
-                            {field.isMain && (
+                            {(field as any).isMain && (
                                 <div className="absolute bottom-1 left-1 bg-black/60 text-white text-xs px-1.5 py-0.5 rounded-full flex items-center gap-1">
                                     <Star className="h-3 w-3 text-amber-400" />
                                     Main
