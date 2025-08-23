@@ -53,13 +53,13 @@ async function erpFetch(endpoint: string, init?: RequestInit) {
  */
 export async function erpPing(): Promise<string> {
   const data = await erpFetch(`/api/method/frappe.auth.get_logged_user`);
-  if (data.data.message === 'Guest') {
+  if (data?.message === 'Guest') {
     throw new Error('Authentication failed: credentials are for a Guest user.');
   }
-  if (!data.data.message) {
+  if (!data?.message) {
     throw new Error('Authentication check failed: unexpected response from ERPNext.');
   }
-  return data.data.message as string; // email of the logged-in user
+  return data.message as string; // email of the logged-in user
 }
 
 
