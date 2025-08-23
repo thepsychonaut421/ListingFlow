@@ -3,62 +3,48 @@
 
 import type { Product, ProductImage } from './types';
 
-function erpHeaders() {
-  const key = process.env.ERPNEXT_API_KEY;
-  const secret = process.env.ERPNEXT_API_SECRET;
-  if (!key || !secret) {
-    throw new Error('ERPNext API Key/Secret is not configured in environment variables.');
-  }
-  return {
-    'Authorization': `token ${key}:${secret}`,
-    'Content-Type': 'application/json',
-    'Accept': 'application/json',
-  };
-}
-
-async function erpFetch(path: string, init?: RequestInit) {
-  const base = process.env.ERPNEXT_BASE_URL;
-  if (!base) {
-    throw new Error('ERPNEXT_BASE_URL is not configured in environment variables.');
-  }
-  
-  const url = `${base.replace(/\/$/, '')}${path}`;
-  
+/**
+ * A generic fetch wrapper for making API calls to the ERPNext proxy route.
+ * This centralizes API calls and ensures they all go through the secure server-side proxy
+ * where environment variables and secrets are properly handled.
+ *
+ * @param endpoint The ERPNext API endpoint (e.g., /api/resource/Item).
+ * @param init The standard RequestInit object for fetch (method, body, etc.).
+ * @returns The JSON response from the API.
+ * @throws An error if the request fails or returns a non-ok status.
+ */
+async function erpFetch(endpoint: string, init?: RequestInit) {
   try {
-    const response = await fetch(url, {
-      ...init,
-      headers: { ...erpHeaders(), ...(init?.headers as any) },
-      cache: 'no-store',
+    const response = await fetch('/api/proxy-erpnext', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            endpoint,
+            method: init?.method || 'GET',
+            body: init?.body ? JSON.parse(init.body as string) : undefined,
+        }),
+        cache: 'no-store',
     });
 
     if (!response.ok) {
-      let errorDetails;
-      try {
         const errorBody = await response.json();
-        // Frappe often wraps the real error in _server_messages
-        if (errorBody._server_messages) {
-          const serverMessage = JSON.parse(errorBody._server_messages[0]);
-          errorDetails = serverMessage.message || JSON.stringify(serverMessage);
-        } else {
-          errorDetails = errorBody.message || errorBody.exception || errorBody.error || JSON.stringify(errorBody);
-        }
-      } catch (e) {
-        errorDetails = await response.text();
-      }
-      throw new Error(`ERPNext request to ${path} failed with status ${response.status}: ${errorDetails}`);
+        const errorMessage = errorBody.error || `Request to proxy for ${endpoint} failed with status ${response.status}`;
+        throw new Error(errorMessage);
     }
     
+    // Handle successful but empty responses (e.g., from PUT or DELETE)
     if (response.status === 204) {
       return null;
     }
 
     return response.json();
+
   } catch (err: any) {
-    console.error(`ERPNext fetch error for path ${path}:`, err);
-    // Re-throw a more informative error
-    throw new Error(`Failed to communicate with ERPNext at ${url}. Please check the URL and credentials. Original error: ${err.message}`);
+    console.error(`ERPNext proxy fetch error for endpoint ${endpoint}:`, err);
+    throw new Error(`Failed to communicate with ERPNext via proxy. Original error: ${err.message}`);
   }
 }
+
 
 /**
  * Performs a preflight check to ensure API credentials are valid.
@@ -67,13 +53,13 @@ async function erpFetch(path: string, init?: RequestInit) {
  */
 export async function erpPing(): Promise<string> {
   const data = await erpFetch(`/api/method/frappe.auth.get_logged_user`);
-  if (data.message === 'Guest') {
+  if (data.data.message === 'Guest') {
     throw new Error('Authentication failed: credentials are for a Guest user.');
   }
-  if (!data.message) {
+  if (!data.data.message) {
     throw new Error('Authentication check failed: unexpected response from ERPNext.');
   }
-  return data.message as string; // email of the logged-in user
+  return data.data.message as string; // email of the logged-in user
 }
 
 
