@@ -12,6 +12,7 @@ import {
   Settings,
   Moon,
   Sun,
+  History,
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -66,6 +67,7 @@ export function AppShell({
   const navItems = [
     { href: '/', icon: Home, label: 'Dashboard' },
     { href: '/exports', icon: File, label: 'Exports' },
+    { href: '/logs', icon: History, label: 'Logs' },
   ];
   
   return (
