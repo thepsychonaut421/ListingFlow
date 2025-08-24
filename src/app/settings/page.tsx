@@ -56,27 +56,27 @@ function SettingsClient() {
         <CardHeader>
           <CardTitle>Environment Variables</CardTitle>
           <CardDescription>
-           Configuration for external services like ERPNext and Firebase are managed via environment variables. For local development, create a file named <strong>.env.local</strong> in your project root.
+           Configuration for external services are managed via environment variables. For local development, create a file named <strong>.env.local</strong> in your project root and add the same values you've stored in Firebase Secret Manager.
           </CardDescription>
         </CardHeader>
         <CardContent>
           <h3 className="mb-2 font-semibold">ERPNext Credentials</h3>
            <pre className="mt-2 p-2 bg-muted rounded-md text-sm font-mono overflow-x-auto">
-{`# .env.local (for testing)
-ERPNEXT_BASE_URL="https://your-test-erp.rembayer.info"
-NEXT_PUBLIC_ERPNEXT_BASE_URL="https://your-test-erp.rembayer.info"
-ERPNEXT_API_KEY="your_test_api_key"
-ERPNEXT_API_SECRET="your_test_api_secret"
+{`# .env.local (for local development)
+ERPNEXT_BASE_URL="https://your-erpnext-domain.com"
+NEXT_PUBLIC_ERPNEXT_BASE_URL="https://your-erpnext-domain.com"
+ERPNEXT_API_KEY="your_erpnext_api_key"
+ERPNEXT_API_SECRET="your_erpnext_api_secret"
 NEXT_PUBLIC_ENV="dev"`}
             </pre>
             <p className="mt-2 text-sm text-muted-foreground">
-              Current Public ERP URL: <strong>{erpNextUrl}</strong>
+              Your current public ERP URL is displayed as: <strong>{erpNextUrl}</strong>. The API Key and Secret are never exposed to the browser.
             </p>
 
              <h3 className="mt-6 mb-2 font-semibold">Shopify Credentials</h3>
              <pre className="mt-2 p-2 bg-muted rounded-md text-sm font-mono overflow-x-auto">
-{`# .env.local
-SHOPIFY_STORE_URL="https://your-store-name.myshopify.com"
+{`# .env.local (for local development)
+SHOPIFY_STORE_URL="your-store-name.myshopify.com"
 SHOPIFY_ADMIN_ACCESS_TOKEN="shpat_..."`}
             </pre>
         </CardContent>
