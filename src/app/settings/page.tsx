@@ -78,10 +78,13 @@ NEXT_PUBLIC_ENV="dev"`}
              <pre className="mt-2 p-2 bg-muted rounded-md text-sm font-mono overflow-x-auto">
 {`# .env.local (for local development)
 # A JSON array of store objects. Each object needs a unique "name", the "url", and the "token".
-SHOPIFY_STORES='[{"name": "My Main Store", "url": "your-store-name.myshopify.com", "token": "shpat_..."}, {"name": "Test Store", "url": "your-test-store.myshopify.com", "token": "shpat_..."}]'`}
+SHOPIFY_STORES='[{"name": "My Main Store", "url": "your-store-name.myshopify.com", "token": "shpat_..."}, {"name": "Test Store", "url": "your-test-store.myshopify.com", "token": "shpat_..."}]'
+
+# Secret for verifying webhooks from the "Shop <-> ERPNext" app
+SHOPIFY_WEBHOOK_SECRET="your_webhook_secret_key_here"`}
             </pre>
              <p className="mt-2 text-sm text-muted-foreground">
-               For production, you must set the `SHOPIFY_STORES` secret in Firebase Secret Manager with the same JSON string structure.
+               For production, you must set the `SHOPIFY_STORES` and `SHOPIFY_WEBHOOK_SECRET` secrets in Firebase Secret Manager with the same values.
             </p>
         </CardContent>
       </Card>
