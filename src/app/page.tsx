@@ -493,13 +493,14 @@ function DashboardClient() {
                     body: JSON.stringify({ endpoint, method: 'GET' }),
                 });
 
-                if (!response.ok) {
-                    const resultText = await response.text();
+                 if (!response.ok) {
+                    // Try to parse the JSON error body from the proxy
                     try {
-                        const errorBody = JSON.parse(resultText);
-                        throw new Error(errorBody.error || 'Import failed');
+                        const errorBody = await response.json();
+                        throw new Error(errorBody.error || `Import failed with status ${response.status}`);
                     } catch (e) {
-                        throw new Error(resultText || `Import failed with status ${response.status}`);
+                        // Fallback if the body isn't JSON or another error occurs
+                        throw new Error(`Import request failed with status ${response.status}`);
                     }
                 }
 
@@ -548,7 +549,7 @@ function DashboardClient() {
         console.error(`ERP ${action} failed:`, error);
         toast({
             variant: 'destructive',
-            title: `ERP ${action} Failed`,
+            title: `ERP ${action.charAt(0).toUpperCase() + action.slice(1)} Failed`,
             description: error.message,
         });
     } finally {

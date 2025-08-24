@@ -11,15 +11,10 @@ export async function POST(req: Request) {
     const apiKey = process.env.ERPNEXT_API_KEY;
     const apiSecret = process.env.ERPNEXT_API_SECRET;
     
-    // This check is removed as Next.js handles .env.local loading natively.
-    // If variables are missing, the fetch call will fail with a clearer network error.
     if (!url || !apiKey || !apiSecret) {
-        const errorMessage = `ERPNext credentials are not configured. Please ensure ERPNEXT_BASE_URL, ERPNEXT_API_KEY, and ERPNEXT_API_SECRET are set in your environment. For local development, use a .env.local file.`;
+        const errorMessage = `ERPNext credentials are not configured. Please ensure ERPNEXT_BASE_URL, ERPNEXT_API_KEY, and ERPNEXT_API_SECRET are set in your environment.`;
         console.error(errorMessage);
-        return NextResponse.json(
-            { error: errorMessage },
-            { status: 500 }
-        );
+        return NextResponse.json({ error: errorMessage }, { status: 500 });
     }
 
     const fullUrl = `${url.replace(/\/$/, '')}${endpoint}`;
@@ -34,7 +29,7 @@ export async function POST(req: Request) {
       method,
       headers,
       body: body ? JSON.stringify(body) : undefined,
-      cache: 'no-store', // Ensure fresh data is fetched
+      cache: 'no-store',
     };
     
     const response = await fetch(fullUrl, requestOptions);
@@ -44,30 +39,30 @@ export async function POST(req: Request) {
         try {
             const errorText = await response.text();
             
-            // Check if the response is HTML (like a Cloudflare error page or ERPNext error)
-            if (errorText.trim().startsWith('<!DOCTYPE html>')) {
+            if (errorText.includes("frappe.exceptions.AuthenticationError")) {
+                errorDetails = "Authentication Error. Please check your ERPNext API Key and Secret.";
+            } else if (errorText.trim().startsWith('<!DOCTYPE html>')) {
                 const $ = cheerio.load(errorText);
-                // Extract a more meaningful title or header from the HTML
                 const pageTitle = $('title').text();
                 const h1Title = $('h1').first().text();
                 errorDetails = `${pageTitle || h1Title || 'Received an HTML error page from the server.'}`;
             } else {
-                 // Try to parse it as JSON, as expected from a well-behaved API
-                try {
+                 try {
                     const errorBody = JSON.parse(errorText);
                     if (errorBody._server_messages) {
                          const serverMessage = JSON.parse(errorBody._server_messages[0]);
                          errorDetails = serverMessage.message || JSON.stringify(serverMessage);
-                    } else {
-                        errorDetails = errorBody.message || errorBody.exception || errorBody.error || JSON.stringify(errorBody);
+                    } else if (errorBody.exception) {
+                        errorDetails = errorBody.exception;
+                    }
+                    else {
+                        errorDetails = errorBody.message || errorBody.error || JSON.stringify(errorBody);
                     }
                 } catch(e) {
-                    // If parsing as JSON fails, use the raw text.
                     errorDetails = errorText;
                 }
             }
         } catch (e: any) {
-            // If any parsing fails, fallback to the raw status text.
             console.error("Failed to parse error response body:", e.message);
             errorDetails = `The server returned a non-JSON response that could not be parsed.`;
         }
@@ -86,7 +81,6 @@ export async function POST(req: Request) {
 
   } catch (err: any) {
     console.error("API Proxy Error:", err);
-    // Provide a more specific error message for network/fetch failures
     const errorMessage = err.cause?.code === 'ENOTFOUND'
       ? `Could not connect to ERPNext server at ${process.env.ERPNEXT_BASE_URL}. Please check the URL and network connection.`
       : err.message || 'An unexpected error occurred in the API proxy.';
