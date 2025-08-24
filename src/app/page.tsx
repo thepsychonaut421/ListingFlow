@@ -458,7 +458,7 @@ function DashboardClient() {
     }
   };
   
-  const handleErpAction = async (action: 'import' | 'update' | 'export') => {
+ const handleErpAction = async (action: 'import' | 'update' | 'export') => {
     setIsErpLoading(true);
     const productsToExport = products.filter(p => selectedIds.has(p.id));
 
@@ -550,7 +550,7 @@ function DashboardClient() {
         toast({
             variant: 'destructive',
             title: `ERP ${action.charAt(0).toUpperCase() + action.slice(1)} Failed`,
-            description: error.message,
+            description: error.message || 'An unexpected error occurred.',
         });
     } finally {
         setIsErpLoading(false);
@@ -753,3 +753,5 @@ function DashboardClient() {
 export default function Dashboard() {
     return <DashboardClient />;
 }
+
+    
