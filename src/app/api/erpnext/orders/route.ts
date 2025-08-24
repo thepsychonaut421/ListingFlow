@@ -6,6 +6,7 @@ import { erpFetch } from '@/lib/erpnext-server';
 
 // This endpoint is designed to be called from the client-side Orders page.
 // It fetches a list of Sales Orders from ERPNext.
+export const dynamic = 'force-dynamic';
 
 export async function GET() {
   try {
