@@ -13,6 +13,7 @@ import {
   Moon,
   Sun,
   History,
+  ShoppingCart,
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -66,6 +67,7 @@ export function AppShell({
   
   const navItems = [
     { href: '/', icon: Home, label: 'Dashboard' },
+    { href: '/listings', icon: ShoppingCart, label: 'Orders' },
     { href: '/exports', icon: File, label: 'Exports' },
     { href: '/logs', icon: History, label: 'Logs' },
   ];
