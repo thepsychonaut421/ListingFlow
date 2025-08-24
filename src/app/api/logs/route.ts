@@ -1,6 +1,4 @@
 // src/app/api/logs/route.ts
-'use server';
-
 import { NextResponse } from 'next/server';
 import { readEvents } from '@/lib/logging';
 
