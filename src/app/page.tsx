@@ -424,7 +424,8 @@ function DashboardClient() {
         }
         successCount++;
       } catch (error: any) {
-        errorMessages.push(error.message);
+        // Use a more specific error message for each product
+        errorMessages.push(`${product.name}: ${error.message}`);
       }
     }
 
@@ -434,7 +435,8 @@ function DashboardClient() {
       toast({
         variant: 'destructive',
         title: 'Shopify Publish Partially Failed',
-        description: `${successCount} products published. Errors: ${errorMessages.join(', ')}`,
+        description: `${successCount} products published. Errors: ${errorMessages.join('; ')}`,
+        duration: 9000,
       });
     } else {
       toast({

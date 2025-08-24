@@ -85,21 +85,9 @@ export async function publishToShopify(product: Product): Promise<any> {
     const shopUrl = process.env.SHOPIFY_STORE_URL;
     const accessToken = process.env.SHOPIFY_ADMIN_ACCESS_TOKEN;
 
-    if (!shopUrl || !accessToken || accessToken.trim() === '' || shopUrl.trim() === '') {
-        const urlHint = shopUrl ? `Received URL starts with: "${shopUrl.substring(0, 20)}..."` : "URL not received.";
-        const tokenHint = accessToken ? `Received token starts with: "${accessToken.substring(0, 8)}..."` : "Access Token not received.";
-        throw new Error(`Shopify credentials missing or empty in environment variables. Please check your secrets configuration. Details: ${urlHint}, ${tokenHint}`);
+    if (!shopUrl || !accessToken || !accessToken.startsWith('shpat_')) {
+        throw new Error(`Invalid Shopify credentials provided. Ensure SHOPIFY_STORE_URL is correct and SHOPIFY_ADMIN_ACCESS_TOKEN is a valid Admin API token starting with 'shpat_'.`);
     }
-
-    try {
-        const url = new URL(shopUrl);
-        if (url.protocol !== 'https:' || !url.hostname.endsWith('myshopify.com')) {
-             throw new Error(`The provided URL is not a valid Shopify store URL. Received: "${shopUrl}"`);
-        }
-    } catch (e: any) {
-        throw new Error(`The Shopify Store URL configured ("${shopUrl}") is not a valid URL. It should look like https://your-store.myshopify.com. ${e.message}`);
-    }
-
 
     const specs = product.technicalSpecs || {};
     const brand = pickVal(product, specs, 'Marke', 'brand', 'Brand');
@@ -133,11 +121,10 @@ export async function publishToShopify(product: Product): Promise<any> {
                     taxable: true,
                 }
             ],
-            // product_category is removed to avoid potential issues
         }
     };
     
-    const endpoint = `${shopUrl.replace(/\/$/, '')}/admin/api/2024-07/products.json`;
+    const endpoint = `https://${shopUrl.replace(/^(https?:\/\/)?/, '')}/admin/api/2024-07/products.json`;
 
     const response = await fetch(endpoint, {
         method: 'POST',
@@ -149,11 +136,16 @@ export async function publishToShopify(product: Product): Promise<any> {
         cache: 'no-store'
     });
 
-    const responseBody = await response.json();
     if (!response.ok) {
+        const responseBody = await response.json().catch(() => ({})); // Gracefully handle non-JSON responses
         const errorMessage = responseBody.errors ? JSON.stringify(responseBody.errors) : 'An unknown error occurred.';
+        
+        if (response.status === 401) {
+             throw new Error(`Shopify API Error: 401 - Authentication failed. The provided Admin API Access Token is invalid or does not have the required permissions (e.g., 'write_products'). Please verify your 'SHOPIFY_ADMIN_ACCESS_TOKEN' secret.`);
+        }
+        
         throw new Error(`Shopify API Error: ${response.status} - ${errorMessage}`);
     }
 
-    return responseBody;
+    return response.json();
 }

@@ -10,11 +10,21 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Product data is required.' }, { status: 400 });
     }
 
+    // Explicit check for environment variables at the start of the request.
+    // This ensures that we fail fast with a clear error message if secrets are not configured.
+    if (!process.env.SHOPIFY_STORE_URL || !process.env.SHOPIFY_ADMIN_ACCESS_TOKEN) {
+        console.error('Shopify credentials missing from environment variables.');
+        return NextResponse.json({ 
+            error: 'Shopify configuration is missing on the server. Please ensure SHOPIFY_STORE_URL and SHOPIFY_ADMIN_ACCESS_TOKEN are set in your environment secrets.' 
+        }, { status: 500 });
+    }
+
     const result = await publishToShopify(product);
 
     return NextResponse.json({ success: true, shopifyId: result.product.id });
   } catch (error: any) {
     console.error('Shopify publish failed:', error);
+    // The error from publishToShopify will now be more detailed.
     return NextResponse.json({ error: error.message || 'Failed to publish to Shopify' }, { status: 500 });
   }
 }
