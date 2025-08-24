@@ -38,18 +38,19 @@ async function erpFetch<T>(endpoint: string, init?: RequestInit): Promise<T> {
 }
 
 // ERPNext utility: find first document by filters
-export async function erpFindOne(doctype: string, filters: Record<string, any>) {
-  const params = new URLSearchParams({
-    fields: JSON.stringify(["name"]),
-    limit_page_length: '1',
-    filters: JSON.stringify(filters),
-  });
-  const data = await erpFetch<{ data: Array<{ name: string }> }>(
-    `/api/resource/${encodeURIComponent(doctype)}?${params.toString()}`,
-    { method: 'GET' }
-  );
-  return data.data?.[0]?.name || null;
+export async function erpFindOne(doctype: string, filters: [string, string, any][] | Record<string, any>) {
+    const params = new URLSearchParams({
+        fields: JSON.stringify(["name"]),
+        limit_page_length: '1',
+        filters: JSON.stringify(Array.isArray(filters) ? filters : Object.entries(filters)),
+    });
+    const data = await erpFetch<{ data: Array<{ name: string }> }>(
+        `/api/resource/${encodeURIComponent(doctype)}?${params.toString()}`,
+        { method: 'GET' }
+    );
+    return data.data?.[0]?.name || null;
 }
+
 
 export async function erpCreate(doctype: string, doc: any) {
   const data = await erpFetch<{ data: any }>(`/api/resource/${encodeURIComponent(doctype)}`, {
