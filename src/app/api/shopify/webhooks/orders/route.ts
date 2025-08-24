@@ -1,9 +1,11 @@
+
 'use server';
 
 import { NextResponse } from 'next/server';
 import { verifyShopifyHmac, ShopifyOrderWebhook } from '@/lib/shopify-webhook';
-import { erpFindOne, erpCreate } from '@/lib/erpnext-server';
+import { erpFindOne, erpCreate, erpFetch } from '@/lib/erpnext-server';
 import { logEvent } from '@/lib/logging';
+import { add } from 'date-fns';
 
 // Force Node.js runtime to ensure crypto compatibility and disable caching.
 export const runtime = 'nodejs';
@@ -97,6 +99,8 @@ export async function POST(req: Request) {
       const c = await erpCreate('Customer', {
         customer_name: customerName,
         customer_type: 'Individual',
+        customer_group: 'All Customer Groups', // Default value
+        territory: 'All Territories', // Default value
         email_id: customerEmail || undefined,
         mobile_no: customerPhone || undefined,
         shopify_customer_id: payload.customer?.id ? String(payload.customer.id) : undefined,
@@ -127,21 +131,13 @@ export async function POST(req: Request) {
 
     const billingAddressName = await ensureAddress('Billing', payload.billing_address);
     const shippingAddressName = await ensureAddress('Shipping', payload.shipping_address);
-
-    // 3) Idempotent Sales Order creation
-    const existingSO = await erpFindOne('Sales Order', [['shopify_order_id', '=', shopifyOrderId]]);
-    if (existingSO) {
-      const message = `Webhook ignored: Sales Order for Shopify Order ID ${shopifyOrderId} already exists (${existingSO}).`;
-      await logEvent({ level: 'info', message, details: { webhookId, shopifyOrderId, erpnextSOName: existingSO } });
-      return NextResponse.json({ ok: true, message, sales_order: existingSO });
-    }
-
-    // 4) Build SO items with fallback for item creation
-    const items = [];
+    
+    // 3) Build SO items with fallback for item creation
+    const orderItems = [];
     for (const li of payload.line_items) {
       const itemCode = li.sku || `SHOPIFY_${li.variant_id || li.product_id || li.id}`;
       await ensureItemExists(itemCode, li.title);
-      items.push({
+      orderItems.push({
         item_code: itemCode,
         item_name: li.title,
         qty: li.quantity,
@@ -149,53 +145,87 @@ export async function POST(req: Request) {
       });
     }
 
-    // 6) Create Sales Order
-    const salesOrder = await erpCreate('Sales Order', {
-      customer: customerDocName!,
-      currency: payload.currency || 'EUR',
-      transaction_date: payload.created_at?.slice(0, 10),
-      po_no: payload.name,
-      shopify_order_id: shopifyOrderId,
-      customer_address: billingAddressName,
-      shipping_address_name: shippingAddressName,
-      items,
-    });
+    // 4) Idempotent Sales Order Management
+    let salesOrderName = await erpFindOne('Sales Order', [['shopify_order_id', '=', shopifyOrderId]]);
 
-    // 7) Handle Paid Status
+    if (!salesOrderName) {
+        const transactionDate = payload.created_at?.slice(0, 10) || new Date().toISOString().slice(0,10);
+        const deliveryDate = add(new Date(transactionDate), { days: 3 }).toISOString().slice(0,10);
+        
+        const salesOrder = await erpCreate('Sales Order', {
+            customer: customerDocName!,
+            currency: payload.currency || 'EUR',
+            transaction_date: transactionDate,
+            delivery_date: deliveryDate,
+            po_no: payload.name,
+            shopify_order_id: shopifyOrderId,
+            customer_address: billingAddressName,
+            shipping_address_name: shippingAddressName,
+            items: orderItems,
+        });
+        salesOrderName = salesOrder.name;
+         await logEvent({
+            level: 'success',
+            message: `Created Sales Order ${salesOrderName} for Shopify Order ${payload.name}.`,
+            details: { webhookId, shopifyOrderId, erpnextSOName: salesOrderName },
+        });
+    } else {
+         await logEvent({
+            level: 'info',
+            message: `Sales Order ${salesOrderName} already exists for Shopify Order ${payload.name}. Skipping SO creation.`,
+            details: { webhookId, shopifyOrderId, erpnextSOName: salesOrderName },
+        });
+    }
+    
+    const soDetails = await erpFetch<{ data: { items: any[] } }>(`/api/resource/Sales%20Order/${salesOrderName}`);
+    const lineIdByItemCode = Object.fromEntries(
+        soDetails.data.items.map((it: any) => [it.item_code, it.name])
+    );
+    const itemsForDocs = orderItems.map(it => ({
+        ...it,
+        against_sales_order: salesOrderName,
+        so_detail: lineIdByItemCode[it.item_code],
+    }));
+
+    // 5) Handle Paid Status -> Create Sales Invoice
     if ((payload.financial_status || '').toLowerCase() === 'paid') {
       const existingSI = await erpFindOne('Sales Invoice', [['shopify_order_id', '=', shopifyOrderId]]);
       if(!existingSI) {
-        await erpCreate('Sales Invoice', {
+        const si = await erpCreate('Sales Invoice', {
           customer: customerDocName!,
           currency: payload.currency || 'EUR',
-          against_sales_order: salesOrder.name,
+          against_sales_order: salesOrderName,
           shopify_order_id: shopifyOrderId,
-          items: items.map(it => ({ ...it, against_sales_order: salesOrder.name, so_detail: `${salesOrder.name}-${it.item_code}` })),
+          items: itemsForDocs,
+        });
+         await logEvent({
+            level: 'success',
+            message: `Created Sales Invoice ${si.name} for paid Shopify Order ${payload.name}.`,
+            details: { webhookId, shopifyOrderId, erpnextSOName: salesOrderName, erpnextSIName: si.name },
         });
       }
     }
 
-    // 8) Handle Fulfilled Status
+    // 6) Handle Fulfilled Status -> Create Delivery Note
     if ((payload.fulfillment_status || '').toLowerCase() === 'fulfilled') {
       const existingDN = await erpFindOne('Delivery Note', [['shopify_order_id', '=', shopifyOrderId]]);
        if(!existingDN) {
-        await erpCreate('Delivery Note', {
+        const dn = await erpCreate('Delivery Note', {
           customer: customerDocName!,
-          against_sales_order: salesOrder.name,
+          against_sales_order: salesOrderName,
           currency: payload.currency || 'EUR',
           shopify_order_id: shopifyOrderId,
-          items: items.map(it => ({ ...it, against_sales_order: salesOrder.name, so_detail: `${salesOrder.name}-${it.item_code}` })),
+          items: itemsForDocs,
+        });
+        await logEvent({
+            level: 'success',
+            message: `Created Delivery Note ${dn.name} for fulfilled Shopify Order ${payload.name}.`,
+            details: { webhookId, shopifyOrderId, erpnextSOName: salesOrderName, erpnextDNName: dn.name },
         });
        }
     }
     
-    await logEvent({
-      level: 'success',
-      message: `Successfully processed order ${payload.name} and created Sales Order ${salesOrder.name}.`,
-      details: { webhookId, shopifyOrderId, erpnextSOName: salesOrder.name },
-    });
-
-    return NextResponse.json({ ok: true, sales_order: salesOrder.name, topic });
+    return NextResponse.json({ ok: true, sales_order: salesOrderName, topic });
   } catch (err: any) {
     console.error('Shopify->ERPNext webhook error:', err.message, err.stack);
     await logEvent({
