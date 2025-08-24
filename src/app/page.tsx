@@ -485,7 +485,13 @@ function DashboardClient() {
 
             const result = await response.json();
             if (!response.ok) {
-                throw new Error(result.error || 'An unknown error occurred during export.');
+                // Instead of throwing an error, show a toast.
+                toast({
+                    variant: 'destructive',
+                    title: `ERP Export Failed`,
+                    description: result.error || 'An unknown error occurred during export.',
+                });
+                return;
             }
 
             if (response.status === 207) { // Multi-Status for partial success
