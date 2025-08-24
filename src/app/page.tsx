@@ -96,7 +96,7 @@ const migrateImages = (images: (string | ProductImage)[]): ProductImage[] => {
 
 function DashboardClient() {
   const [products, setProducts] = React.useState<Product[]>([]);
-  const [isSheetOpen, setIsSheetOpen] React.useState(false);
+  const [isSheetOpen, setIsSheetOpen] = React.useState(false);
   const [isBulkEditDialogOpen, setIsBulkEditDialogOpen] = React.useState(false);
   const [selectedProduct, setSelectedProduct] = React.useState<Product | null>(null);
   const [isLoading, setIsLoading] = React.useState(true);
