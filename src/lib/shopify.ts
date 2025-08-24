@@ -133,7 +133,7 @@ export async function publishToShopify(product: Product): Promise<any> {
                     taxable: true,
                 }
             ],
-            product_category: product.category ? { product_taxonomy_node_id: product.category } : undefined,
+            // product_category is removed to avoid potential issues
         }
     };
     

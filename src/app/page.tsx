@@ -56,7 +56,6 @@ import { useToast } from '@/hooks/use-toast';
 import { ProductForm } from '@/components/product-form';
 import { BulkEditForm } from '@/components/bulk-edit-form';
 import { useSelectionStore } from '@/stores/selection-store';
-import { exportProductsToERPNext } from '@/lib/erpnext';
 import { SelectedProducts } from '@/components/selected-products';
 
 const EnvBadge = () => {
@@ -460,59 +459,60 @@ function DashboardClient() {
   
  const handleErpAction = async (action: 'import' | 'update' | 'export') => {
     setIsErpLoading(true);
-    const productsToExport = products.filter(p => selectedIds.has(p.id));
-
+    
     try {
         if (action === 'export') {
+            const productsToExport = products.filter(p => selectedIds.has(p.id));
             if (productsToExport.length === 0) {
                 toast({
                     variant: 'destructive',
                     title: 'Export Canceled',
                     description: 'Please select at least one product to export to ERPNext.',
                 });
+                setIsErpLoading(false);
                 return;
             }
-            await exportProductsToERPNext(
-                (loading) => setIsErpLoading(loading),
-                productsToExport
-            );
-            return; 
+
+            const response = await fetch('/api/erpnext/export', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ productsToExport }),
+            });
+
+            const result = await response.json();
+            if (!response.ok) {
+                throw new Error(result.error || 'An unknown error occurred during export.');
+            }
+
+            if (response.status === 207) { // Multi-Status for partial success
+                 toast({
+                    variant: 'destructive',
+                    title: 'ERP Export Partially Failed',
+                    description: `${result.message} Errors: ${result.errors.join(', ')}`,
+                });
+            } else {
+                toast({
+                    title: 'ERP Export Successful',
+                    description: result.message,
+                });
+            }
+            clearSelection();
+            return;
         }
 
         if (action === 'import') {
-            let allItems: any[] = [];
-            const pageSize = 100;
-            let start = 0;
-            let hasMore = true;
+            const response = await fetch('/api/proxy-erpnext', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ endpoint: `/api/resource/Item?fields=["name","item_code","item_name","standard_rate","image","description","modified"]&limit_page_length=999`, method: 'GET' }),
+            });
 
-            while (hasMore) {
-                const endpoint = `/api/resource/Item?fields=["name","item_code","item_name","standard_rate","image","description","modified"]&limit_page_length=${pageSize}&limit_start=${start}`;
-                const response = await fetch('/api/proxy-erpnext', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ endpoint, method: 'GET' }),
-                });
-
-                 if (!response.ok) {
-                    // Try to parse the JSON error body from the proxy
-                    try {
-                        const errorBody = await response.json();
-                        throw new Error(errorBody.error || `Import failed with status ${response.status}`);
-                    } catch (e) {
-                        // Fallback if the body isn't JSON or another error occurs
-                        throw new Error(`Import request failed with status ${response.status}`);
-                    }
-                }
-
-                const result = await response.json();
-                if (result.data && result.data.length > 0) {
-                    allItems = allItems.concat(result.data);
-                    start += pageSize;
-                } else {
-                    hasMore = false;
-                }
+            const result = await response.json();
+            if (!response.ok) {
+                throw new Error(result.error || `Import request failed with status ${response.status}`);
             }
-
+            
+            const allItems = result.data || [];
             if (allItems.length > 0) {
                 const newProducts: Product[] = allItems.map((item: any) => ({
                     id: String(item.name),
@@ -753,5 +753,3 @@ function DashboardClient() {
 export default function Dashboard() {
     return <DashboardClient />;
 }
-
-    
