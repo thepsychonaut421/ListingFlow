@@ -42,7 +42,7 @@ export async function erpFindOne(doctype: string, filters: [string, string, any]
     const params = new URLSearchParams({
         fields: JSON.stringify(["name"]),
         limit_page_length: '1',
-        filters: JSON.stringify(Array.isArray(filters) ? filters : Object.entries(filters)),
+        filters: JSON.stringify(Array.isArray(filters) ? filters : Object.entries(filters).map(([key, value]) => [key, '=', value])),
     });
     const data = await erpFetch<{ data: Array<{ name: string }> }>(
         `/api/resource/${encodeURIComponent(doctype)}?${params.toString()}`,

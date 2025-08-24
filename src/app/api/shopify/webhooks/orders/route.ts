@@ -98,7 +98,7 @@ export async function POST(req: Request) {
     const shippingAddressName = await ensureAddress('Shipping', payload.shipping_address);
 
     // 3) Idempotent Sales Order creation
-    const existingSO = await erpFindOne('Sales Order', { shopify_order_id: shopifyOrderId });
+    const existingSO = await erpFindOne('Sales Order', [['shopify_order_id', '=', shopifyOrderId]]);
     if (existingSO) {
       const message = `Webhook ignored: Sales Order for Shopify Order ID ${shopifyOrderId} already exists (${existingSO}).`;
       await logEvent({ level: 'info', message, details: { webhookId, shopifyOrderId, erpnextSOName: existingSO } });
@@ -127,7 +127,7 @@ export async function POST(req: Request) {
 
     // 7) Handle Paid Status
     if ((payload.financial_status || '').toLowerCase() === 'paid') {
-      const existingSI = await erpFindOne('Sales Invoice', { shopify_order_id: shopifyOrderId });
+      const existingSI = await erpFindOne('Sales Invoice', [['shopify_order_id', '=', shopifyOrderId]]);
       if(!existingSI) {
         await erpCreate('Sales Invoice', {
           customer: customerDocName!,
@@ -141,7 +141,7 @@ export async function POST(req: Request) {
 
     // 8) Handle Fulfilled Status
     if ((payload.fulfillment_status || '').toLowerCase() === 'fulfilled') {
-      const existingDN = await erpFindOne('Delivery Note', { shopify_order_id: shopifyOrderId });
+      const existingDN = await erpFindOne('Delivery Note', [['shopify_order_id', '=', shopifyOrderId]]);
        if(!existingDN) {
         await erpCreate('Delivery Note', {
           customer: customerDocName!,
