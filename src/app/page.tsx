@@ -15,6 +15,7 @@ import {
   Loader2,
   MoreVertical,
   Server,
+  ChevronDown,
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -46,6 +47,10 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
+  DropdownMenuPortal,
 } from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
 import type { Product, ProductImage } from '@/lib/types';
@@ -103,8 +108,9 @@ function DashboardClient() {
   const [selectedProduct, setSelectedProduct] = React.useState<Product | null>(null);
   const [isLoading, setIsLoading] = React.useState(true);
   const [isErpLoading, setIsErpLoading] = React.useState(false);
-  const [isPublishing, setIsPublishing] = React.useState(false);
+  const [isPublishing, setIsPublishing] = React.useState<string | false>(false);
   const [generatingProductId, setGeneratingProductId] = React.useState<string | null>(null);
+  const [shopifyStores, setShopifyStores] = React.useState<string[]>([]);
   const { toast } = useToast();
   const router = useRouter();
 
@@ -116,6 +122,22 @@ function DashboardClient() {
   const selectedProducts = React.useMemo(() => {
     return products.filter(p => selectedIds.has(p.id));
   }, [products, selectedIds]);
+
+  React.useEffect(() => {
+    // Fetch available Shopify stores on component mount
+    const fetchStores = async () => {
+        try {
+            const res = await fetch('/api/shopify/stores');
+            if (res.ok) {
+                const data = await res.json();
+                setShopifyStores(data.stores || []);
+            }
+        } catch (error) {
+            console.error("Failed to fetch Shopify stores", error);
+        }
+    };
+    fetchStores();
+  }, []);
 
   React.useEffect(() => {
     try {
@@ -366,13 +388,13 @@ function DashboardClient() {
     }
   };
 
-  const handlePublishToShopify = async (product: Product) => {
+  const handlePublishToShopify = async (product: Product, storeName: string) => {
     setGeneratingProductId(product.id);
     try {
       const res = await fetch('/api/shopify/publish', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(product),
+        body: JSON.stringify({ product, storeName }),
       });
 
       const result = await res.json();
@@ -382,10 +404,10 @@ function DashboardClient() {
 
       toast({
         title: 'Published to Shopify!',
-        description: `"${product.name}" is now live on Shopify.`,
+        description: `"${product.name}" is now live on ${storeName}.`,
       });
     } catch (error: any) {
-      console.error('Failed to publish to Shopify', error);
+      console.error(`Failed to publish to Shopify store ${storeName}`, error);
       toast({
         variant: 'destructive',
         title: 'Shopify Publish Failed',
@@ -396,7 +418,7 @@ function DashboardClient() {
     }
   };
   
-  const handleBulkPublishToShopify = async () => {
+  const handleBulkPublishToShopify = async (storeName: string) => {
     if (selectedProductIds.length === 0) {
       toast({
         variant: 'destructive',
@@ -406,7 +428,7 @@ function DashboardClient() {
       return;
     }
 
-    setIsPublishing(true);
+    setIsPublishing(storeName);
     let successCount = 0;
     const errorMessages: string[] = [];
 
@@ -418,7 +440,7 @@ function DashboardClient() {
         const res = await fetch('/api/shopify/publish', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(product),
+          body: JSON.stringify({ product, storeName }),
         });
         const result = await res.json();
         if (!res.ok) {
@@ -437,13 +459,13 @@ function DashboardClient() {
       toast({
         variant: 'destructive',
         title: 'Shopify Publish Partially Failed',
-        description: `${successCount} products published. Errors: ${errorMessages.join('; ')}`,
+        description: `${successCount} products published to ${storeName}. Errors: ${errorMessages.join('; ')}`,
         duration: 9000,
       });
     } else {
       toast({
         title: 'Bulk Publish Successful!',
-        description: `${successCount} products have been published to Shopify.`,
+        description: `${successCount} products have been published to ${storeName}.`,
       });
     }
     clearSelection();
@@ -484,13 +506,13 @@ function DashboardClient() {
             });
 
             const result = await response.json();
-            if (!response.ok) {
-                // Instead of throwing an error, show a toast.
+            if (!response.ok && response.status !== 207) {
                 toast({
                     variant: 'destructive',
                     title: `ERP Export Failed`,
                     description: result.error || 'An unknown error occurred during export.',
                 });
+                setIsErpLoading(false);
                 return;
             }
 
@@ -507,6 +529,7 @@ function DashboardClient() {
                 });
             }
             clearSelection();
+            setIsErpLoading(false);
             return;
         }
 
@@ -519,12 +542,12 @@ function DashboardClient() {
 
             const result = await response.json();
             if (!response.ok) {
-                // Instead of throwing an error, show a toast.
                 toast({
                     variant: 'destructive',
-                    title: `ERP ${action.charAt(0).toUpperCase() + action.slice(1)} Failed`,
+                    title: `ERP Import Failed`,
                     description: result.error || `Import request failed with status ${response.status}`,
                 });
+                setIsErpLoading(false);
                 return;
             }
             
@@ -594,7 +617,8 @@ function DashboardClient() {
       onPublishToShopify: handlePublishToShopify,
       generatingProductId,
       onUpdateProduct: handleUpdateProduct,
-  }), [generatingProductId, products]);
+      shopifyStores: shopifyStores,
+  }), [generatingProductId, products, shopifyStores]);
 
   if (isLoading) {
     return (
@@ -650,10 +674,27 @@ function DashboardClient() {
                         </Button>
                     </div>
                 )}
-                 <Button size="sm" variant="outline" className="h-8 gap-1" onClick={handleBulkPublishToShopify} disabled={selectedProductIds.length === 0 || isPublishing}>
-                   {isPublishing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
-                  <span>Publish to Shopify ({selectedProductIds.length})</span>
-                </Button>
+                 <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <Button size="sm" variant="outline" className="h-8 gap-1" disabled={selectedProductIds.length === 0 || !!isPublishing}>
+                            {isPublishing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
+                            <span>Publish to Shopify ({selectedProductIds.length})</span>
+                            <ChevronDown className="h-3.5 w-3.5" />
+                        </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                        {shopifyStores.length > 0 ? (
+                            shopifyStores.map(storeName => (
+                                <DropdownMenuItem key={storeName} onClick={() => handleBulkPublishToShopify(storeName)} disabled={!!isPublishing}>
+                                    {isPublishing === storeName ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
+                                    <span>{storeName}</span>
+                                </DropdownMenuItem>
+                            ))
+                        ) : (
+                            <DropdownMenuItem disabled>No stores configured</DropdownMenuItem>
+                        )}
+                    </DropdownMenuContent>
+                 </DropdownMenu>
                  <Button size="sm" variant="outline" className="h-8 gap-1" onClick={handleExportToCSV} disabled={selectedProductIds.length === 0}>
                   <File className="h-3.5 w-3.5" />
                   <span>Export CSV ({selectedProductIds.length})</span>
@@ -737,10 +778,27 @@ function DashboardClient() {
                                 </DropdownMenuItem>
                             </>
                         )}
-                        <DropdownMenuItem onClick={handleBulkPublishToShopify} disabled={selectedProductIds.length === 0 || isPublishing}>
-                            {isPublishing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
-                            <span>Publish to Shopify ({selectedProductIds.length})</span>
-                        </DropdownMenuItem>
+                        <DropdownMenuSub>
+                            <DropdownMenuSubTrigger disabled={selectedProductIds.length === 0 || !!isPublishing}>
+                                 <Send className="mr-2 h-4 w-4" />
+                                 <span>Publish to Shopify</span>
+                            </DropdownMenuSubTrigger>
+                            <DropdownMenuPortal>
+                                <DropdownMenuSubContent>
+                                    {shopifyStores.length > 0 ? (
+                                        shopifyStores.map(storeName => (
+                                            <DropdownMenuItem key={storeName} onClick={() => handleBulkPublishToShopify(storeName)} disabled={!!isPublishing}>
+                                                {isPublishing === storeName ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
+                                                <span>{storeName}</span>
+                                            </DropdownMenuItem>
+                                        ))
+                                    ) : (
+                                        <DropdownMenuItem disabled>No stores configured</DropdownMenuItem>
+                                    )}
+                                </DropdownMenuSubContent>
+                            </DropdownMenuPortal>
+                        </DropdownMenuSub>
+
                         <DropdownMenuItem onClick={handleExportToCSV} disabled={selectedProductIds.length === 0}>
                             <File className="mr-2 h-4 w-4" />
                             <span>Export CSV ({selectedProductIds.length})</span>

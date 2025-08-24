@@ -6,26 +6,20 @@ import { publishToShopify } from '@/lib/shopify';
 
 export async function POST(req: Request) {
   try {
-    const product = (await req.json()) as Product;
+    const { product, storeName } = (await req.json()) as { product: Product, storeName: string };
+    
     if (!product) {
       return NextResponse.json({ error: 'Product data is required.' }, { status: 400 });
     }
-
-    // Explicit check for environment variables at the start of the request.
-    // This ensures that we fail fast with a clear error message if secrets are not configured.
-    if (!process.env.SHOPIFY_STORE_URL || !process.env.SHOPIFY_ADMIN_ACCESS_TOKEN) {
-        console.error('Shopify credentials missing from environment variables.');
-        return NextResponse.json({ 
-            error: 'Shopify configuration is missing on the server. Please ensure SHOPIFY_STORE_URL and SHOPIFY_ADMIN_ACCESS_TOKEN are set in your environment secrets.' 
-        }, { status: 500 });
+    if (!storeName) {
+      return NextResponse.json({ error: 'Shopify store name is required.' }, { status: 400 });
     }
 
-    const result = await publishToShopify(product);
+    const result = await publishToShopify(product, storeName);
 
-    return NextResponse.json({ success: true, shopifyId: result.product.id });
+    return NextResponse.json({ success: true, shopifyId: result.product.id, storeName });
   } catch (error: any) {
-    console.error('Shopify publish failed:', error);
-    // The error from publishToShopify will now be more detailed.
+    console.error(`Shopify publish failed for store:`, error);
     return NextResponse.json({ error: error.message || 'Failed to publish to Shopify' }, { status: 500 });
   }
 }

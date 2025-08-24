@@ -32,9 +32,10 @@ type GetColumnsProps = {
   onCopyDescription: (product: Product, source: 'otto' | 'ebay') => void;
   onExtractTechSpecs: (product: Product) => void;
   onSendToEbay: (product: Product) => void;
-  onPublishToShopify: (product: Product) => void;
+  onPublishToShopify: (product: Product, storeName: string) => void;
   generatingProductId: string | null;
   onUpdateProduct: (id: string, data: Partial<Product>) => void;
+  shopifyStores: string[];
 };
 
 const formatCurrency = (amount: number) => {
@@ -56,7 +57,7 @@ const statusVariantMap: Record<string, 'default' | 'secondary' | 'destructive' |
 };
 
 
-export const getColumns = ({ onEdit, onDelete, onGenerate, onCopyDescription, onExtractTechSpecs, onSendToEbay, onPublishToShopify, generatingProductId, onUpdateProduct }: GetColumnsProps): ColumnDef<Product>[] => [
+export const getColumns = ({ onEdit, onDelete, onGenerate, onCopyDescription, onExtractTechSpecs, onSendToEbay, onPublishToShopify, generatingProductId, onUpdateProduct, shopifyStores }: GetColumnsProps): ColumnDef<Product>[] => [
   {
     id: 'select',
     header: ({ table }) => (
@@ -231,10 +232,25 @@ export const getColumns = ({ onEdit, onDelete, onGenerate, onCopyDescription, on
                         <Send className="mr-2 h-4 w-4" />
                         <span>Send to eBay Drafts</span>
                     </DropdownMenuItem>
-                     <DropdownMenuItem onClick={() => onPublishToShopify(product)}>
-                        <Send className="mr-2 h-4 w-4" />
-                        <span>Publish to Shopify</span>
-                    </DropdownMenuItem>
+                     <DropdownMenuSub>
+                        <DropdownMenuSubTrigger>
+                           <Send className="mr-2 h-4 w-4" />
+                           <span>Publish to Shopify</span>
+                        </DropdownMenuSubTrigger>
+                        <DropdownMenuPortal>
+                           <DropdownMenuSubContent>
+                                {shopifyStores.length > 0 ? (
+                                    shopifyStores.map(store => (
+                                        <DropdownMenuItem key={store} onClick={() => onPublishToShopify(product, store)}>
+                                            <span>{store}</span>
+                                        </DropdownMenuItem>
+                                    ))
+                                ) : (
+                                    <DropdownMenuItem disabled>No stores configured</DropdownMenuItem>
+                                )}
+                           </DropdownMenuSubContent>
+                        </DropdownMenuPortal>
+                     </DropdownMenuSub>
                     <DropdownMenuSeparator />
                     <DropdownMenuGroup>
                         <DropdownMenuLabel>AI Tools</DropdownMenuLabel>

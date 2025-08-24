@@ -27,12 +27,8 @@ env:
     secret: ERPNEXT_API_SECRET
     availability:
       - RUNTIME
-  - variable: SHOPIFY_STORE_URL
-    secret: SHOPIFY_STORE_URL
-    availability:
-      - RUNTIME
-  - variable: SHOPIFY_ADMIN_ACCESS_TOKEN
-    secret: SHOPIFY_ADMIN_ACCESS_TOKEN
+  - variable: SHOPIFY_STORES
+    secret: SHOPIFY_STORES
     availability:
       - RUNTIME
   - variable: NEXT_PUBLIC_ENV
