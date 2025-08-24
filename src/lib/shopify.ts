@@ -137,7 +137,7 @@ export async function publishToShopify(product: Product): Promise<any> {
         }
     };
     
-    const endpoint = `${shopUrl.replace(/\/$/, '')}/admin/api/2024-04/products.json`;
+    const endpoint = `${shopUrl.replace(/\/$/, '')}/admin/api/2024-07/products.json`;
 
     const response = await fetch(endpoint, {
         method: 'POST',
