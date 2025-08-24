@@ -11,23 +11,23 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'No products provided for export.' }, { status: 400 });
     }
 
-    // The 'setLoading' function is a client-side state setter and cannot be used here.
-    // The logic within exportProductsToERPNext that uses it needs to be adapted or removed if it's only for UI.
-    // For now, we pass a dummy function.
+    // This is a server context, so a dummy setLoading is fine.
     const setLoading = (_: boolean) => {};
     const { successCount, errorMessages } = await exportProductsToERPNext(setLoading, productsToExport);
 
     if (errorMessages.length > 0) {
+      // If there are errors, even partial success is a multi-status event.
       return NextResponse.json({ 
         message: `Export partially complete. Successfully updated ${successCount}/${productsToExport.length} products.`,
         errors: errorMessages 
       }, { status: 207 }); // 207 Multi-Status
     }
 
-    return NextResponse.json({ success: true, message: `Successfully updated ${successCount} products in ERPNext.` });
+    return NextResponse.json({ message: `Successfully updated ${successCount} products in ERPNext.` });
 
   } catch (error: any) {
     console.error('ERPNext export API route failed:', error);
+    // Ensure that even unexpected errors return a JSON response
     return NextResponse.json({ error: error.message || 'Failed to export to ERPNext' }, { status: 500 });
   }
 }
