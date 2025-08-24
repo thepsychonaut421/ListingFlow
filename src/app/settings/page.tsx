@@ -57,7 +57,7 @@ function SettingsClient() {
         <CardHeader>
           <CardTitle>Environment Variables</CardTitle>
           <CardDescription>
-           Configuration for external services are managed via environment variables. For local development, create a file named <strong>.env.local</strong> in your project root and add the same values you've stored in Firebase Secret Manager.
+           Configuration for external services are managed via environment variables. For local development, create a file named <strong>.env.local</strong> in your project root and add the same values you've stored in Firebase Secret Manager for production.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -77,10 +77,12 @@ NEXT_PUBLIC_ENV="dev"`}
              <h3 className="mt-6 mb-2 font-semibold">Shopify Credentials</h3>
              <pre className="mt-2 p-2 bg-muted rounded-md text-sm font-mono overflow-x-auto">
 {`# .env.local (for local development)
-# A JSON array of store objects. Each object needs a unique "name", the "url", and the "token".
+# A JSON array of store objects for publishing products. 
+# Each object needs a unique "name", the "url", and the "token".
 SHOPIFY_STORES='[{"name": "My Main Store", "url": "your-store-name.myshopify.com", "token": "shpat_..."}, {"name": "Test Store", "url": "your-test-store.myshopify.com", "token": "shpat_..."}]'
 
 # Secret for verifying webhooks from the "Shop <-> ERPNext" app
+# This is the "API secret key", NOT the Admin API access token.
 SHOPIFY_WEBHOOK_SECRET="your_webhook_secret_key_here"`}
             </pre>
              <p className="mt-2 text-sm text-muted-foreground">

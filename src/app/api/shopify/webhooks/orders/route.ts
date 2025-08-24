@@ -5,7 +5,38 @@ import { verifyShopifyHmac, ShopifyOrderWebhook } from '@/lib/shopify-webhook';
 import { erpFindOne, erpCreate } from '@/lib/erpnext-server';
 import { logEvent } from '@/lib/logging';
 
+// Force Node.js runtime to ensure crypto compatibility and disable caching.
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+
 const SHOPIFY_WEBHOOK_SECRET = process.env.SHOPIFY_WEBHOOK_SECRET || '';
+
+/**
+ * Fallback function to ensure an item exists in ERPNext before creating a Sales Order.
+ * If the item does not exist, it's created automatically.
+ */
+async function ensureItemExists(code: string, name: string) {
+  const existing = await erpFindOne('Item', [['item_code', '=', code]]);
+  if (existing) {
+    return existing;
+  }
+  
+  await logEvent({
+    level: 'info',
+    message: `Item with SKU "${code}" not found. Creating it automatically.`,
+    details: { item_code: code, item_name: name },
+  });
+
+  const doc = await erpCreate('Item', {
+    item_code: code,
+    item_name: name,
+    item_group: 'All Item Groups', // Or a more specific default
+    stock_uom: 'Nos',
+    is_sales_item: 1,
+  });
+  return doc.name;
+}
+
 
 export async function POST(req: Request) {
   const webhookId = `wh_${Date.now()}`; // Unique ID for this webhook invocation
@@ -105,13 +136,18 @@ export async function POST(req: Request) {
       return NextResponse.json({ ok: true, message, sales_order: existingSO });
     }
 
-    // 4) Build SO items
-    const items = payload.line_items.map(li => ({
-      item_code: li.sku || `SHOPIFY_${li.variant_id || li.product_id || li.id}`,
-      item_name: li.title,
-      qty: li.quantity,
-      rate: parseFloat(li.price || '0'),
-    }));
+    // 4) Build SO items with fallback for item creation
+    const items = [];
+    for (const li of payload.line_items) {
+      const itemCode = li.sku || `SHOPIFY_${li.variant_id || li.product_id || li.id}`;
+      await ensureItemExists(itemCode, li.title);
+      items.push({
+        item_code: itemCode,
+        item_name: li.title,
+        qty: li.quantity,
+        rate: parseFloat(li.price || '0'),
+      });
+    }
 
     // 6) Create Sales Order
     const salesOrder = await erpCreate('Sales Order', {
