@@ -513,7 +513,13 @@ function DashboardClient() {
 
             const result = await response.json();
             if (!response.ok) {
-                throw new Error(result.error || `Import request failed with status ${response.status}`);
+                // Instead of throwing an error, show a toast.
+                toast({
+                    variant: 'destructive',
+                    title: `ERP ${action.charAt(0).toUpperCase() + action.slice(1)} Failed`,
+                    description: result.error || `Import request failed with status ${response.status}`,
+                });
+                return;
             }
             
             const allItems = result.data || [];
